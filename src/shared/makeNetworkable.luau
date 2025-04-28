@@ -3,18 +3,6 @@ type NetworkableCFrame = {
 	Rotation: { x: number, y: number, z: number },
 }
 
-local SERVER_TIME = workspace:GetServerTimeNow()
-local RunService = game:GetService("RunService")
-
-if RunService:IsClient() then
-	script:GetAttributeChangedSignal("ServerTime"):Connect(function()
-		SERVER_TIME = script:GetAttribute("ServerTime") or workspace:GetServerTimeNow()
-	end)
-	SERVER_TIME = script:GetAttribute("ServerTime") or SERVER_TIME
-else
-	script:SetAttribute("ServerTime", SERVER_TIME)
-end
-
 local function MakeNetworkable(CFrame: CFrame): NetworkableCFrame
 	local position = CFrame.Position
 	--AxisAngles very simple way to think about quaternions
@@ -65,13 +53,8 @@ local function DecodeCFrame(data: NetworkableCFrame): CFrame
 	return CFrame.new(position.X, position.Y, position.Z, x, y, z, w)
 end
 
-local function EncodeTime(time: number): number
-	return time - SERVER_TIME
-end
-
 return {
 	MakeNetworkable = MakeNetworkable,
 	NetworkableCFrameTable = NetworkableCFrameTable,
-	DecodeCFrame = DecodeCFrame,
-	EncodeTime = EncodeTime,
+	DecodeCFrame = DecodeCFrame
 }

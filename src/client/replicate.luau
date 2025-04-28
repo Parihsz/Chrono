@@ -8,6 +8,7 @@ local Events = require(ReplicatedStorage.Events.client)
 local InterpolationBuffer = require(script.Parent.interpolationBuffer)
 local ClientRig = require(ReplicatedStorage.Shared.rigs.createCharacter)
 local Networkables = require(ReplicatedStorage.Shared.makeNetworkable)
+local RenderCache = require(script.Parent.RenderCache)
 
 local idMap = {} :: {
 	[number]: {
@@ -24,6 +25,11 @@ local playerTickRates = {} :: { [number]: number }
 
 local bufferTracker = InterpolationBuffer(Config.MIN_BUFFER, Config.MAX_BUFFER, 0.1)
 
+RenderCache.Init({
+	playerTickRates = playerTickRates,
+	bufferTracker = bufferTracker,
+})
+
 local networkedCFrame = nil
 local playerNetworkId = 300
 
@@ -33,12 +39,14 @@ end)
 
 Events.ServerReplicateCFrame.On(function(serverData)
 	local clientLastTicks = serverData.timeStamps
+	RenderCache.OnSnapshotUpdate(clientLastTicks)
+
 	for id, serverTime in clientLastTicks do
 		bufferTracker.RegisterPacket(id, serverTime, playerTickRates[id] or Config.TICK_RATE)
 	end
 
 	local CFrames = serverData.CFrames
-	local snapshotTime = Networkables.EncodeTime(workspace:GetServerTimeNow())
+	local snapshotTime = os.clock()
 
 	for id, CFrame in CFrames do
 		local entry = idMap[id]
@@ -66,9 +74,7 @@ local function PlayerAdded(player: Player, id: number)
 
 	local registeredSnapshots = Snapshots.RegisterPlayer(player)
 
-	local initialRenderTime = Networkables.EncodeTime(
-		workspace:GetServerTimeNow() - bufferTracker.GetBuffer(id, playerTickRates[id] or Config.TICK_RATE)
-	)
+	local initialRenderTime = os.clock() - bufferTracker.GetBuffer(id, playerTickRates[id] or Config.TICK_RATE)
 
 	local character = player.Character or player.CharacterAdded:Wait()
 	local humanoidRootPart = character:WaitForChild("HumanoidRootPart") :: BasePart
@@ -119,8 +125,7 @@ local lastSent = os.clock()
 local lastSentCFrame = CFrame.new()
 
 RunService.PreRender:Connect(function(deltaTime: number)
-	--The target render time is what we will be aiming for - by retrieving the dynamic interpolation buffer and subtracting it, we can pretty accurately reflect the actual state at the world timestamp.
-	local globalServerTime = workspace:GetServerTimeNow()
+	RenderCache.Update(deltaTime)
 
 	for id, data in idMap do
 		if not data.character or data.character == player.Character then
@@ -137,10 +142,7 @@ RunService.PreRender:Connect(function(deltaTime: number)
 		--tldr, GetBuffer will by minimum return time - latency in a perfect world scenario
 		--in a game with network variations, the formula becomes time - (latency + deviationMargin + recoveryMargin)
 
-		local targetRenderTime = Networkables.EncodeTime(
-			globalServerTime - bufferTracker.GetBuffer(id, playerTickRates[id] or Config.TICK_RATE)
-		)
-
+		local targetRenderTime = RenderCache.GetTargetRenderTime(id)
 		local targetCFrame = data.snapshot:GetAt(targetRenderTime)
 
 		if targetCFrame then
@@ -180,7 +182,7 @@ RunService.PostSimulation:Connect(function()
 	-- currently sends CFrame even if player did not move due to nature of dynamic interpolation buffer (may change in the future when I think of a method)
 	local networkable = if changed then Networkables.MakeNetworkable(currentCFrame) else nil :: any
 	Events.ClientReplicateCFrame.Fire({
-		timeStamp = Networkables.EncodeTime(workspace:GetServerTimeNow()),
+		timeStamp = os.clock(),
 		CFrame = networkable,
 	})
 end)

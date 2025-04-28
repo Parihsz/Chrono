@@ -1,5 +1,3 @@
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local MakeNetworkable = require(ReplicatedStorage.Shared.makeNetworkable)
 return function(minBuffer: number, maxBuffer: number, alpha: number)
 	--average latency will be the average RTT between the client & server
 	local playerLatencies = {} :: { [number]: { averageLatency: number, deviation: number, lastLatency: number? } }
@@ -7,7 +5,7 @@ return function(minBuffer: number, maxBuffer: number, alpha: number)
 	local recovery = 0.1
 
 	local function RegisterPacket(networkId: number, serverTime: number, tickRate: number)
-		local clientNow = MakeNetworkable.EncodeTime(workspace:GetServerTimeNow())
+		local clientNow = os.clock()
 		local latency = clientNow - serverTime - tickRate * 0.5
 		if not playerLatencies[networkId] then
 			--using the difference between current and last latency, i could smooth out the deviation (the variation in latency, which correlates to packet loss)
