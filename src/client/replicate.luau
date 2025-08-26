@@ -134,11 +134,6 @@ local function UnregisterNPC(id: number): Model?
 		return nil
 	end
 
-	if not data.character then
-		warn("Tried to unregister NPC that hasn't been registered yet")
-		return nil
-	end
-
 	RenderCache.Remove(id)
 
 	idMap[id] = nil
