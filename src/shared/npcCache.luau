@@ -26,6 +26,7 @@ local NpcRemoved: Signal.Signal<number, Model> = Signal.new()
 local CAMERA = Instance.new("Camera", workspace)
 CAMERA.Name = "NPCCacheCamera"
 local NPC_MODEL_CACHE
+
 if IS_SERVER then
 	NPC_MODEL_CACHE = Instance.new("Folder", ReplicatedStorage)
 	NPC_MODEL_CACHE.Name = "NPC_MODEL_CACHE"
@@ -46,10 +47,13 @@ local function ClientRegister(id, model: Model, data: { type: string, initData: 
 	clone.Name = tostring(id)
 	clone.Parent = CAMERA;
 	(clone.PrimaryPart :: any).Anchored = true
+
 	Cache[id] = clone
 	clone:PivotTo(CFrame.new(0, 1000000, 0))
+
 	ClientReplicate.RegisterClientNPC(id, clone, npcType)
 	NpcAdded:Fire(id, clone, data.initData)
+
 	NPC_MODEL_CACHE:SetAttribute(tostring(id),true) -- Mark as registered
 end
 
@@ -58,6 +62,7 @@ local function Check()
 		if not tonumber(id) or type(strData) ~= "string" then
 			continue
 		end
+
 		local data = HttpService:JSONDecode(strData)
 		local npc = NPC_MODEL_CACHE:FindFirstChild(tostring(id))
 		if data.modelType then
@@ -118,14 +123,17 @@ function Npc.Register(model: Model, npcType: string?, npcModelType: string?, aut
 		clone.Name = tostring(id)
 		clone.Parent = NPC_MODEL_CACHE
 	end
+
 	NPC_MODEL_CACHE:SetAttribute(
 		tostring(id),
 		HttpService:JSONEncode({ type = npcType, modelType = npcModelType, initData = initData })
 	) -- Could use remotes instead in the future but this works aaaaaaaaaaaaa
+	
 	if automaticUpdate then
 		AutomaticNpc[id] = model
 	end
 	NpcAdded:Fire(id, model, initData)
+	
 	return id
 end
 

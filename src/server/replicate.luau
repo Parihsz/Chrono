@@ -30,6 +30,7 @@ export type ReplicationRule = {
 	filterType: "include" | "exclude",
 	filterPlayers: {Player},
 }
+
 local idMap = {} :: {
 	[number]: {
 		player: Player?,
@@ -49,10 +50,8 @@ local lastReplicatedTimes = {} :: { [number]: number }
 local playerTickRates = {} :: { [number]: number }
 local replicators = {} :: { [number]: Model }
 
-
 local MAX_ID = 2 ^ 16 - 1
 local IncrementalFactoryUID = 0
-
 
 local function PackSnapshotData(
 	buff: buffer,
@@ -253,10 +252,12 @@ Players.PlayerRemoving:Connect(function(player)
 		if _charAdded then
 			_charAdded:Disconnect()
 		end
+
 		local _charRemoving = idMap[id]._charRemoving
 		if _charRemoving then
 			_charRemoving:Disconnect()
 		end
+
 		idMap[id] = nil
 		lastReplicatedTimes[id] = nil
 		playerIdMap[player] = nil
@@ -360,11 +361,13 @@ local function Flush(buffers:{buffer},specificPlayer:Player?)
 		buffer.copy(buff, offset, b, 0, SNAPSHOT_SIZE)
 		offset += SNAPSHOT_SIZE
 	end
+
 	if specificPlayer then
 		ServerReplicateCFrame:FireClient(specificPlayer, buff)
 	else
 		ServerReplicateCFrame:FireAllClients(buff)
 	end
+
 	Flush(buffers,specificPlayer)
 
 	return true
@@ -372,13 +375,15 @@ end
 
 RunService.PostSimulation:Connect(function(deltaTime)
 	Grid.UpdateGrid()
-
 	debug.profilebegin("ReplicateNPCs")
+	
 	local Players = game:GetService("Players"):GetPlayers()
 	local PlayerSpecific = {}
+
 	for _, player in Players do
 		PlayerSpecific[player] = {}
 	end
+
 	local AllPlayers = {}
 	for id, data in idMap do
 		local character = data.player and data.player.Character or nil
@@ -416,6 +421,7 @@ RunService.PostSimulation:Connect(function(deltaTime)
 		end
 		local buff = buffer.create(SNAPSHOT_SIZE)
 		PackSnapshotData(buff, 0, data.clientLastTick or now, Networkables.MakeYawNetworkable(cframe), id)
+		
 		local replicationRule = data.replicationRule
 		if not replicationRule or (#replicationRule.filterPlayers == 0 and replicationRule.filterType == "exclude") then
 			table.insert(AllPlayers, buff)
@@ -438,19 +444,21 @@ RunService.PostSimulation:Connect(function(deltaTime)
 				end
 			end
 		end
-		
-
 	end
 	debug.profileend()
-
 	debug.profilebegin("FlushNPCs")
+
 	Flush(AllPlayers)
+
 	debug.profileend()
 	debug.profilebegin("FlushPlayers")
+
 	for player, list in PlayerSpecific do
 		Flush(list,player)
 	end
+
 	debug.profileend()
+
 	if not Config.DISABLE_DEFAULT_REPLICATION then
 		return
 	end
@@ -469,8 +477,6 @@ RunService.PostSimulation:Connect(function(deltaTime)
 			end
 		end
 	end
-
-
 end)
 
 --Exposes a function for other scripts to get the most up to date CFrame of a player or npc

@@ -384,6 +384,7 @@ Players.PlayerRemoving:Connect(function(player)
 	initializedPlayers[player] = nil
 	local character = characters[player]
 	characters[player] = nil
+	
 	if character then
 		pcall(character.Destroy, character)
 	end

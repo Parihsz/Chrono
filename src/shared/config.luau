@@ -18,4 +18,8 @@ return {
 			BUFFER = 0.1,
 		},
 	},
+
+	--note that warnings are mostly non fatal 
+	--this will be set to false to optimize output by default, only enable if you're experiencing bugs with the system
+	SHOW_WARNINGS = false,
 }

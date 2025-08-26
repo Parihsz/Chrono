@@ -1,4 +1,5 @@
 local RenderCache = require(script.Parent.renderCache)
+local Config = require(script.Parent.Parent.shared.config)
 
 return function(minBuffer: number, maxBuffer: number, alpha: number)
 	--average latency will be the average RTT between the client & server
@@ -14,7 +15,9 @@ return function(minBuffer: number, maxBuffer: number, alpha: number)
 			RenderCache.Remove(networkId)
 			RenderCache.Add(networkId)
 
-			warn(`{networkId} latency too high, cleared cache to repredict in case of error:! {latency}`)
+			if Config.SHOW_WARNINGS then
+				warn(`{networkId} latency too high, cleared cache to repredict in case of error:! {latency}`)
+			end
 		end
 		if not playerLatencies[networkId] then
 			--using the difference between current and last latency, i could smooth out the deviation (the variation in latency, which correlates to packet loss)
