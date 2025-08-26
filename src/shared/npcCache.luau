@@ -121,7 +121,7 @@ function Npc.Register(model: Model, npcType: string?, npcModelType: string?, aut
 	NPC_MODEL_CACHE:SetAttribute(
 		tostring(id),
 		HttpService:JSONEncode({ type = npcType, modelType = npcModelType, initData = initData })
-	)
+	) -- Could use remotes instead in the future but this works aaaaaaaaaaaaa
 	if automaticUpdate then
 		AutomaticNpc[id] = model
 	end
