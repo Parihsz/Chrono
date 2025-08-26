@@ -11,14 +11,13 @@
 
 ---
 
-### `CircularSnapshot<T>`
+### `Snapshot<T>`
 
-A snapshot buffer with circular indexing and interpolation.
+A snapshot buffer with indexing and interpolation.
 
 | Field / Method                  | Type                                               | Description                                    |
 |---------------------------------|---------------------------------------------------|------------------------------------------------|
-| `cache`                         | `{ SnapshotData<T> }`                              | Internal circular buffer                       |
-| `pivotIndex`                    | `number?`                                         | 0‑indexed pivot in the circular array          |
+| `cache`                         | `{ SnapshotData<T> }`                              | Internal buffer                                 |
 | `lerp(a: T, b: T, alpha: number)` | `(T, T, number) -> T`                            | Linear interpolation function for type `T`     |
 | `Push(t, value)`                 | `(self, number, T) -> ()`                         | Inserts a snapshot at timestamp `t`            |
 | `GetLatest()`                    | `(self) -> SnapshotData<T>?`                      | Returns the most recent snapshot               |
