@@ -1,7 +1,6 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
-
 local Models = {}
 
 local ENABLED = true
@@ -22,7 +21,6 @@ Character.Archivable = true
 local Chrono = require(ReplicatedStorage.Packages.chrono)
 local NpcCache = Chrono.NpcRegistry
 local ServerChrono = Chrono.ChronoServer
-
 
 print("Starting test...")
 

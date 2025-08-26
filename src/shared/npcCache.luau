@@ -54,7 +54,7 @@ local function ClientRegister(id, model: Model, data: { type: string, initData: 
 	ClientReplicate.RegisterClientNPC(id, clone, npcType)
 	NpcAdded:Fire(id, clone, data.initData)
 
-	NPC_MODEL_CACHE:SetAttribute(tostring(id),true) -- Mark as registered
+	NPC_MODEL_CACHE:SetAttribute(tostring(id), true) -- Mark as registered
 end
 
 local function Check()
@@ -115,7 +115,7 @@ function Npc.Register(model: Model, npcType: string?, npcModelType: string?, aut
 
 	if not defaultModel then
 		if not model.Archivable then
-			warn("NPC model is not archivable:", model:GetFullName(),"Archivable will now be set to true.")
+			warn("NPC model is not archivable:", model:GetFullName(), "Archivable will now be set to true.")
 		end
 		model.Archivable = true
 		local clone = model:Clone() --// MAKE SURE Archivable is set to true
@@ -128,12 +128,12 @@ function Npc.Register(model: Model, npcType: string?, npcModelType: string?, aut
 		tostring(id),
 		HttpService:JSONEncode({ type = npcType, modelType = npcModelType, initData = initData })
 	) -- Could use remotes instead in the future but this works aaaaaaaaaaaaa
-	
+
 	if automaticUpdate then
 		AutomaticNpc[id] = model
 	end
 	NpcAdded:Fire(id, model, initData)
-	
+
 	return id
 end
 
@@ -141,7 +141,7 @@ function Npc.UnRegister(idOrModel: number | Model): Model
 	if IS_CLIENT then
 		error("UnRegister can only be called on the server.")
 	end
-	local id = type(idOrModel) == "number" and idOrModel or (idOrModel::Model):GetAttribute("NPC_ID")::any
+	local id = type(idOrModel) == "number" and idOrModel or (idOrModel :: Model):GetAttribute("NPC_ID") :: any
 	if not id then
 		error("Npc cache requires a valid NPC_ID to unregister.")
 	end

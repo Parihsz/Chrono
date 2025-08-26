@@ -28,7 +28,7 @@ local playerIdMap = {} :: { [Player]: number }
 
 export type ReplicationRule = {
 	filterType: "include" | "exclude",
-	filterPlayers: {Player},
+	filterPlayers: { Player },
 }
 
 local idMap = {} :: {
@@ -111,12 +111,12 @@ local function ReturnID(id: number)
 	table.insert(idStack, id)
 end
 
-local function GetIdFrom(input:Player|Model|number):number?
+local function GetIdFrom(input: Player | Model | number): number?
 	if typeof(input) == "Instance" then
 		if input:IsA("Player") then
 			return playerIdMap[input]
 		elseif input:IsA("Model") then
-			return input:GetAttribute("NPC_ID")::any
+			return input:GetAttribute("NPC_ID") :: any
 		end
 	elseif typeof(input) == "number" then
 		return input
@@ -348,7 +348,7 @@ local function GetTickInterval(character: Model?, id: number): number
 	return newTickRate
 end
 
-local function Flush(buffers:{buffer},specificPlayer:Player?)
+local function Flush(buffers: { buffer }, specificPlayer: Player?)
 	local count = math.min(#buffers, MAX_BATCH)
 	if count == 0 then
 		return false
@@ -357,7 +357,7 @@ local function Flush(buffers:{buffer},specificPlayer:Player?)
 	local buff = buffer.create(count * SNAPSHOT_SIZE)
 	local offset = 0
 	for i = 1, count do
-		local b:any = table.remove(buffers)
+		local b: any = table.remove(buffers)
 		buffer.copy(buff, offset, b, 0, SNAPSHOT_SIZE)
 		offset += SNAPSHOT_SIZE
 	end
@@ -368,7 +368,7 @@ local function Flush(buffers:{buffer},specificPlayer:Player?)
 		ServerReplicateCFrame:FireAllClients(buff)
 	end
 
-	Flush(buffers,specificPlayer)
+	Flush(buffers, specificPlayer)
 
 	return true
 end
@@ -376,7 +376,7 @@ end
 RunService.PostSimulation:Connect(function(deltaTime)
 	Grid.UpdateGrid()
 	debug.profilebegin("ReplicateNPCs")
-	
+
 	local players = game:GetService("Players"):GetPlayers()
 	local playerSpecific = {}
 
@@ -421,12 +421,12 @@ RunService.PostSimulation:Connect(function(deltaTime)
 		end
 		local buff = buffer.create(SNAPSHOT_SIZE)
 		PackSnapshotData(buff, 0, data.clientLastTick or now, Networkables.MakeYawNetworkable(cframe), id)
-		
+
 		local replicationRule = data.replicationRule
 		if not replicationRule or (#replicationRule.filterPlayers == 0 and replicationRule.filterType == "exclude") then
 			table.insert(allPlayers, buff)
 		else
-			if replicationRule.filterType ==  'include' then
+			if replicationRule.filterType == "include" then
 				local check = {}
 				for _, player in replicationRule.filterPlayers do
 					if not check[player] and playerSpecific[player] then
@@ -456,7 +456,7 @@ RunService.PostSimulation:Connect(function(deltaTime)
 	debug.profilebegin("FlushPlayers")
 
 	for player, list in playerSpecific do
-		Flush(list,player)
+		Flush(list, player)
 	end
 
 	debug.profileend()
@@ -487,7 +487,7 @@ end)
 --Since npc visuals is decoupled from the logic, the npc is never moved on the server
 --PushNPCTransform doesnt move the rig, it updates the snapshots and fires the clients to interpolate the rig
 --if someone wants the rig to actually move, they can just cframe the rig themselves, but that will be double replicated
-local function GetLatestCFrame(input:Player|Model|number): CFrame?
+local function GetLatestCFrame(input: Player | Model | number): CFrame?
 	local id: number?
 
 	id = GetIdFrom(input)
@@ -509,7 +509,7 @@ local function GetLatestCFrame(input:Player|Model|number): CFrame?
 	return nil
 end
 
-local function GetLatestTime(input:Player|Model|number):number?
+local function GetLatestTime(input: Player | Model | number): number?
 	local id = GetIdFrom(input)
 	if not id then
 		return nil
@@ -573,7 +573,7 @@ local function UnregisterNPC(id: number): Model?
 	return data.model
 end
 
-local function PushNPCTransform(target: number|Model, cframe: CFrame, t: number?)
+local function PushNPCTransform(target: number | Model, cframe: CFrame, t: number?)
 	local id = GetIdFrom(target) or math.huge
 	local data = idMap[id]
 	if data and data.serverOwned then
@@ -584,7 +584,7 @@ local function PushNPCTransform(target: number|Model, cframe: CFrame, t: number?
 end
 
 return {
-	GetReplicationRule =GetReplicationRule,
+	GetReplicationRule = GetReplicationRule,
 	SetReplicationRule = SetReplicationRule,
 	GetId = GetIdFrom,
 	GetLatestCFrame = GetLatestCFrame,
