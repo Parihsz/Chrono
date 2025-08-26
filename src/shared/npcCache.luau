@@ -133,7 +133,7 @@ function Npc.UnRegister(idOrModel: number | Model): Model
 	if IS_CLIENT then
 		error("UnRegister can only be called on the server.")
 	end
-	local id = type(idOrModel) == "number" and idOrModel or tonumber((idOrModel :: any):GetAttribute("NPC_ID"))
+	local id = type(idOrModel) == "number" and idOrModel or (idOrModel::Model):GetAttribute("NPC_ID")::any
 	if not id then
 		error("Npc cache requires a valid NPC_ID to unregister.")
 	end
