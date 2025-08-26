@@ -200,7 +200,7 @@ else
 	end)
 end
 
-Npc.npcAdded = NpcAdded.Event
-Npc.npcRemoved = NpcRemoved.Event
+Npc.NpcAdded = NpcAdded.Event
+Npc.NpcRemoved = NpcRemoved.Event
 
 return Npc

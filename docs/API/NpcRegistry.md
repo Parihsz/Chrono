@@ -72,7 +72,7 @@ Returns the **original model** for a given NPC ID, if registered.
 
 These will fired on both the server and client.
 
-### `Npc.npcAdded`
+### `Npc.NpcAdded`
 
 Fired when a new NPC is added.
 
@@ -84,7 +84,7 @@ Fired when a new NPC is added.
 
 ---
 
-### `Npc.npcRemoved`
+### `Npc.NpcRemoved`
 
 Fired when an NPC is removed.
 
