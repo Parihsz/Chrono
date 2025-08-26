@@ -1,5 +1,19 @@
 # ChronoServer 
 
+
+## Types
+
+### `ReplicationRule`
+
+| Field     | Type   | Description              |
+|----------|-------|--------------------------|
+| `filterType`      | "include"/"exclude" | The filter type for the replication rule.   |
+| `filterPlayers`  | {Player}    | the players to include/exclude from the replication rule. |
+
+If no rule is found then  every Player will receive updates. Otherwise, only the specified players will receive updates.
+
+---
+
 ## Public API
 
 ### `RegisterNPC(model: Model?, npcType: string?) → number`
@@ -16,18 +30,51 @@ Use NpcCache for physical npcs, or you will need to manually push transforms for
 :::
 ---
 
-### `PushNPCTransform(id: number, cframe: CFrame)`
+### `GetReplicationRule(input: Player | Model | number) → ReplicationRule`
+
+Returns the **replication rule** for a given id, player or model. If no valid id given then return a blank replication rule.
+
+---
+
+### `SetReplicationRule(input: Player | Model | number, rule: ReplicationRule?)`
+
+Sets the **replication rule** for a given id, player or model. If no rule given then remove the existing rule.
+
+---
+
+### `PushNPCTransform(target: number|Model, cframe: CFrame)`
 
 Pushes a new **CFrame snapshot** for a server-owned NPC.
 
 ---
 
-### `GetLatestCFrame(target: Player | number) → CFrame?`
+### `GetLatestCFrame(target: Player | Model | number) → CFrame?`
 
 Returns the **latest replicated CFrame** for a:
 
 - **Player** – Pass the `Player` instance  
-- **NPC** – Pass the network ID (`number`)
+- **NPC** – Pass the `Model` instance  
+- **Network ID** – Pass the network ID (`number`)
+
+---
+
+### `GetLatestTime(target: Player | Model | number) → number?`
+
+Returns the **latest replicated time** for a:
+
+- **Player** – Pass the `Player` instance  
+- **NPC** – Pass the `Model` instance  
+- **Network ID** – Pass the network ID (`number`)
+
+---
+
+### `GetId(target: Player | Model | number) → number?`
+
+Returns the **network ID** for a:
+
+- **Player** – Pass the `Player` instance  
+- **NPC** – Pass the `Model` instance
+- **Network ID** – Pass the network ID (`number`)
 
 ---
 
@@ -39,6 +86,13 @@ Toggles whether Chrono should interpolate the player
 - **on** – Pass a boolean of whether chrono should interpolate
 
 ---
+
+### `GetAllNetworkIds() → { number }`
+
+Returns a list of all **network IDs** currently tracked on the server.
+
+---
+
 
 ### `Replicators`
 

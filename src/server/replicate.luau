@@ -15,7 +15,7 @@ ClientReplicateCFrame.Name = "ClientReplicateCFrame"
 ClientReplicateCFrame.Parent = ReplicatedStorage
 
 local MAX_UNRELIABLE_BYTES = 900
-local SNAPSHOT_SIZE = 18 + 3 -- assume worst cast for id (uInt)
+local SNAPSHOT_SIZE = 18 + 2 -- assume worst cast for id (uInt)
 local HEADER_SIZE = 2
 local MAX_BATCH = (MAX_UNRELIABLE_BYTES - HEADER_SIZE) // SNAPSHOT_SIZE
 
@@ -25,6 +25,11 @@ ServerReplicateCFrame.Parent = ReplicatedStorage
 
 local idStack = {} :: { number }
 local playerIdMap = {} :: { [Player]: number }
+
+export type ReplicationRule = {
+	filterType: "include" | "exclude",
+	filterPlayers: {Player},
+}
 local idMap = {} :: {
 	[number]: {
 		player: Player?,
@@ -35,6 +40,7 @@ local idMap = {} :: {
 		model: Model?,
 		_charAdded: RBXScriptConnection?,
 		_charRemoving: RBXScriptConnection?,
+		replicationRule: ReplicationRule?,
 	},
 }
 local pausedPlayers = {} :: { [number]: boolean }
@@ -43,24 +49,10 @@ local lastReplicatedTimes = {} :: { [number]: number }
 local playerTickRates = {} :: { [number]: number }
 local replicators = {} :: { [number]: Model }
 
+
 local MAX_ID = 2 ^ 16 - 1
 local IncrementalFactoryUID = 0
 
-local function WriteVlqRaw(b: buffer, index: number, value: number): number
-	value += 1
-	repeat
-		local byte = bit32.band(value, 0x7F)
-		value = bit32.rshift(value, 7)
-
-		if value > 0 then
-			byte = bit32.bor(byte, 0x80)
-		end
-
-		buffer.writeu8(b, index, byte)
-		index += 1
-	until value == 0
-	return index
-end
 
 local function PackSnapshotData(
 	buff: buffer,
@@ -68,7 +60,7 @@ local function PackSnapshotData(
 	timestamp: number,
 	cframe: { Position: Vector3, RotationY: number },
 	id: number
-): number
+)
 	buffer.writef32(buff, offset + 0, timestamp)
 
 	buffer.writef32(buff, offset + 4, cframe.Position.X)
@@ -77,7 +69,7 @@ local function PackSnapshotData(
 
 	local mappedRotationY = math.map(cframe.RotationY, -math.pi, math.pi, 0, 2 ^ 16 - 1)
 	buffer.writeu16(buff, offset + 16, mappedRotationY)
-	return WriteVlqRaw(buff, offset + 18, id)
+	buffer.writeu16(buff, offset + 18, id)
 end
 
 local function UnpackSnapshotData(
@@ -118,6 +110,61 @@ end
 
 local function ReturnID(id: number)
 	table.insert(idStack, id)
+end
+
+local function GetIdFrom(input:Player|Model|number):number?
+	if typeof(input) == "Instance" then
+		if input:IsA("Player") then
+			return playerIdMap[input]
+		elseif input:IsA("Model") then
+			return input:GetAttribute("NPC_ID")::any
+		end
+	elseif typeof(input) == "number" then
+		return input
+	end
+
+	return nil
+end
+
+local function newReplicationRule(): ReplicationRule
+	return {
+		filterType = "exclude",
+		filterPlayers = {},
+	}
+end
+
+local function GetReplicationRule(input: Player | Model | number): ReplicationRule
+	local id = GetIdFrom(input)
+	if not id then
+		return newReplicationRule()
+	end
+
+	local data = idMap[id]
+	if not data then
+		return newReplicationRule()
+	end
+
+	if not idMap[id].replicationRule then
+		idMap[id].replicationRule = newReplicationRule()
+	end
+
+	return idMap[id].replicationRule :: any
+end
+
+local function SetReplicationRule(input: Player | Model | number, rule: ReplicationRule)
+	local id = GetIdFrom(input)
+	if not id then
+		warn("ID not found for input", input)
+		return
+	end
+
+	local data = idMap[id]
+	if not data then
+		warn("Data not found for ID", id)
+		return
+	end
+
+	data.replicationRule = rule
 end
 
 local function GetNPCConfig(npcType: string?): any
@@ -300,25 +347,25 @@ local function GetTickInterval(character: Model?, id: number): number
 	return newTickRate
 end
 
-local function Flush(cframes, lastTicks, ids)
-	local count = math.min(#cframes, MAX_BATCH)
+local function Flush(buffers:{buffer},specificPlayer:Player?)
+	local count = math.min(#buffers, MAX_BATCH)
 	if count == 0 then
 		return false
 	end
 
 	local buff = buffer.create(count * SNAPSHOT_SIZE)
-	local offset = WriteVlqRaw(buff, 0, count)
+	local offset = 0
 	for i = 1, count do
-		local index = #cframes
-		offset = PackSnapshotData(buff, offset, lastTicks[index], cframes[index], ids[index])
-
-		cframes[index] = nil
-		lastTicks[index] = nil
-		ids[index] = nil
+		local b:any = table.remove(buffers)
+		buffer.copy(buff, offset, b, 0, SNAPSHOT_SIZE)
+		offset += SNAPSHOT_SIZE
 	end
-
-	ServerReplicateCFrame:FireAllClients(buff)
-	Flush(cframes, lastTicks, ids)
+	if specificPlayer then
+		ServerReplicateCFrame:FireClient(specificPlayer, buff)
+	else
+		ServerReplicateCFrame:FireAllClients(buff)
+	end
+	Flush(buffers,specificPlayer)
 
 	return true
 end
@@ -326,10 +373,13 @@ end
 RunService.PostSimulation:Connect(function(deltaTime)
 	Grid.UpdateGrid()
 
-	local cframes = {}
-	local lastTicks = {}
-	local ids = {}
 	debug.profilebegin("ReplicateNPCs")
+	local Players = game:GetService("Players"):GetPlayers()
+	local PlayerSpecific = {}
+	for _, player in Players do
+		PlayerSpecific[player] = {}
+	end
+	local AllPlayers = {}
 	for id, data in idMap do
 		local character = data.player and data.player.Character or nil
 		local isNPC = data.serverOwned == true
@@ -364,15 +414,42 @@ RunService.PostSimulation:Connect(function(deltaTime)
 		if not changed then
 			continue
 		end
+		local buff = buffer.create(SNAPSHOT_SIZE)
+		PackSnapshotData(buff, 0, data.clientLastTick or now, Networkables.MakeYawNetworkable(cframe), id)
+		local replicationRule = data.replicationRule
+		if not replicationRule or (#replicationRule.filterPlayers == 0 and replicationRule.filterType == "exclude") then
+			table.insert(AllPlayers, buff)
+		else
+			if replicationRule.filterType ==  'include' then
+				for _, player in replicationRule.filterPlayers do
+					if PlayerSpecific[player] then
+						table.insert(PlayerSpecific[player], buff)
+					end
+				end
+			else
+				local excluded = {}
+				for _, player in replicationRule.filterPlayers do
+					excluded[player] = true
+				end
+				for player, list in PlayerSpecific do
+					if not excluded[player] then
+						table.insert(list, buff)
+					end
+				end
+			end
+		end
+		
 
-		table.insert(cframes, cframe)
-		table.insert(lastTicks, data.clientLastTick or now)
-		table.insert(ids, id)
 	end
 	debug.profileend()
 
 	debug.profilebegin("FlushNPCs")
-	Flush(Networkables.NetworkableYawCFrameTable(cframes), lastTicks, ids)
+	Flush(AllPlayers)
+	debug.profileend()
+	debug.profilebegin("FlushPlayers")
+	for player, list in PlayerSpecific do
+		Flush(list,player)
+	end
 	debug.profileend()
 	if not Config.DISABLE_DEFAULT_REPLICATION then
 		return
@@ -402,16 +479,10 @@ end)
 --Since npc visuals is decoupled from the logic, the npc is never moved on the server
 --PushNPCTransform doesnt move the rig, it updates the snapshots and fires the clients to interpolate the rig
 --if someone wants the rig to actually move, they can just cframe the rig themselves, but that will be double replicated
-local function GetLatestCFrame(target: Player | number): CFrame?
+local function GetLatestCFrame(input:Player|Model|number): CFrame?
 	local id: number?
 
-	if typeof(target) == "Instance" and target:IsA("Player") then
-		id = playerIdMap[target]
-	elseif typeof(target) == "number" then
-		id = target
-	else
-		return nil
-	end
+	id = GetIdFrom(input)
 
 	if not id then
 		return nil
@@ -425,6 +496,25 @@ local function GetLatestCFrame(target: Player | number): CFrame?
 	local latestSnapshot = data.snapshot:GetLatest()
 	if latestSnapshot then
 		return latestSnapshot.value
+	end
+
+	return nil
+end
+
+local function GetLatestTime(input:Player|Model|number):number?
+	local id = GetIdFrom(input)
+	if not id then
+		return nil
+	end
+
+	local data = idMap[id]
+	if not data then
+		return nil
+	end
+
+	local latestSnapshot = data.snapshot:GetLatest()
+	if latestSnapshot then
+		return latestSnapshot.t
 	end
 
 	return nil
@@ -475,7 +565,8 @@ local function UnregisterNPC(id: number): Model?
 	return data.model
 end
 
-local function PushNPCTransform(id: number, cframe: CFrame, t: number?)
+local function PushNPCTransform(target: number|Model, cframe: CFrame, t: number?)
+	local id = GetIdFrom(target) or math.huge
 	local data = idMap[id]
 	if data and data.serverOwned then
 		local stamp = t or os.clock()
@@ -485,11 +576,21 @@ local function PushNPCTransform(id: number, cframe: CFrame, t: number?)
 end
 
 return {
+	GetReplicationRule =GetReplicationRule,
+	SetReplicationRule = SetReplicationRule,
+	GetId = GetIdFrom,
 	GetLatestCFrame = GetLatestCFrame,
 	RegisterNPC = RegisterNPC,
 	PushNPCTransform = PushNPCTransform,
 	UnregisterNPC = UnregisterNPC,
-
+	GetLatestTime = GetLatestTime,
 	TogglePlayerReplication = TogglePlayerReplication,
 	Replicators = replicators,
+	GetAllNetworkIds = function()
+		local ids = {}
+		for id, _ in idMap do
+			table.insert(ids, id)
+		end
+		return ids
+	end,
 }

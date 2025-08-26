@@ -7,15 +7,6 @@ local InterpolationBuffer
 local RenderCache
 local TogglePlayerReplication
 
-if RunService:IsServer() then
-	ServerReplicate = require(script.server.replicate)
-	TogglePlayerReplication = ServerReplicate.TogglePlayerReplication
-else
-	ClientReplicate = require(script.client.replicate)
-	InterpolationBuffer = require(script.client.interpolationBuffer)
-	RenderCache = require(script.client.renderCache)
-end
-
 local function LoadFolder(folder: Folder)
 	for _, moduleScript in folder:GetDescendants() do
 		if moduleScript:IsA("ModuleScript") then
@@ -39,19 +30,61 @@ local function LoadFolder(folder: Folder)
 	end
 end
 
+local Modules = {
+	ChronoClient = true,
+	ChronoServer = true,
+	NpcRegistry = true,
+	Snapshots = true,
+	InterpolationBuffer = true,
+	RenderCache = true,
+	TogglePlayerReplication = true,
+}
+
 local Chrono = {}
 
+local started = false
 function Chrono.Start()
+	if started then
+		return
+	end
+	started = true
+
 	LoadFolder(if RunService:IsServer() then script.server else script.client)
 	LoadFolder(script.shared)
+
+	if RunService:IsServer() then
+		ServerReplicate = require(script.server.replicate)
+		TogglePlayerReplication = ServerReplicate.TogglePlayerReplication
+	else
+		ClientReplicate = require(script.client.replicate)
+		InterpolationBuffer = require(script.client.interpolationBuffer)
+		RenderCache = require(script.client.renderCache)
+	end
+
+	Chrono.ChronoClient = ClientReplicate
+	Chrono.ChronoServer = ServerReplicate
+	Chrono.NpcRegistry = NpcCache
+	Chrono.Snapshots = require(script.shared.snapshots)
+	Chrono.InterpolationBuffer = InterpolationBuffer
+	Chrono.RenderCache = RenderCache
+	Chrono.TogglePlayerReplication = TogglePlayerReplication
+	setmetatable(Chrono::any, nil)
+	local config = require(script.shared.config)
+	Chrono.Config = setmetatable({}, {
+		__index = function(_, key)
+			return config[key]
+		end,
+		__newindex = function(_, key, value)
+			error(`Attempt to modify Config.{key} after Chrono.Start()`, 2)
+		end,
+	}) :: any
 end
 
-Chrono.ChronoClient = ClientReplicate
-Chrono.ChronoServer = ServerReplicate
-Chrono.NpcRegistry = NpcCache
-Chrono.Snapshots = require(script.shared.snapshots)
-Chrono.InterpolationBuffer = InterpolationBuffer
-Chrono.RenderCache = RenderCache
-Chrono.TogglePlayerReplication = TogglePlayerReplication
-
-return Chrono
+Chrono.Config = require(script.shared.config)
+return (setmetatable(Chrono, {
+	__index = function(_, key)
+		if Modules[key] then
+			error(`Attempt to access Chrono.{key} before calling Chrono.Start()`, 2)
+		end
+	end,
+})::any)::typeof(Chrono)
