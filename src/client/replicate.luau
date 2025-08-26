@@ -27,7 +27,7 @@ local idMap = {} :: {
 		lastCFrame: CFrame?,
 		isNPC: boolean?,
 		npcType: string?,
-		player: Player?
+		player: Player?,
 	},
 }
 
@@ -45,13 +45,10 @@ RenderCache.Init({
 
 local playerNetworkId = 300
 
-
 local function UnpackSnapshotData(
 	buff: buffer,
 	offset: number
-): (
-	{ timestamp: number, cframe: { Position: Vector3, RotationY: number }, id: number }
-)
+): { timestamp: number, cframe: { Position: Vector3, RotationY: number }, id: number }
 	local value = {}
 	value.timestamp = buffer.readf32(buff, offset + 0)
 
@@ -158,7 +155,7 @@ local function PlayerAdded(player: Player, id: number)
 	end
 
 	local registeredSnapshots = Snapshots(CFrame.identity.Lerp)
-	
+
 	local old = characters[player]
 	if old then
 		pcall(old.Destroy, old)
@@ -179,6 +176,9 @@ local function PlayerAdded(player: Player, id: number)
 		local character = player.Character or player.CharacterAdded:Wait()
 		local primaryPart = character.PrimaryPart :: BasePart
 		task.spawn(function()
+			if not Config.DISABLE_DEFAULT_REPLICATION then
+				return
+			end
 			if not primaryPart then
 				task.wait(1) -- for some reason primary part didn't exist immediately?
 				primaryPart = character.PrimaryPart :: BasePart
@@ -278,7 +278,7 @@ end
 ServerReplicateCFrame.OnClientEvent:Connect(function(snapshotBuffer)
 	local cframes = {}
 	local timestamps = {}
-	local count, offset = buffer.len(snapshotBuffer)//SNAPSHOT_SIZE, 0
+	local count, offset = buffer.len(snapshotBuffer) // SNAPSHOT_SIZE, 0
 
 	for i = 1, count do
 		local snapshot = UnpackSnapshotData(snapshotBuffer, offset)
@@ -384,6 +384,7 @@ Players.PlayerRemoving:Connect(function(player)
 	initializedPlayers[player] = nil
 	local character = characters[player]
 	characters[player] = nil
+
 	if character then
 		pcall(character.Destroy, character)
 	end

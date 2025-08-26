@@ -13,10 +13,10 @@ export type Snapshot<T> = {
 	Clear: (self: Snapshot<T>) -> (),
 }
 
+local Config = require(script.Parent.Parent.shared.config)
+
 local MAX_LENGTH = 30
-local SHOW_WARNINGS = false
-
-
+local SHOW_WARNINGS =  Config.SHOW_WARNINGS
 
 local warn = function(...)
 	if SHOW_WARNINGS then
@@ -50,6 +50,7 @@ local function GetLatest<T>(self: Snapshot<T>): SnapshotData<T>?
 	end
 	return nil
 end
+
 local function GetBefore<T>(self: Snapshot<T>, before: number): SnapshotData<T>?
 	local cache = self.cache
 	for i = #cache, 1, -1 do
@@ -69,7 +70,6 @@ local function GetAfter<T>(self: Snapshot<T>, after: number): SnapshotData<T>?
 	end
 	return nil
 end
-
 
 local function GetAt<T>(self: Snapshot<T>, at: number): T?
 	local cache = self.cache
@@ -98,8 +98,6 @@ local function GetAt<T>(self: Snapshot<T>, at: number): T?
 
 	return nil
 end
-
-
 
 local function Clear(self: Snapshot<any>): ()
 	self.cache = {}
