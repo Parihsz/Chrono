@@ -50,6 +50,11 @@ If true, disables default roblox replication for players.
 
 ---
 
+### `SHOW_WARNINGS: boolean`
+If true, enables the display of common warnings in the console.
+
+---
+
 ### `NPC_MODELS: { [string]: Model }`
 A mapping of NPC model names to models that will be cloned.
 

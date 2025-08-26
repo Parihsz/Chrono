@@ -1,3 +1,8 @@
+export type NPC_CONFIG = {
+	BUFFER: number,
+	TICK_RATE: number,
+}
+
 return {
 	MIN_BUFFER = 0.09,
 	MAX_BUFFER = 0.5,
@@ -22,4 +27,20 @@ return {
 	--note that warnings are mostly non fatal 
 	--this will be set to false to optimize output by default, only enable if you're experiencing bugs with the system
 	SHOW_WARNINGS = false,
+}:: {
+	MIN_BUFFER: number,
+	MAX_BUFFER: number,
+	TICK_RATE: number,
+	
+	PROXIMITY: number,
+
+	ENABLE_CUSTOM_CHARACTERS: boolean,
+	DISABLE_DEFAULT_REPLICATION: boolean,
+
+	NPC_MODELS: { [string]: Model },
+	NPC_TYPES: {
+		[string]: NPC_CONFIG,
+		DEFAULT: NPC_CONFIG,
+	},
+	SHOW_WARNINGS: boolean,
 }
