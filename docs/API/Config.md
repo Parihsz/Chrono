@@ -6,7 +6,7 @@ Remember to modify the config on both the server and client.
 :::
 
 :::danger
-All properties except for `NPC_MODELS` and `NPC_TYPES` may be modified after `Chrono.Start()` is called, otherwise an error would occur.
+Only the properties `NPC_MODELS` and `NPC_TYPES` may be modified after `Chrono.Start()` is called, otherwise an error would occur. Other properties must be modified before running `Chrono.Start()`.
 :::
 
 ## Types
