@@ -24,6 +24,7 @@ function sidebar() {
         { text: "InterpolationBuffer", link: "/API/Interpolation-Buffer" },
         { text: "RenderCache", link: "/API/RenderCache" },
         { text: "NpcRegistry", link: "/API/NpcRegistry" },
+        { text: "Config", link: "/API/Config" }
       ] }
     ],
     "/Benchmarks": [

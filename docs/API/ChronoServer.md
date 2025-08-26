@@ -8,7 +8,7 @@
 | Field     | Type   | Description              |
 |----------|-------|--------------------------|
 | `filterType`      | "include"/"exclude" | The filter type for the replication rule.   |
-| `filterPlayers`  | {Player}    | the players to include/exclude from the replication rule. |
+| `filterPlayers`  | `{Player}`    | the players to include/exclude from the replication rule. |
 
 If no rule is found then  every Player will receive updates. Otherwise, only the specified players will receive updates.
 

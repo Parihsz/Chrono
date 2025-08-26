@@ -40,7 +40,7 @@ Registers an NPC on the server.
 | `npcType`          | `string?` | Optional NPC type, defaults to `"DEFAULT"`.                  |
 | `modelType`       | `string?` | Optional model type, if defined in config then that will use that as the model other wise `model:clone()` will be used.         |
 | `automaticUpdate`  | `boolean?`| If true, the server will automatically replicate cframe changes.|
-| `initData`        | `any?`   | Optional data to be passed along during initialization. Sent to `Npc.npcAdded`        |
+| `initData`        | `any?`   | Optional data to be passed along during initialization. Sent to `Npc.NpcAdded`        |
 
 **Returns:**  
 The id for the registered NPC.
@@ -124,11 +124,11 @@ Animations are non replicated from server to client. If you want NPC animations 
 ```lua
 local NpcRegistry = require(ReplicatedStorage.Packages.chrono).NpcRegistry
 
-NpcRegistry.npcAdded:Connect(function(npcId, model, data)
+NpcRegistry.NpcAdded:Connect(function(npcId, model, data)
     print("NPC added:", npcId, model, data)
 end)
 
-NpcRegistry.npcRemoved:Connect(function(npcId, model)
+NpcRegistry.NpcRemoved:Connect(function(npcId, model)
     print("NPC removed:", npcId, model)
 end)
 
