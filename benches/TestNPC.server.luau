@@ -1,14 +1,10 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
-local Chrono = require(ReplicatedStorage.Packages.chrono)
-task.wait(1)
-local NpcCache = Chrono.NpcRegistry
-local ServerChrono = Chrono.ChronoServer
 
 local Models = {}
 
-local ENABLED = false
+local ENABLED = true
 
 local USE_CHRONO = true
 local NUM_MODELS = 20
@@ -22,6 +18,11 @@ end
 local Player = game:GetService("Players").PlayerAdded:Wait()
 local Character = Player.Character or Player.CharacterAdded:Wait()
 Character.Archivable = true
+
+local Chrono = require(ReplicatedStorage.Packages.chrono)
+local NpcCache = Chrono.NpcRegistry
+local ServerChrono = Chrono.ChronoServer
+
 
 print("Starting test...")
 
@@ -52,6 +53,9 @@ local function createModel()
 			rule.filterType = "include" -- This will only replicate to the first player
 			rule.filterPlayers = { Player }
 		end
+		-- task.delay(10, function()
+		-- 	NpcCache.UnRegister(model)
+		-- end	)
 	end
 	table.insert(Models, model)
 end

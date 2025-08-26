@@ -50,6 +50,7 @@ local function ClientRegister(id, model: Model, data: { type: string, initData: 
 	clone:PivotTo(CFrame.new(0, 1000000, 0))
 	ClientReplicate.RegisterClientNPC(id, clone, npcType)
 	NpcAdded:Fire(id, clone, data.initData)
+	NPC_MODEL_CACHE:SetAttribute(tostring(id),true) -- Mark as registered
 end
 
 local function Check()
@@ -93,7 +94,6 @@ function Npc.Register(model: Model, npcType: string?, npcModelType: string?, aut
 		)
 	end
 	npcType = npcType or "DEFAULT"
-	npcModelType = npcModelType or "DEFAULT"
 	local defaultModel = NPC_MODELS[npcModelType]
 
 	local folder_: string = npcModelType or "DEFAULT"
