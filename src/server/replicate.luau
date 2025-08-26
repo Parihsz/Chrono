@@ -377,14 +377,14 @@ RunService.PostSimulation:Connect(function(deltaTime)
 	Grid.UpdateGrid()
 	debug.profilebegin("ReplicateNPCs")
 	
-	local Players = game:GetService("Players"):GetPlayers()
-	local PlayerSpecific = {}
+	local players = game:GetService("Players"):GetPlayers()
+	local playerSpecific = {}
 
-	for _, player in Players do
-		PlayerSpecific[player] = {}
+	for _, player in players do
+		playerSpecific[player] = {}
 	end
 
-	local AllPlayers = {}
+	local allPlayers = {}
 	for id, data in idMap do
 		local character = data.player and data.player.Character or nil
 		local isNPC = data.serverOwned == true
@@ -424,12 +424,14 @@ RunService.PostSimulation:Connect(function(deltaTime)
 		
 		local replicationRule = data.replicationRule
 		if not replicationRule or (#replicationRule.filterPlayers == 0 and replicationRule.filterType == "exclude") then
-			table.insert(AllPlayers, buff)
+			table.insert(allPlayers, buff)
 		else
 			if replicationRule.filterType ==  'include' then
+				local check = {}
 				for _, player in replicationRule.filterPlayers do
-					if PlayerSpecific[player] then
-						table.insert(PlayerSpecific[player], buff)
+					if not check[player] and playerSpecific[player] then
+						check[player] = true
+						table.insert(playerSpecific[player], buff)
 					end
 				end
 			else
@@ -437,7 +439,7 @@ RunService.PostSimulation:Connect(function(deltaTime)
 				for _, player in replicationRule.filterPlayers do
 					excluded[player] = true
 				end
-				for player, list in PlayerSpecific do
+				for player, list in playerSpecific do
 					if not excluded[player] then
 						table.insert(list, buff)
 					end
@@ -448,12 +450,12 @@ RunService.PostSimulation:Connect(function(deltaTime)
 	debug.profileend()
 	debug.profilebegin("FlushNPCs")
 
-	Flush(AllPlayers)
+	Flush(allPlayers)
 
 	debug.profileend()
 	debug.profilebegin("FlushPlayers")
 
-	for player, list in PlayerSpecific do
+	for player, list in playerSpecific do
 		Flush(list,player)
 	end
 
