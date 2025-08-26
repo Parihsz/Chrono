@@ -76,6 +76,11 @@ Returns the **original model** for a given NPC ID, if registered.
 
 These will fired on both the server and client.
 
+:::danger
+These will only fire if the entity is registered via `NpcRegistry`. Manual Registration using `ChronoServer.RegisterNPC` will not trigger these signals.
+:::
+
+
 ### `Npc.NpcAdded`
 
 Fired when a new NPC is added.

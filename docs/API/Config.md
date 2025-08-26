@@ -48,6 +48,10 @@ If true, allows the use of custom characters in the game. This will disable defa
 ### `DISABLE_DEFAULT_REPLICATION: boolean`
 If true, disables default roblox replication for players.
 
+:::danger
+This will also prevent you from anchoring the primary part of player characters as chrono would be unanchoring locally so they can move as they are anchored on the server to prevent replication.
+:::
+
 ---
 
 ### `SHOW_WARNINGS: boolean`

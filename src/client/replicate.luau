@@ -179,6 +179,7 @@ local function PlayerAdded(player: Player, id: number)
 		local character = player.Character or player.CharacterAdded:Wait()
 		local primaryPart = character.PrimaryPart :: BasePart
 		task.spawn(function()
+			if not Config.DISABLE_DEFAULT_REPLICATION then return end
 			if not primaryPart then
 				task.wait(1) -- for some reason primary part didn't exist immediately?
 				primaryPart = character.PrimaryPart :: BasePart
