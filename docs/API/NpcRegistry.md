@@ -24,6 +24,10 @@ Adds the NPC model to the config. Used for creating a copy on the client.
 | `model`            | `Model`   | The NPC model to register.      |
 | `npcModelType`          | `string` | The type of the NPC model.      |
 
+:::danger
+Make sure the model is set on both the server and the client.
+:::
+
 ## Server API
 
 ### `Npc.Register(model: Model, npcType: string?, modelType: string?, automaticUpdate: boolean?,initData:any?) → number`

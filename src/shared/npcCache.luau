@@ -109,6 +109,9 @@ function Npc.Register(model: Model, npcType: string?, npcModelType: string?, aut
 	end)
 
 	if not defaultModel then
+		if not model.Archivable then
+			warn("NPC model is not archivable:", model:GetFullName(),"Archivable will now be set to true.")
+		end
 		model.Archivable = true
 		local clone = model:Clone() --// MAKE SURE Archivable is set to true
 		clone:PivotTo(CFrame.new(0, 1000000, 0))
