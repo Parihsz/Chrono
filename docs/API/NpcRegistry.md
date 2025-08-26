@@ -46,7 +46,7 @@ Registers an NPC on the server.
 The id for the registered NPC.
 
 :::danger
-If `initData` is given the data will be serialized using `HttpService:JSONEncode()`. Be aware of what can and cannot be serialized.
+If `initData` is given, the data will be serialized using `HttpService:JSONEncode()`. Be aware of what can and cannot be serialized.
 :::
 
 
