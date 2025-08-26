@@ -62,7 +62,7 @@ Animations are non replicated from server to client. If you want NPC animations 
 If you need the **latest replicated position** of a player or NPC for logic (hit detection, AI, etc.):
 ```lua
 local ChronoServer = require(ReplicatedStorage.Packages.chrono).ChronoServer
-local npcId = npcModel:GetAttribute("NPC_ID") -- this is how you get the id from an npc model
+local npcId = ChronoServer.GetId(npcModel_OR_player) -- or npcModel:GetAttribute("NPC_ID") 
 local cframe = ChronoServer.GetLatestCFrame(npcId or player)
 if cframe then
     print(`Latest replicated position: {cframe.Position}`)

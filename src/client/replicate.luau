@@ -11,7 +11,7 @@ local RenderCache = require(script.Parent.renderCache)
 local Rig = require(script.Parent.Parent.shared.rigs.createCharacter)
 
 local MAX_UNRELIABLE_BYTES = 900
-local SNAPSHOT_SIZE = 19
+local SNAPSHOT_SIZE = 20
 local HEADER_SIZE = 2
 local MAX_BATCH = (MAX_UNRELIABLE_BYTES - HEADER_SIZE) // SNAPSHOT_SIZE
 
@@ -45,26 +45,12 @@ RenderCache.Init({
 
 local playerNetworkId = 300
 
-local function ReadVlqRaw(b: buffer, index: number): (number, number)
-	local value = 0
-	local shift = 0
-	local byte: number
-
-	repeat
-		byte = buffer.readu8(b, index)
-		value += bit32.lshift(bit32.band(byte, 0x7F), shift)
-		shift += 7
-		index += 1
-	until byte < 0x80
-	return value - 1, index
-end
 
 local function UnpackSnapshotData(
 	buff: buffer,
 	offset: number
 ): (
-	{ timestamp: number, cframe: { Position: Vector3, RotationY: number }, id: number },
-	number
+	{ timestamp: number, cframe: { Position: Vector3, RotationY: number }, id: number }
 )
 	local value = {}
 	value.timestamp = buffer.readf32(buff, offset + 0)
@@ -81,10 +67,10 @@ local function UnpackSnapshotData(
 		RotationY = remappedRotationY,
 	}
 
-	local id, newOffset = ReadVlqRaw(buff, offset + 18)
+	local id = buffer.readu16(buff, offset + 18)
 	value.id = id
 
-	return value, newOffset
+	return value
 end
 
 local function PackSnapshotData(
@@ -145,11 +131,6 @@ end
 local function UnregisterNPC(id: number): Model?
 	local data = idMap[id]
 	if not data then
-		return nil
-	end
-
-	if not data.character then
-		warn("Tried to unregister NPC that hasn't been registered yet")
 		return nil
 	end
 
@@ -297,11 +278,11 @@ end
 ServerReplicateCFrame.OnClientEvent:Connect(function(snapshotBuffer)
 	local cframes = {}
 	local timestamps = {}
-	local count, offset = ReadVlqRaw(snapshotBuffer, 0)
+	local count, offset = buffer.len(snapshotBuffer)//SNAPSHOT_SIZE, 0
 
 	for i = 1, count do
-		local snapshot, offset_ = UnpackSnapshotData(snapshotBuffer, offset)
-		offset = offset_
+		local snapshot = UnpackSnapshotData(snapshotBuffer, offset)
+		offset += SNAPSHOT_SIZE
 
 		local id = snapshot.id
 		cframes[id] = snapshot.cframe
