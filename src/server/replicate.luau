@@ -168,7 +168,7 @@ end
 
 local function GetNPCConfig(npcType: string?): any
 	npcType = npcType or "DEFAULT"
-	return Config.NPC_TYPES[npcType] or Config.NPC_TYPES.DEFAULT
+	return Config.NPC_TYPES[npcType :: any] or Config.NPC_TYPES.DEFAULT
 end
 
 local function OnCharacterAdded(player: Player, character: Model, id: number)
@@ -584,6 +584,9 @@ local function PushNPCTransform(target: number | Model, cframe: CFrame, t: numbe
 end
 
 return {
+	idMap = idMap,
+	Replicators = replicators,
+
 	GetReplicationRule = GetReplicationRule,
 	SetReplicationRule = SetReplicationRule,
 	GetId = GetIdFrom,
@@ -593,7 +596,7 @@ return {
 	UnregisterNPC = UnregisterNPC,
 	GetLatestTime = GetLatestTime,
 	TogglePlayerReplication = TogglePlayerReplication,
-	Replicators = replicators,
+
 	GetAllNetworkIds = function()
 		local ids = {}
 		for id, _ in idMap do

@@ -20,6 +20,19 @@ When players leave, players stored in `filterPlayers` will continue to exist, ma
 
 ## Public API
 
+### `idMap: { [number]: { ... } }`
+
+Stores the **server-side replication state** for all entities:
+- `player` - The player instance
+- `snapshot` – Circular snapshot buffer of CFrames 
+- `clientLastTick` The last timestamp of the client 
+- `serverOwned` – Whether or not the entity is server-owned (player vs NPC)
+- `npcType?` - Type of NPC, if any
+- `model` – Linked model to the id
+- `replicationRule` – The replication filter the entity is under
+
+---
+
 ### `RegisterNPC(model: Model?, npcType: string?) → number`
 
 Registers a new **NPC** on the server and returns its **network ID**.

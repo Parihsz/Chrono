@@ -7,6 +7,10 @@ local InterpolationBuffer
 local RenderCache
 local TogglePlayerReplication
 
+local Snapshots = require(script.shared.snapshots)
+export type SnapshotData<T> = Snapshots.SnapshotData<T>
+export type Snapshot<T> = Snapshots.Snapshot<T>
+
 local function LoadFolder(folder: Folder)
 	for _, moduleScript in folder:GetDescendants() do
 		if moduleScript:IsA("ModuleScript") then
@@ -68,7 +72,7 @@ function Chrono.Start()
 	Chrono.InterpolationBuffer = InterpolationBuffer
 	Chrono.RenderCache = RenderCache
 	Chrono.TogglePlayerReplication = TogglePlayerReplication
-	setmetatable(Chrono::any, nil)
+	setmetatable(Chrono :: any, nil)
 	local config = require(script.shared.config)
 	Chrono.Config = setmetatable({}, {
 		__index = function(_, key)
@@ -81,10 +85,12 @@ function Chrono.Start()
 end
 
 Chrono.Config = require(script.shared.config)
-return (setmetatable(Chrono, {
-	__index = function(_, key)
-		if Modules[key] then
-			error(`Attempt to access Chrono.{key} before calling Chrono.Start()`, 2)
-		end
-	end,
-})::any)::typeof(Chrono)
+return (
+	setmetatable(Chrono, {
+		__index = function(_, key)
+			if Modules[key] then
+				error(`Attempt to access Chrono.{key} before calling Chrono.Start()`, 2)
+			end
+		end,
+	}) :: any
+) :: typeof(Chrono)
