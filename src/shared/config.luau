@@ -13,6 +13,8 @@ return {
 	ENABLE_CUSTOM_CHARACTERS = false, -- this will disable default roblox replication as well.
 	DISABLE_DEFAULT_REPLICATION = false, -- this is if you want to disable the default roblox replication, but still use their controller
 
+	SEND_FULL_ROTATION = false,
+
 	NPC_MODELS = {},
 
 	NPC_TYPES = {
@@ -34,6 +36,8 @@ return {
 
 	ENABLE_CUSTOM_CHARACTERS: boolean,
 	DISABLE_DEFAULT_REPLICATION: boolean,
+
+	SEND_FULL_ROTATION: boolean,
 
 	NPC_MODELS: { [string]: Model },
 	NPC_TYPES: {

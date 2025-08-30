@@ -54,6 +54,17 @@ This will also prevent you from anchoring the primary part of player characters 
 
 ---
 
+### `SEND_FULL_ROTATION: boolean`
+If true, clients and server will replicate **full 3D rotation** (as 3× mapped `u16` values).  
+If false (default), only yaw rotation is sent.  
+This property can be modified during as chrono is running. 
+
+:::note
+Full rotation packets are slightly larger (**24 bytes**) compared to yaw-only packets (**20 bytes**).
+:::
+
+---
+
 ### `SHOW_WARNINGS: boolean`
 If true, enables the display of common warnings in the console.
 

@@ -3,7 +3,7 @@ local RunService = game:GetService("RunService")
 
 local Models = {}
 
-local ENABLED = true
+local ENABLED = false
 
 local USE_CHRONO = true
 local NUM_MODELS = 20

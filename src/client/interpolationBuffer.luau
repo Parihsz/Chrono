@@ -49,7 +49,9 @@ return function(minBuffer: number, maxBuffer: number, alpha: number)
 
 		local buffer = if rawBuffer < minBuffer then minBuffer + (minBuffer - rawBuffer) * 0.2 else rawBuffer
 		if buffer > maxBuffer then
-			warn(`Interpolation buffer exceeded max! Was {buffer}, clamped to {maxBuffer}`)
+			if Config.SHOW_WARNINGS then
+				warn(`Interpolation buffer exceeded max! Was {buffer}, clamped to {maxBuffer}`)
+			end
 			buffer = maxBuffer
 		end
 

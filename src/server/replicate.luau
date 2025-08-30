@@ -15,7 +15,7 @@ ClientReplicateCFrame.Name = "ClientReplicateCFrame"
 ClientReplicateCFrame.Parent = ReplicatedStorage
 
 local MAX_UNRELIABLE_BYTES = 900
-local SNAPSHOT_SIZE = 18 + 2 -- assume worst cast for id (uInt)
+local SNAPSHOT_SIZE = if Config.SEND_FULL_ROTATION then 22 + 2 else 18 + 2 -- assume worst cast for id (uInt)
 local HEADER_SIZE = 2
 local MAX_BATCH = (MAX_UNRELIABLE_BYTES - HEADER_SIZE) // SNAPSHOT_SIZE
 
@@ -53,28 +53,32 @@ local replicators = {} :: { [number]: Model }
 local MAX_ID = 2 ^ 16 - 1
 local IncrementalFactoryUID = 0
 
-local function PackSnapshotData(
-	buff: buffer,
-	offset: number,
-	timestamp: number,
-	cframe: { Position: Vector3, RotationY: number },
-	id: number
-)
+local function PackSnapshotData(buff: buffer, offset: number, timestamp: number, cframe: CFrame, id: number)
 	buffer.writef32(buff, offset + 0, timestamp)
-
 	buffer.writef32(buff, offset + 4, cframe.Position.X)
 	buffer.writef32(buff, offset + 8, cframe.Position.Y)
 	buffer.writef32(buff, offset + 12, cframe.Position.Z)
 
-	local mappedRotationY = math.map(cframe.RotationY, -math.pi, math.pi, 0, 2 ^ 16 - 1)
-	buffer.writeu16(buff, offset + 16, mappedRotationY)
-	buffer.writeu16(buff, offset + 18, id)
+	if Config.SEND_FULL_ROTATION then
+		local networkable = Networkables.MakeNetworkable(cframe)
+
+		local mappedX = math.map(networkable.Rotation.x, -1, 1, 0, 2 ^ 16 - 1)
+		local mappedY = math.map(networkable.Rotation.y, -1, 1, 0, 2 ^ 16 - 1)
+		local mappedZ = math.map(networkable.Rotation.z, -1, 1, 0, 2 ^ 16 - 1)
+
+		buffer.writeu16(buff, offset + 16, mappedX)
+		buffer.writeu16(buff, offset + 18, mappedY)
+		buffer.writeu16(buff, offset + 20, mappedZ)
+		buffer.writeu16(buff, offset + 22, id)
+	else
+		local networkable = Networkables.MakeYawNetworkable(cframe)
+		local mappedRotationY = math.map(networkable.RotationY, -math.pi, math.pi, 0, 2 ^ 16 - 1)
+		buffer.writeu16(buff, offset + 16, mappedRotationY)
+		buffer.writeu16(buff, offset + 18, id)
+	end
 end
 
-local function UnpackSnapshotData(
-	buff: buffer,
-	offset: number
-): { timestamp: number, cframe: { Position: Vector3, RotationY: number } }
+local function UnpackSnapshotData(buff: buffer, offset: number): { timestamp: number, cframe: CFrame, id: number }
 	local value = {}
 	value.timestamp = buffer.readf32(buff, offset + 0)
 
@@ -82,13 +86,30 @@ local function UnpackSnapshotData(
 	local y = buffer.readf32(buff, offset + 8)
 	local z = buffer.readf32(buff, offset + 12)
 
-	local rotationY = buffer.readu16(buff, offset + 16)
-	local remappedRotationY = math.map(rotationY, 0, 2 ^ 16 - 1, -math.pi, math.pi)
+	if Config.SEND_FULL_ROTATION then
+		local mappedX = buffer.readu16(buff, offset + 16)
+		local mappedY = buffer.readu16(buff, offset + 18)
+		local mappedZ = buffer.readu16(buff, offset + 20)
 
-	value.cframe = {
-		Position = Vector3.new(x, y, z),
-		RotationY = remappedRotationY,
-	}
+		local rx = math.map(mappedX, 0, 2 ^ 16 - 1, -1, 1)
+		local ry = math.map(mappedY, 0, 2 ^ 16 - 1, -1, 1)
+		local rz = math.map(mappedZ, 0, 2 ^ 16 - 1, -1, 1)
+
+		value.cframe = Networkables.DecodeCFrame({
+			Position = vector.create(x, y, z) :: any,
+			Rotation = { x = rx, y = ry, z = rz },
+		})
+		value.id = buffer.readu16(buff, offset + 22)
+	else
+		local rotationY = buffer.readu16(buff, offset + 16)
+		local remapped = math.map(rotationY, 0, 2 ^ 16 - 1, -math.pi, math.pi)
+
+		value.cframe = Networkables.DecodeYawCFrame({
+			Position = vector.create(x, y, z) :: any,
+			RotationY = remapped,
+		})
+		value.id = buffer.readu16(buff, offset + 18)
+	end
 
 	return value
 end
@@ -277,17 +298,15 @@ ClientReplicateCFrame.OnServerEvent:Connect(function(player: Player, snapshotBuf
 		return
 	end
 
-	local SNAPSHOT_SIZE = 18
+	SNAPSHOT_SIZE = if Config.SEND_FULL_ROTATION then 24 else 20
 
 	local offset = 0
 	for i = 1, buffer.len(snapshotBuffer) // SNAPSHOT_SIZE do
 		local snapshot = UnpackSnapshotData(snapshotBuffer, offset)
 		offset += SNAPSHOT_SIZE
 
-		local cframe = CFrame.new(snapshot.cframe.Position) * CFrame.Angles(0, snapshot.cframe.RotationY, 0)
-
 		data.clientLastTick = snapshot.timestamp
-		data.snapshot:Push(snapshot.timestamp, cframe)
+		data.snapshot:Push(snapshot.timestamp, snapshot.cframe)
 	end
 
 	local character = player.Character
@@ -419,8 +438,9 @@ RunService.PostSimulation:Connect(function(deltaTime)
 		if not changed then
 			continue
 		end
+
 		local buff = buffer.create(SNAPSHOT_SIZE)
-		PackSnapshotData(buff, 0, data.clientLastTick or now, Networkables.MakeYawNetworkable(cframe), id)
+		PackSnapshotData(buff, 0, data.clientLastTick or now, cframe, id)
 
 		local replicationRule = data.replicationRule
 		if not replicationRule or (#replicationRule.filterPlayers == 0 and replicationRule.filterType == "exclude") then

@@ -11,11 +11,11 @@ local RenderCache = require(script.Parent.renderCache)
 local Rig = require(script.Parent.Parent.shared.rigs.createCharacter)
 
 local MAX_UNRELIABLE_BYTES = 900
-local SNAPSHOT_SIZE = 20
+local SNAPSHOT_SIZE = if Config.SEND_FULL_ROTATION then 24 else 20
 local HEADER_SIZE = 2
 local MAX_BATCH = (MAX_UNRELIABLE_BYTES - HEADER_SIZE) // SNAPSHOT_SIZE
 
-local outgoingSnapshots = {} :: { { timestamp: number, cframe: { Position: Vector3, RotationY: number } } }
+local outgoingSnapshots = {} :: { { timestamp: number, cframe: CFrame } }
 
 local ClientReplicateCFrame: UnreliableRemoteEvent = ReplicatedStorage:WaitForChild("ClientReplicateCFrame") :: any
 local ServerReplicateCFrame: UnreliableRemoteEvent = ReplicatedStorage:WaitForChild("ServerReplicateCFrame") :: any
@@ -45,10 +45,7 @@ RenderCache.Init({
 
 local playerNetworkId = 300
 
-local function UnpackSnapshotData(
-	buff: buffer,
-	offset: number
-): { timestamp: number, cframe: { Position: Vector3, RotationY: number }, id: number }
+local function UnpackSnapshotData(buff: buffer, offset: number): any
 	local value = {}
 	value.timestamp = buffer.readf32(buff, offset + 0)
 
@@ -56,34 +53,54 @@ local function UnpackSnapshotData(
 	local y = buffer.readf32(buff, offset + 8)
 	local z = buffer.readf32(buff, offset + 12)
 
-	local rotationY = buffer.readu16(buff, offset + 16)
-	local remappedRotationY = math.map(rotationY, 0, 2 ^ 16 - 1, -math.pi, math.pi)
+	if Config.SEND_FULL_ROTATION then
+		local mappedX = buffer.readu16(buff, offset + 16)
+		local mappedY = buffer.readu16(buff, offset + 18)
+		local mappedZ = buffer.readu16(buff, offset + 20)
 
-	value.cframe = {
-		Position = Vector3.new(x, y, z),
-		RotationY = remappedRotationY,
-	}
+		local rx = math.map(mappedX, 0, 2 ^ 16 - 1, -1, 1)
+		local ry = math.map(mappedY, 0, 2 ^ 16 - 1, -1, 1)
+		local rz = math.map(mappedZ, 0, 2 ^ 16 - 1, -1, 1)
 
-	local id = buffer.readu16(buff, offset + 18)
-	value.id = id
+		value.cframe = Networkables.DecodeCFrame({
+			Position = vector.create(x, y, z) :: any,
+			Rotation = { x = rx, y = ry, z = rz },
+		})
+		value.id = buffer.readu16(buff, offset + 22)
+	else
+		local rotationY = buffer.readu16(buff, offset + 16)
+		local remappedRotationY = math.map(rotationY, 0, 2 ^ 16 - 1, -math.pi, math.pi)
+		value.cframe = Networkables.DecodeYawCFrame({
+			Position = vector.create(x, y, z) :: any,
+			RotationY = remappedRotationY,
+		})
+		value.id = buffer.readu16(buff, offset + 18)
+	end
 
 	return value
 end
 
-local function PackSnapshotData(
-	buff: buffer,
-	offset: number,
-	timestamp: number,
-	cframe: { Position: Vector3, RotationY: number }
-)
+local function PackSnapshotData(buff: buffer, offset: number, timestamp: number, cframe: CFrame)
 	buffer.writef32(buff, offset + 0, timestamp)
-
 	buffer.writef32(buff, offset + 4, cframe.Position.X)
 	buffer.writef32(buff, offset + 8, cframe.Position.Y)
 	buffer.writef32(buff, offset + 12, cframe.Position.Z)
 
-	local mappedRotationY = math.map(cframe.RotationY, -math.pi, math.pi, 0, 2 ^ 16 - 1)
-	buffer.writeu16(buff, offset + 16, mappedRotationY)
+	if Config.SEND_FULL_ROTATION then
+		local networkable = Networkables.MakeNetworkable(cframe)
+
+		local mappedX = math.map(networkable.Rotation.x, -1, 1, 0, 2 ^ 16 - 1)
+		local mappedY = math.map(networkable.Rotation.y, -1, 1, 0, 2 ^ 16 - 1)
+		local mappedZ = math.map(networkable.Rotation.z, -1, 1, 0, 2 ^ 16 - 1)
+
+		buffer.writeu16(buff, offset + 16, mappedX)
+		buffer.writeu16(buff, offset + 18, mappedY)
+		buffer.writeu16(buff, offset + 20, mappedZ)
+	else
+		local networkable = Networkables.MakeYawNetworkable(cframe)
+		local mappedRotationY = math.map(networkable.RotationY, -math.pi, math.pi, 0, 2 ^ 16 - 1)
+		buffer.writeu16(buff, offset + 16, mappedRotationY)
+	end
 end
 
 local function Flush()
@@ -269,9 +286,8 @@ local function HandleReplicatedData(clientLastTicks, cframes)
 			RenderCache.Add(id, true, entry.npcType)
 		end
 
-		--since CFrames are received in the networkable format, I have to decode it to be actual CFrames. It is nicely done because of the roblox CFrame.new overload for quaternions.
-		--same applies on the server as well of course.
-		entry.snapshot:Push(clientLastTicks[id], Networkables.DecodeYawCFrame(cframe))
+		--cframes are already decoded when unpacking, so we push directly
+		entry.snapshot:Push(clientLastTicks[id], cframe)
 	end
 end
 
@@ -359,10 +375,9 @@ RunService.PostSimulation:Connect(function()
 		return
 	end
 
-	local networkable = Networkables.MakeYawNetworkable(currentCFrame)
 	table.insert(outgoingSnapshots, {
 		timestamp = os.clock(),
-		cframe = networkable,
+		cframe = currentCFrame,
 	})
 	Flush()
 end)
