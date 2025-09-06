@@ -45,6 +45,31 @@ RenderCache.Init({
 
 local playerNetworkId = 300
 
+local function GetCharacter(player: Player): Model?
+	if characters[player] and characters[player].Parent then
+		return characters[player]
+	end
+
+	local rig
+	local gui = player:FindFirstChild("PlayerGui")
+	if gui then
+		local candidate = gui:FindFirstChild("CHRONO_CHARACTER")
+		if candidate and candidate:IsA("Model") then
+			rig = candidate
+		end
+	end
+	rig = rig or player.Character :: any
+
+	return rig
+end
+
+local function ClearCharacter(player: Player)
+	if characters[player] then
+		pcall(characters[player].Destroy, characters[player])
+		characters[player] = nil
+	end
+end
+
 local function UnpackSnapshotData(buff: buffer, offset: number): any
 	local value = {}
 	value.timestamp = buffer.readf32(buff, offset + 0)
@@ -155,7 +180,7 @@ local function UnregisterNPC(id: number): Model?
 end
 
 local function PlayerAdded(player: Player, id: number)
-	local initializedCharacter = player.Character or player.CharacterAdded:Wait()
+	local initializedCharacter = GetCharacter(player) or player.CharacterAdded:Wait()
 	if not initializedCharacter.Parent then
 		initializedCharacter = player.CharacterAdded:Wait()
 	end
@@ -178,41 +203,30 @@ local function PlayerAdded(player: Player, id: number)
 		pcall(old.Destroy, old)
 	end
 
-	if Config.ENABLE_CUSTOM_CHARACTERS then
-		local rig = Rig(player, player.UserId)
-		if not rig or not rig.Model then
-			warn("Failed to create character for player", player)
+	local character = GetCharacter(player) or player.CharacterAdded:Wait()
+	local primaryPart = character.PrimaryPart :: BasePart
+
+	task.spawn(function()
+		if not Config.DISABLE_DEFAULT_REPLICATION then
 			return
 		end
+		if not primaryPart then
+			task.wait(1) -- for some reason primary part didn't exist immediately?
+			primaryPart = character.PrimaryPart :: BasePart
+		end
+		if not primaryPart then
+			warn("Player has no primary part", player, character)
+			return
+		end
+		primaryPart.Anchored = false
 
-		rig.Model.Parent = workspace
-		characters[player] = rig.Model
-
-		workspace.CurrentCamera.CameraSubject = rig.Model:FindFirstChildOfClass("Humanoid") or rig.Model.PrimaryPart
-	else
-		local character = player.Character or player.CharacterAdded:Wait()
-		local primaryPart = character.PrimaryPart :: BasePart
-		task.spawn(function()
-			if not Config.DISABLE_DEFAULT_REPLICATION then
-				return
-			end
-			if not primaryPart then
-				task.wait(1) -- for some reason primary part didn't exist immediately?
-				primaryPart = character.PrimaryPart :: BasePart
-			end
-			if not primaryPart then
-				warn("Player has no primary part", player, character)
-				return
-			end
+		primaryPart:GetPropertyChangedSignal("Anchored"):Connect(function()
 			primaryPart.Anchored = false
-
-			primaryPart:GetPropertyChangedSignal("Anchored"):Connect(function()
-				primaryPart.Anchored = false
-			end)
 		end)
+	end)
 
-		characters[player] = character
-	end
+	ClearCharacter(player)
+	characters[player] = character
 
 	local initialCFrame = CFrame.identity
 
@@ -316,7 +330,7 @@ RunService.PreRender:Connect(function(deltaTime: number)
 	RenderCache.Update(deltaTime)
 	debug.profilebegin("Calculate CFrames")
 	for id, data in idMap do
-		if not data.character or data.character == player.Character then
+		if not data.character or data.character == GetCharacter(player) then
 			continue
 		end
 
@@ -355,11 +369,13 @@ RunService.PostSimulation:Connect(function()
 		return
 	end
 	lastSent = os.clock()
-	if not player.Character then
+
+	local character = GetCharacter(player)
+	if not character then
 		return
 	end
 
-	local primaryPart = player.Character.PrimaryPart
+	local primaryPart = character.PrimaryPart
 	if not primaryPart then
 		return
 	end
@@ -410,8 +426,11 @@ return {
 	playerTickRates = playerTickRates,
 	BufferTracker = bufferTracker,
 
+	GetCharacter = GetCharacter,
+
 	RegisterClientNPC = RegisterClientNPC,
 	UnregisterNPC = UnregisterNPC,
+
 	GetAllNetworkIds = function()
 		local ids = {}
 		for id, _ in idMap do

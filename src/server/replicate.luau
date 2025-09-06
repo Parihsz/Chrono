@@ -50,6 +50,51 @@ local lastReplicatedTimes = {} :: { [number]: number }
 local playerTickRates = {} :: { [number]: number }
 local replicators = {} :: { [number]: Model }
 
+local characters = {} :: { [Player]: Model }
+
+local function GetCharacter(player: Player): Model?
+	return characters[player] or player.Character
+end
+
+local function SetCharacter(player: Player, rig: Model)
+	for _, child in player.PlayerGui:GetChildren() do
+		if child:IsA("Model") and child.Name == "CHRONO_CHARACTER" then
+			child:Destroy()
+		end
+	end
+
+	rig = rig:Clone()
+	rig.Name = "CHRONO_CHARACTER"
+	rig.Parent = player:WaitForChild("PlayerGui")
+
+	local id = playerIdMap[player]
+	if id then
+		if Config.DISABLE_DEFAULT_REPLICATION then
+			if StarterPlayer:FindFirstChild("Replicator") then
+				local clone: Model = StarterPlayer.Replicator:Clone()
+				clone.Name = player.Name
+				clone.Parent = workspace.CurrentCamera
+				replicators[id] = clone
+			end
+		end
+
+		Grid.AddEntity(rig, "player")
+		Events.InitializePlayer.FireAll({
+			id = id,
+			player = player.Name,
+		})
+	end
+
+	return rig
+end
+
+local function ClearCharacter(player: Player)
+	if characters[player] then
+		pcall(characters[player].Destroy, characters[player])
+		characters[player] = nil
+	end
+end
+
 local MAX_ID = 2 ^ 16 - 1
 local IncrementalFactoryUID = 0
 
@@ -201,10 +246,6 @@ local function OnCharacterAdded(player: Player, character: Model, id: number)
 
 			replicators[id] = clone
 		end
-	end
-
-	if Config.ENABLE_CUSTOM_CHARACTERS then
-		character.Parent = workspace.CurrentCamera
 	end
 
 	Grid.AddEntity(character, "player")
@@ -607,14 +648,21 @@ return {
 	idMap = idMap,
 	Replicators = replicators,
 
+	GetCharacter = GetCharacter,
+	SetCharacter = SetCharacter,
+	ClearCharacter = ClearCharacter,
+
 	GetReplicationRule = GetReplicationRule,
 	SetReplicationRule = SetReplicationRule,
+
 	GetId = GetIdFrom,
 	GetLatestCFrame = GetLatestCFrame,
-	RegisterNPC = RegisterNPC,
-	PushNPCTransform = PushNPCTransform,
-	UnregisterNPC = UnregisterNPC,
 	GetLatestTime = GetLatestTime,
+
+	RegisterNPC = RegisterNPC,
+	UnregisterNPC = UnregisterNPC,
+
+	PushNPCTransform = PushNPCTransform,
 	TogglePlayerReplication = TogglePlayerReplication,
 
 	GetAllNetworkIds = function()
