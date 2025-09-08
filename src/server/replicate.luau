@@ -3,17 +3,20 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local StarterPlayer = game:GetService("StarterPlayer")
 
+local grid = require(ReplicatedStorage.Packages.chrono.shared.grid)
 local Config = require(script.Parent.Parent.shared.config)
 local Snapshots = require(script.Parent.Parent.shared.snapshots)
 local Grid = require(script.Parent.Parent.shared.grid)
 local Events = require(script.Parent.Parent.events.server)
 local config = require(script.Parent.Parent.shared.config)
 local Networkables = require(script.Parent.Parent.shared.makeNetworkable)
+local Character = require(script.Parent.Parent.shared.character)
 
 local ClientReplicateCFrame = Instance.new("UnreliableRemoteEvent")
 ClientReplicateCFrame.Name = "ClientReplicateCFrame"
 ClientReplicateCFrame.Parent = ReplicatedStorage
 
+local CUSTOM_CHARACTERS = Config.ENABLE_CUSTOM_CHARACTERS
 local MAX_UNRELIABLE_BYTES = 900
 local SNAPSHOT_SIZE = if Config.SEND_FULL_ROTATION then 22 + 2 else 18 + 2 -- assume worst cast for id (uInt)
 local HEADER_SIZE = 2
@@ -52,6 +55,26 @@ local replicators = {} :: { [number]: Model }
 
 local MAX_ID = 2 ^ 16 - 1
 local IncrementalFactoryUID = 0
+
+local function getCharacter(player: Player): Model?
+	if CUSTOM_CHARACTERS then
+		return Character.GetCharacter(player)
+	else
+		return player.Character
+	end
+end
+
+local function waitForCharacter(player: Player): Model
+	if CUSTOM_CHARACTERS then
+		local plr, char
+		repeat
+			plr, char = Character.CharacterAdded:Wait()
+		until plr == player
+		return char
+	else
+		return player.CharacterAdded:Wait()
+	end
+end
 
 local function PackSnapshotData(buff: buffer, offset: number, timestamp: number, cframe: CFrame, id: number)
 	buffer.writef32(buff, offset + 0, timestamp)
@@ -193,25 +216,7 @@ local function GetNPCConfig(npcType: string?): any
 end
 
 local function OnCharacterAdded(player: Player, character: Model, id: number)
-	if Config.DISABLE_DEFAULT_REPLICATION then
-		if StarterPlayer:FindFirstChild("Replicator") then
-			local clone: Model = StarterPlayer.Replicator:Clone()
-			clone.Name = player.Name
-			clone.Parent = workspace.CurrentCamera
-
-			replicators[id] = clone
-		end
-	end
-
-	if Config.ENABLE_CUSTOM_CHARACTERS then
-		character.Parent = workspace.CurrentCamera
-	end
-
 	Grid.AddEntity(character, "player")
-	Events.InitializePlayer.FireAll({
-		id = id,
-		player = player.Name,
-	})
 end
 
 local function OnCharacterRemoving(character: Model)
@@ -258,12 +263,34 @@ Players.PlayerAdded:Connect(function(player: Player)
 	}
 	lastReplicatedTimes[id] = 0
 
+	if Config.DISABLE_DEFAULT_REPLICATION then
+		if StarterPlayer:FindFirstChild("Replicator") then
+			local clone: Model = StarterPlayer.Replicator:Clone()
+			clone.Name = player.Name
+			clone.Parent = workspace.CurrentCamera
+
+			replicators[id] = clone
+		end
+	end
+
 	InitExistingPlayers(player)
 
+	Events.InitializePlayer.FireAll({
+		id = id,
+		player = player.Name,
+	})
 	idMap[id]._charAdded = player.CharacterAdded:Connect(function(character)
 		OnCharacterAdded(player, character, id)
 	end)
 	idMap[id]._charRemoving = player.CharacterRemoving:Connect(OnCharacterRemoving)
+end)
+
+Character.CharacterRemoved:Connect(function(player: Player, character: Model)
+	OnCharacterRemoving(character)
+end)
+
+Character.CharacterAdded:Connect(function(player: Player, character: Model)
+	grid.AddEntity(character, "player")
 end)
 
 Players.PlayerRemoving:Connect(function(player)
@@ -279,6 +306,10 @@ Players.PlayerRemoving:Connect(function(player)
 			_charRemoving:Disconnect()
 		end
 
+		if replicators[id] then
+			pcall(workspace.Destroy, replicators[id])
+			replicators[id] = nil
+		end
 		idMap[id] = nil
 		lastReplicatedTimes[id] = nil
 		playerIdMap[player] = nil
@@ -405,7 +436,7 @@ RunService.PostSimulation:Connect(function(deltaTime)
 
 	local allPlayers = {}
 	for id, data in idMap do
-		local character = data.player and data.player.Character or nil
+		local character = data.player and getCharacter(data.player)
 		local isNPC = data.serverOwned == true
 
 		if not isNPC and (not character or not character.PrimaryPart or not data.clientLastTick) then
@@ -426,14 +457,20 @@ RunService.PostSimulation:Connect(function(deltaTime)
 		local cframe = CFrame.identity
 		if latestSnapshot then
 			cframe = latestSnapshot.value
-		elseif character and character.PrimaryPart then
-			cframe = (character :: any).PrimaryPart.CFrame
+		-- elseif character and character.PrimaryPart then
+		-- 	cframe = (character :: any).PrimaryPart.CFrame
+		else
+			continue
 		end
 
 		local lastSentCFrame = (data :: any).lastCFrame or CFrame.identity
 		local changed = vector.magnitude(lastSentCFrame.Position - cframe.Position :: any) >= 0.1
 			or not lastSentCFrame.Rotation:FuzzyEq(cframe.Rotation :: any, 0.0001);
 		(data :: any).lastCFrame = cframe
+
+		if CUSTOM_CHARACTERS and character and character.PrimaryPart then
+			character.PrimaryPart.CFrame = cframe
+		end
 
 		if not changed then
 			continue
@@ -587,9 +624,7 @@ local function UnregisterNPC(id: number): Model?
 	playerTickRates[id] = nil
 
 	ReturnID(id)
-	if data.model then
-		Grid.RemoveEntity(data.model)
-	end
+
 	return data.model
 end
 
