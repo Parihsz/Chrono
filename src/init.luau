@@ -6,6 +6,7 @@ local ClientReplicate
 local InterpolationBuffer
 local RenderCache
 local TogglePlayerReplication
+local Character
 
 local Snapshots = require(script.shared.snapshots)
 export type SnapshotData<T> = Snapshots.SnapshotData<T>
@@ -42,6 +43,7 @@ local Modules = {
 	InterpolationBuffer = true,
 	RenderCache = true,
 	TogglePlayerReplication = true,
+	Character = true,
 }
 
 local Chrono = {}
@@ -64,7 +66,9 @@ function Chrono.Start()
 		InterpolationBuffer = require(script.client.interpolationBuffer)
 		RenderCache = require(script.client.renderCache)
 	end
+	Character = require(script.shared.character)
 
+	Chrono.Character = Character
 	Chrono.ChronoClient = ClientReplicate
 	Chrono.ChronoServer = ServerReplicate
 	Chrono.NpcRegistry = NpcCache
@@ -74,6 +78,10 @@ function Chrono.Start()
 	Chrono.TogglePlayerReplication = TogglePlayerReplication
 	setmetatable(Chrono :: any, nil)
 	local config = require(script.shared.config)
+	if config.DISABLE_DEFAULT_REPLICATION and config.ENABLE_CUSTOM_CHARACTERS then
+		warn("DISABLE_DEFAULT_REPLICATION and ENABLE_CUSTOM_CHARACTERS are both enabled. Disabling DISABLE_DEFAULT_REPLICATION since its not needed.")
+		config.DISABLE_DEFAULT_REPLICATION = false
+	end
 	Chrono.Config = setmetatable({}, {
 		__index = function(_, key)
 			return config[key]

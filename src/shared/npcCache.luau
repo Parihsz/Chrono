@@ -18,7 +18,7 @@ else
 end
 
 local Config = require(script.Parent.config)
-local Signal = require(script.Parent.signal)
+local Signal = require(script.Parent.signal)  
 
 local NpcAdded: Signal.Signal<number, Model, any> = Signal.new()
 local NpcRemoved: Signal.Signal<number, Model> = Signal.new()
@@ -99,7 +99,7 @@ function Npc.Register(model: Model, npcType: string?, npcModelType: string?, aut
 		)
 	end
 	npcType = npcType or "DEFAULT"
-	local defaultModel = NPC_MODELS[npcModelType]
+	local defaultModel = NPC_MODELS[npcModelType or '']
 
 	local folder_: string = npcModelType or "DEFAULT"
 	local folder: Folder = (CAMERA:FindFirstChild(folder_) or Instance.new("Folder", CAMERA)) :: any

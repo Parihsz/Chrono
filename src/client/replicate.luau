@@ -2,6 +2,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
+
 local Config = require(script.Parent.Parent.shared.config)
 local Snapshots = require(script.Parent.Parent.shared.snapshots)
 local Events = require(script.Parent.Parent.events.client)
@@ -9,7 +10,9 @@ local InterpolationBuffer = require(script.Parent.interpolationBuffer)
 local Networkables = require(script.Parent.Parent.shared.makeNetworkable)
 local RenderCache = require(script.Parent.renderCache)
 local Rig = require(script.Parent.Parent.shared.rigs.createCharacter)
+local Character = require(script.Parent.Parent.shared.character)
 
+local CUSTOM_CHARACTERS = Config.ENABLE_CUSTOM_CHARACTERS
 local MAX_UNRELIABLE_BYTES = 900
 local SNAPSHOT_SIZE = if Config.SEND_FULL_ROTATION then 24 else 20
 local HEADER_SIZE = 2
@@ -31,8 +34,8 @@ local idMap = {} :: {
 	},
 }
 
+local playerToId = {} :: { [Player]: number }
 local player = Players.LocalPlayer
-local initializedPlayers = {} :: { [Player]: Model }
 local characters = {} :: { [Player]: Model }
 local playerTickRates = {} :: { [number]: number }
 local pausedPlayers = {} :: { [number]: boolean }
@@ -42,6 +45,27 @@ RenderCache.Init({
 	playerTickRates = playerTickRates,
 	bufferTracker = bufferTracker,
 })
+
+local function getCharacter(player: Player): Model?
+	if CUSTOM_CHARACTERS then
+		return Character.getCharacter(player)
+	else
+		return player.Character
+	end
+end
+
+local function waitForCharacter(player: Player): Model
+	if CUSTOM_CHARACTERS then
+		local plr,char
+		repeat
+			plr,char = Character.CharacterAdded:Wait()
+		until plr == player
+		return char
+	else
+		return player.CharacterAdded:Wait()
+	end
+end
+
 
 local playerNetworkId = 300
 
@@ -155,17 +179,10 @@ local function UnregisterNPC(id: number): Model?
 end
 
 local function PlayerAdded(player: Player, id: number)
-	local initializedCharacter = player.Character or player.CharacterAdded:Wait()
+	local initializedCharacter = getCharacter(player) or waitForCharacter(player)
 	if not initializedCharacter.Parent then
-		initializedCharacter = player.CharacterAdded:Wait()
+		initializedCharacter = waitForCharacter(player)
 	end
-
-	if initializedPlayers[player] == initializedCharacter then
-		warn("Player already initialized for this character", player)
-		return
-	end
-
-	initializedPlayers[player] = initializedCharacter
 
 	if player == Players.LocalPlayer then
 		playerNetworkId = id
@@ -174,45 +191,32 @@ local function PlayerAdded(player: Player, id: number)
 	local registeredSnapshots = Snapshots(CFrame.identity.Lerp)
 
 	local old = characters[player]
-	if old then
+	if old and old ~= initializedCharacter then
 		pcall(old.Destroy, old)
 	end
 
-	if Config.ENABLE_CUSTOM_CHARACTERS then
-		local rig = Rig(player, player.UserId)
-		if not rig or not rig.Model then
-			warn("Failed to create character for player", player)
+	local primaryPart = initializedCharacter.PrimaryPart :: BasePart
+	task.spawn(function()
+		if not Config.DISABLE_DEFAULT_REPLICATION then
 			return
 		end
+		if not primaryPart then
+			task.wait(1) -- for some reason primary part didn't exist immediately?
+			primaryPart = initializedCharacter.PrimaryPart :: BasePart
+		end
+		if not primaryPart then
+			warn("Player has no primary part", player, initializedCharacter)
+			return
+		end
+		primaryPart.Anchored = false
 
-		rig.Model.Parent = workspace
-		characters[player] = rig.Model
-
-		workspace.CurrentCamera.CameraSubject = rig.Model:FindFirstChildOfClass("Humanoid") or rig.Model.PrimaryPart
-	else
-		local character = player.Character or player.CharacterAdded:Wait()
-		local primaryPart = character.PrimaryPart :: BasePart
-		task.spawn(function()
-			if not Config.DISABLE_DEFAULT_REPLICATION then
-				return
-			end
-			if not primaryPart then
-				task.wait(1) -- for some reason primary part didn't exist immediately?
-				primaryPart = character.PrimaryPart :: BasePart
-			end
-			if not primaryPart then
-				warn("Player has no primary part", player, character)
-				return
-			end
+		primaryPart:GetPropertyChangedSignal("Anchored"):Connect(function()
 			primaryPart.Anchored = false
-
-			primaryPart:GetPropertyChangedSignal("Anchored"):Connect(function()
-				primaryPart.Anchored = false
-			end)
 		end)
+	end)
 
-		characters[player] = character
-	end
+	characters[player] = initializedCharacter
+
 
 	local initialCFrame = CFrame.identity
 
@@ -220,20 +224,16 @@ local function PlayerAdded(player: Player, id: number)
 		initialCFrame = (characters[player] :: any).PrimaryPart.CFrame
 	end
 
+	playerToId[player] = id
 	idMap[id] = {
 		player = player,
 		snapshot = registeredSnapshots,
-		character = characters[player],
+		character = initializedCharacter,
 		lastCFrame = initialCFrame,
 	}
 
 	RenderCache.Add(id)
 
-	local humanoid = characters[player]:WaitForChild("Humanoid") :: Humanoid
-
-	humanoid.Died:Connect(function()
-		initializedPlayers[player] = nil
-	end)
 end
 
 Events.InitializePlayer.On(function(data)
@@ -316,7 +316,7 @@ RunService.PreRender:Connect(function(deltaTime: number)
 	RenderCache.Update(deltaTime)
 	debug.profilebegin("Calculate CFrames")
 	for id, data in idMap do
-		if not data.character or data.character == player.Character then
+		if not data.character or data.character == (getCharacter(player)) then
 			continue
 		end
 
@@ -355,11 +355,12 @@ RunService.PostSimulation:Connect(function()
 		return
 	end
 	lastSent = os.clock()
-	if not player.Character then
+	local char = getCharacter(player)
+	if not char then
 		return
 	end
 
-	local primaryPart = player.Character.PrimaryPart
+	local primaryPart = char.PrimaryPart
 	if not primaryPart then
 		return
 	end
@@ -383,26 +384,36 @@ RunService.PostSimulation:Connect(function()
 end)
 
 Players.PlayerRemoving:Connect(function(player)
-	local idToRemove = nil
-	for id, data in idMap do
-		if data.player == player then
-			idToRemove = id
-			break
-		end
-	end
+	local idToRemove = playerToId[player]
+	playerToId[player] = nil
 
 	if idToRemove then
 		RenderCache.Remove(idToRemove)
 		idMap[idToRemove] = nil
 	end
 
-	initializedPlayers[player] = nil
 	local character = characters[player]
 	characters[player] = nil
 
 	if character then
 		pcall(character.Destroy, character)
 	end
+end)
+
+Character.CharacterAdded:Connect(function(plr,char)
+	local id = playerToId[plr]
+	if not id then
+		return
+	end
+	local data = idMap[id]
+	if not data then
+		return
+	end
+	if data.character then
+		char:PivotTo(data.character:GetPivot())
+	end
+	data.character = char
+	characters[plr] = char
 end)
 
 return {
