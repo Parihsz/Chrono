@@ -8,7 +8,7 @@ if RunService:IsServer() then
         local char = player.CharacterAdded:Wait()
         char.Archivable = true
         local c =  char:Clone()
-        chrono.Character.setCharacter(player, c)
+        chrono.Character.SetCharacter(player, c)
         c.PrimaryPart:SetNetworkOwner(player)
     end)
 else

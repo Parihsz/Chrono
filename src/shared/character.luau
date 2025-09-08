@@ -33,11 +33,11 @@ function Characters.RegisterModel(model: Model, type: string)
 	--// do we want to add it?
 end
 
-function Characters.getCharacter(player: Player): Model?
+function Characters.GetCharacter(player: Player): Model?
     return Models[player]
 end
 
-function Characters.setCharacter(player: Player, model: Model|string, data:any?)
+function Characters.SetCharacter(player: Player, model: Model|string, data:any?)
     if Models[player] == model then
         return
     end
