@@ -58,7 +58,7 @@ local IncrementalFactoryUID = 0
 
 local function getCharacter(player: Player): Model?
 	if CUSTOM_CHARACTERS then
-		return Character.getCharacter(player)
+		return Character.GetCharacter(player)
 	else
 		return player.Character
 	end
@@ -66,9 +66,9 @@ end
 
 local function waitForCharacter(player: Player): Model
 	if CUSTOM_CHARACTERS then
-		local plr,char
+		local plr, char
 		repeat
-			plr,char = Character.CharacterAdded:Wait()
+			plr, char = Character.CharacterAdded:Wait()
 		until plr == player
 		return char
 	else
@@ -216,22 +216,7 @@ local function GetNPCConfig(npcType: string?): any
 end
 
 local function OnCharacterAdded(player: Player, character: Model, id: number)
-	if Config.DISABLE_DEFAULT_REPLICATION then
-		if StarterPlayer:FindFirstChild("Replicator") then
-			local clone: Model = StarterPlayer.Replicator:Clone()
-			clone.Name = player.Name
-			clone.Parent = workspace.CurrentCamera
-
-			replicators[id] = clone
-		end
-	end
-
-
 	Grid.AddEntity(character, "player")
-	Events.InitializePlayer.FireAll({
-		id = id,
-		player = player.Name,
-	})
 end
 
 local function OnCharacterRemoving(character: Model)
@@ -278,8 +263,22 @@ Players.PlayerAdded:Connect(function(player: Player)
 	}
 	lastReplicatedTimes[id] = 0
 
+	if Config.DISABLE_DEFAULT_REPLICATION then
+		if StarterPlayer:FindFirstChild("Replicator") then
+			local clone: Model = StarterPlayer.Replicator:Clone()
+			clone.Name = player.Name
+			clone.Parent = workspace.CurrentCamera
+
+			replicators[id] = clone
+		end
+	end
+
 	InitExistingPlayers(player)
 
+	Events.InitializePlayer.FireAll({
+		id = id,
+		player = player.Name,
+	})
 	idMap[id]._charAdded = player.CharacterAdded:Connect(function(character)
 		OnCharacterAdded(player, character, id)
 	end)
@@ -307,6 +306,10 @@ Players.PlayerRemoving:Connect(function(player)
 			_charRemoving:Disconnect()
 		end
 
+		if replicators[id] then
+			pcall(workspace.Destroy, replicators[id])
+			replicators[id] = nil
+		end
 		idMap[id] = nil
 		lastReplicatedTimes[id] = nil
 		playerIdMap[player] = nil
@@ -514,7 +517,6 @@ RunService.PostSimulation:Connect(function(deltaTime)
 	end
 
 	debug.profileend()
-
 
 	if not Config.DISABLE_DEFAULT_REPLICATION then
 		return

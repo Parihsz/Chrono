@@ -31,6 +31,7 @@ local idMap = {} :: {
 		isNPC: boolean?,
 		npcType: string?,
 		player: Player?,
+		_characterAdded: RBXScriptConnection?,
 	},
 }
 
@@ -48,7 +49,7 @@ RenderCache.Init({
 
 local function getCharacter(player: Player): Model?
 	if CUSTOM_CHARACTERS then
-		return Character.getCharacter(player)
+		return Character.GetCharacter(player)
 	else
 		return player.Character
 	end
@@ -178,17 +179,15 @@ local function UnregisterNPC(id: number): Model?
 	return data.character
 end
 
-local function PlayerAdded(player: Player, id: number)
+local function newCharacter(idData:typeof(idMap[1]))
+	local player = idData.player
+	if not player then
+		return
+	end
 	local initializedCharacter = getCharacter(player) or waitForCharacter(player)
 	if not initializedCharacter.Parent then
 		initializedCharacter = waitForCharacter(player)
 	end
-
-	if player == Players.LocalPlayer then
-		playerNetworkId = id
-	end
-
-	local registeredSnapshots = Snapshots(CFrame.identity.Lerp)
 
 	local old = characters[player]
 	if old and old ~= initializedCharacter then
@@ -223,17 +222,29 @@ local function PlayerAdded(player: Player, id: number)
 	if characters[player] and characters[player].PrimaryPart then
 		initialCFrame = (characters[player] :: any).PrimaryPart.CFrame
 	end
+	
+	idData.character = initializedCharacter
+	idData.lastCFrame = initialCFrame
 
+end
+
+local function PlayerAdded(player: Player, id: number)
+	local registeredSnapshots = Snapshots(CFrame.identity.Lerp)
 	playerToId[player] = id
 	idMap[id] = {
 		player = player,
 		snapshot = registeredSnapshots,
-		character = initializedCharacter,
-		lastCFrame = initialCFrame,
+		character = nil,
+		lastCFrame = CFrame.identity,
 	}
 
 	RenderCache.Add(id)
-
+	if not CUSTOM_CHARACTERS then
+		idMap[id]._characterAdded = player.CharacterAdded:Connect(function(char)
+			newCharacter(idMap[id])
+		end)
+	end
+	newCharacter(idMap[id])
 end
 
 Events.InitializePlayer.On(function(data)
@@ -389,6 +400,10 @@ Players.PlayerRemoving:Connect(function(player)
 
 	if idToRemove then
 		RenderCache.Remove(idToRemove)
+		local data = idMap[idToRemove]
+		if data and data._characterAdded then
+			data._characterAdded:Disconnect()
+		end
 		idMap[idToRemove] = nil
 	end
 
