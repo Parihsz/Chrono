@@ -24,6 +24,8 @@ return {
 		},
 	},
 
+	PLAYER_MODELS = {},
+
 	--note that warnings are mostly non fatal
 	--this will be set to false to optimize output by default, only enable if you're experiencing bugs with the system
 	SHOW_WARNINGS = false,
@@ -34,7 +36,7 @@ return {
 
 	PROXIMITY: number,
 
-	ENABLE_CUSTOM_CHARACTERS: boolean, 
+	ENABLE_CUSTOM_CHARACTERS: boolean,
 	DISABLE_DEFAULT_REPLICATION: boolean,
 
 	SEND_FULL_ROTATION: boolean,
@@ -44,5 +46,8 @@ return {
 		[string]: NPC_CONFIG,
 		DEFAULT: NPC_CONFIG,
 	},
+
+	PLAYER_MODELS: { [string]: Model },
+
 	SHOW_WARNINGS: boolean,
 }

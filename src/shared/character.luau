@@ -23,14 +23,10 @@ elseif IS_CLIENT then
 	ModelCache = ReplicatedStorage:WaitForChild("PLAYER_MODEL_CACHE") :: any
 end
 
-local Cache = Config.NPC_MODELS --// CHANGE THIS LATER
+local Cache = Config.PLAYER_MODELS
 local Characters = {}
 
 local Models = {}
-
-function Characters.RegisterModel(model: Model, type: string)
-	--// do we want to add it?
-end
 
 function Characters.GetCharacter(player: Player): Model?
 	return Models[player]
@@ -40,6 +36,7 @@ function Characters.SetCharacter(player: Player, model: Model | string, data: an
 	if Models[player] == model then
 		return
 	end
+
 	local model_: Model
 	if typeof(model) == "string" then
 		local cachedModel = Cache[model]
@@ -50,27 +47,32 @@ function Characters.SetCharacter(player: Player, model: Model | string, data: an
 	else
 		model_ = model
 	end
+
 	local id = player.UserId
 	model_.Parent = CharacterStoredLocation
+
 	if not model_.PrimaryPart then
 		warn("Model does not have a PrimaryPart set:", model)
 	end
+
 	if Models[player] then
 		CharacterRemoved:Fire(player, Models[player])
 		pcall(workspace.Destroy, Models[player])
 	end
+
 	if IS_CLIENT then
 		Models[player] = model_
 	else
 		Models[player] = model_
 		model_.Archivable = true
 		local clone = model_:Clone()
-        clone.Name = tostring(id)
+		clone.Name = tostring(id)
 		clone.Parent = ModelCache
 		if data then
 			ModelCache:SetAttribute("data", HttpService:JSONEncode({ data }))
 		end
 	end
+
 	CharacterAdded:Fire(player, model_, data)
 end
 
@@ -80,24 +82,30 @@ if IS_CLIENT then
 		local data = ModelCache:GetAttribute(child.Name)
 		data = data and HttpService:JSONDecode(data)[1]
 		ModelCache:SetAttribute(child.Name, nil)
+
 		if not id then
 			child:Destroy()
 			return
 		end
+
 		local player = Players:GetPlayerByUserId(id)
 		if not player then
 			child:Destroy()
 			return
 		end
+
 		if child:IsA("StringValue") then
 			child = child.Value :: any
 			child:Destroy()
 		end
+
 		Characters.SetCharacter(player, child :: any, data)
 	end
+
 	ModelCache.ChildAdded:Connect(function(child)
 		task.defer(handleChild, child)
 	end)
+
 	for _, child in ModelCache:GetChildren() do
 		task.defer(handleChild, child)
 	end

@@ -2,7 +2,6 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
-
 local Config = require(script.Parent.Parent.shared.config)
 local Snapshots = require(script.Parent.Parent.shared.snapshots)
 local Events = require(script.Parent.Parent.events.client)
@@ -57,16 +56,15 @@ end
 
 local function waitForCharacter(player: Player): Model
 	if CUSTOM_CHARACTERS then
-		local plr,char
+		local plr, character
 		repeat
-			plr,char = Character.CharacterAdded:Wait()
+			plr, character = Character.CharacterAdded:Wait()
 		until plr == player
-		return char
+		return character
 	else
 		return player.CharacterAdded:Wait()
 	end
 end
-
 
 local playerNetworkId = 300
 
@@ -161,7 +159,9 @@ local function RegisterClientNPC(id: number, model: Model, npcType: string?)
 		}
 		RenderCache.Add(id, true, npcType)
 	end
+
 	idMap[id].character = model
+
 	if npcType then
 		idMap[id].npcType = npcType
 	end
@@ -179,11 +179,12 @@ local function UnregisterNPC(id: number): Model?
 	return data.character
 end
 
-local function newCharacter(idData:typeof(idMap[1]))
+local function NewCharacter(idData: typeof(idMap[1]))
 	local player = idData.player
 	if not player then
 		return
 	end
+
 	local initializedCharacter = getCharacter(player) or waitForCharacter(player)
 	if not initializedCharacter.Parent then
 		initializedCharacter = waitForCharacter(player)
@@ -195,6 +196,7 @@ local function newCharacter(idData:typeof(idMap[1]))
 	end
 
 	local primaryPart = initializedCharacter.PrimaryPart :: BasePart
+
 	task.spawn(function()
 		if not Config.DISABLE_DEFAULT_REPLICATION then
 			return
@@ -216,16 +218,14 @@ local function newCharacter(idData:typeof(idMap[1]))
 
 	characters[player] = initializedCharacter
 
-
 	local initialCFrame = CFrame.identity
 
 	if characters[player] and characters[player].PrimaryPart then
 		initialCFrame = (characters[player] :: any).PrimaryPart.CFrame
 	end
-	
+
 	idData.character = initializedCharacter
 	idData.lastCFrame = initialCFrame
-
 end
 
 local function PlayerAdded(player: Player, id: number)
@@ -241,10 +241,10 @@ local function PlayerAdded(player: Player, id: number)
 	RenderCache.Add(id)
 	if not CUSTOM_CHARACTERS then
 		idMap[id]._characterAdded = player.CharacterAdded:Connect(function(char)
-			newCharacter(idMap[id])
+			NewCharacter(idMap[id])
 		end)
 	end
-	newCharacter(idMap[id])
+	NewCharacter(idMap[id])
 end
 
 Events.InitializePlayer.On(function(data)
@@ -415,8 +415,8 @@ Players.PlayerRemoving:Connect(function(player)
 	end
 end)
 
-Character.CharacterAdded:Connect(function(plr,char)
-	local id = playerToId[plr]
+Character.CharacterAdded:Connect(function(player, character)
+	local id = playerToId[player]
 	if not id then
 		return
 	end
@@ -425,10 +425,10 @@ Character.CharacterAdded:Connect(function(plr,char)
 		return
 	end
 	if data.character then
-		char:PivotTo(data.character:GetPivot())
+		character:PivotTo(data.character:GetPivot())
 	end
-	data.character = char
-	characters[plr] = char
+	data.character = character
+	characters[plr] = character
 end)
 
 return {
@@ -438,6 +438,7 @@ return {
 
 	RegisterClientNPC = RegisterClientNPC,
 	UnregisterNPC = UnregisterNPC,
+
 	GetAllNetworkIds = function()
 		local ids = {}
 		for id, _ in idMap do

@@ -12,7 +12,7 @@ hero:
       link: /Learn/Why
     - theme: alt
       text: API Reference
-      link: /API/ChronoServer
+      link: /API/ChronoClient
     - theme: alt
       text: Benchmarks
       link: /Benchmarks/Overview

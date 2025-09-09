@@ -13,6 +13,11 @@ Only the properties `NPC_MODELS` and `NPC_TYPES` may be modified after `Chrono.S
 
 ### `NPC_CONFIG`
 
+
+## Types
+
+### `NPC_CONFIG`
+
 | Field     | Type   | Description              |
 |----------|-------|--------------------------|
 | `TICK_RATE`      | number | The tick rate for the npc   |
@@ -80,3 +85,6 @@ A mapping of NPC types to their configuration.
 
 ---
 
+### `PLAYER_MODELS: { [string]: Model }`
+A mapping of player model strings to template models.  
+Useful for when `ENABLE_CUSTOM_CHARACTERS` is true.

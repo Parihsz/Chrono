@@ -644,12 +644,16 @@ return {
 
 	GetReplicationRule = GetReplicationRule,
 	SetReplicationRule = SetReplicationRule,
+
 	GetId = GetIdFrom,
 	GetLatestCFrame = GetLatestCFrame,
-	RegisterNPC = RegisterNPC,
-	PushNPCTransform = PushNPCTransform,
-	UnregisterNPC = UnregisterNPC,
 	GetLatestTime = GetLatestTime,
+
+	RegisterNPC = RegisterNPC,
+	UnregisterNPC = UnregisterNPC,
+
+	PushNPCTransform = PushNPCTransform,
+
 	TogglePlayerReplication = TogglePlayerReplication,
 
 	GetAllNetworkIds = function()
