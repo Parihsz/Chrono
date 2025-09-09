@@ -63,7 +63,7 @@ Fired when a character is removed (e.g. when replaced or on `PlayerRemoving`).
 
 ## Internal Behavior
 
-- Models are parented to a hidden **`Camera`** in `workspace` to keep them out of view.
+- Models are parented to a hidden **`Camera`** in `workspace` to prevent them from replicating automatically.
 - On the **server**, each player’s character is cloned into `PLAYER_MODEL_CACHE`  
   with their `UserId` as the name for identification.  
 - On the **client**, clones from `PLAYER_MODEL_CACHE` are consumed, registered, and removed.  
