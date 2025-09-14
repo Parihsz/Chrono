@@ -56,23 +56,11 @@ local replicators = {} :: { [number]: Model }
 local MAX_ID = 2 ^ 16 - 1
 local IncrementalFactoryUID = 0
 
-local function getCharacter(player: Player): Model?
+local function GetCharacter(player: Player): Model?
 	if CUSTOM_CHARACTERS then
 		return Character.GetCharacter(player)
 	else
 		return player.Character
-	end
-end
-
-local function waitForCharacter(player: Player): Model
-	if CUSTOM_CHARACTERS then
-		local plr, char
-		repeat
-			plr, char = Character.CharacterAdded:Wait()
-		until plr == player
-		return char
-	else
-		return player.CharacterAdded:Wait()
 	end
 end
 
@@ -169,7 +157,7 @@ local function GetIdFrom(input: Player | Model | number): number?
 	return nil
 end
 
-local function newReplicationRule(): ReplicationRule
+local function NewReplicationRule(): ReplicationRule
 	return {
 		filterType = "exclude",
 		filterPlayers = {},
@@ -179,16 +167,16 @@ end
 local function GetReplicationRule(input: Player | Model | number): ReplicationRule
 	local id = GetIdFrom(input)
 	if not id then
-		return newReplicationRule()
+		return NewReplicationRule()
 	end
 
 	local data = idMap[id]
 	if not data then
-		return newReplicationRule()
+		return NewReplicationRule()
 	end
 
 	if not idMap[id].replicationRule then
-		idMap[id].replicationRule = newReplicationRule()
+		idMap[id].replicationRule = NewReplicationRule()
 	end
 
 	return idMap[id].replicationRule :: any
@@ -210,7 +198,7 @@ local function SetReplicationRule(input: Player | Model | number, rule: Replicat
 	data.replicationRule = rule
 end
 
-local function GetNPCConfig(npcType: string?): any
+local function GetNpcConfig(npcType: string?): any
 	npcType = npcType or "DEFAULT"
 	return Config.NPC_TYPES[npcType :: any] or Config.NPC_TYPES.DEFAULT
 end
@@ -252,15 +240,13 @@ Players.PlayerAdded:Connect(function(player: Player)
 		player = player,
 		snapshot = Snapshots(CFrame.identity.Lerp),
 		clientLastTick = nil,
-		--clientLastTick:
-		--players: last tick received from that client
-		--NPCs: last tick generated on the server (acts as serverLastTick)
 
 		serverOwned = false,
 		npcType = nil,
 		_charAdded = nil,
 		_charRemoving = nil,
 	}
+
 	lastReplicatedTimes[id] = 0
 
 	if Config.DISABLE_DEFAULT_REPLICATION then
@@ -279,6 +265,7 @@ Players.PlayerAdded:Connect(function(player: Player)
 		id = id,
 		player = player.Name,
 	})
+
 	idMap[id]._charAdded = player.CharacterAdded:Connect(function(character)
 		OnCharacterAdded(player, character, id)
 	end)
@@ -290,15 +277,15 @@ Character.CharacterRemoved:Connect(function(player: Player, character: Model)
 end)
 
 Character.CharacterAdded:Connect(function(player: Player, character: Model)
-	grid.AddEntity(character, "player")
+	Grid.AddEntity(character, "player")
 end)
 
 Players.PlayerRemoving:Connect(function(player)
 	local id = playerIdMap[player]
 	if id then
-		local _charAdded = idMap[id]._charAdded
-		if _charAdded then
-			_charAdded:Disconnect()
+		local _characterAdded = idMap[id]._charAdded
+		if _characterAdded then
+			_characterAdded:Disconnect()
 		end
 
 		local _charRemoving = idMap[id]._charRemoving
@@ -379,7 +366,7 @@ end
 local function GetTickInterval(character: Model?, id: number): number
 	local data = idMap[id]
 	if data and data.serverOwned then
-		return GetNPCConfig(data.npcType).TICK_RATE
+		return GetNpcConfig(data.npcType).TICK_RATE
 	end
 
 	local baseTick = Config.TICK_RATE
@@ -436,7 +423,7 @@ RunService.PostSimulation:Connect(function(deltaTime)
 
 	local allPlayers = {}
 	for id, data in idMap do
-		local character = data.player and getCharacter(data.player)
+		local character = data.player and GetCharacter(data.player)
 		local isNPC = data.serverOwned == true
 
 		if not isNPC and (not character or not character.PrimaryPart or not data.clientLastTick) then
@@ -504,6 +491,7 @@ RunService.PostSimulation:Connect(function(deltaTime)
 			end
 		end
 	end
+
 	debug.profileend()
 	debug.profilebegin("FlushNPCs")
 
@@ -588,7 +576,7 @@ end
 local function RegisterNPC(model: Model?, npcType: string?): number
 	local id = GetNextID()
 
-	local npcConfig = GetNPCConfig(npcType)
+	local npcConfig = GetNpcConfig(npcType)
 
 	idMap[id] = {
 		player = nil,
@@ -631,10 +619,11 @@ end
 local function PushNPCTransform(target: number | Model, cframe: CFrame, t: number?)
 	local id = GetIdFrom(target) or math.huge
 	local data = idMap[id]
+
 	if data and data.serverOwned then
-		local stamp = t or os.clock()
-		data.snapshot:Push(stamp, cframe)
-		data.clientLastTick = stamp
+		local timestamp = t or os.clock()
+		data.snapshot:Push(timestamp, cframe)
+		data.clientLastTick = timestamp
 	end
 end
 

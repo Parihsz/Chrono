@@ -46,7 +46,7 @@ RenderCache.Init({
 	bufferTracker = bufferTracker,
 })
 
-local function getCharacter(player: Player): Model?
+local function GetCharacter(player: Player): Model?
 	if CUSTOM_CHARACTERS then
 		return Character.GetCharacter(player)
 	else
@@ -54,12 +54,12 @@ local function getCharacter(player: Player): Model?
 	end
 end
 
-local function waitForCharacter(player: Player): Model
+local function WaitForCharacter(player: Player): Model
 	if CUSTOM_CHARACTERS then
-		local plr, character
+		local _player, character
 		repeat
-			plr, character = Character.CharacterAdded:Wait()
-		until plr == player
+			_player, character = Character.CharacterAdded:Wait()
+		until _player == player
 		return character
 	else
 		return player.CharacterAdded:Wait()
@@ -185,9 +185,9 @@ local function NewCharacter(idData: typeof(idMap[1]))
 		return
 	end
 
-	local initializedCharacter = getCharacter(player) or waitForCharacter(player)
+	local initializedCharacter = GetCharacter(player) or WaitForCharacter(player)
 	if not initializedCharacter.Parent then
-		initializedCharacter = waitForCharacter(player)
+		initializedCharacter = WaitForCharacter(player)
 	end
 
 	local old = characters[player]
@@ -266,7 +266,6 @@ Events.InitializeExistingPlayers.On(function(data)
 end)
 
 local lastSent = os.clock()
---local lastSentCFrame = CFrame.identity
 
 Events.TickRateChanged.On(function(data)
 	playerTickRates[data.id] = data.tickRate
@@ -319,15 +318,11 @@ ServerReplicateCFrame.OnClientEvent:Connect(function(snapshotBuffer)
 	HandleReplicatedData(timestamps, cframes)
 end)
 
--- Events.ServerReplicateCFrame.On(function(serverData: { timestamps: { [number]: number }, cframes: { [number]: any } })
--- 	HandleReplicatedData(serverData.timestamps, serverData.cframes)
--- end)
-
 RunService.PreRender:Connect(function(deltaTime: number)
 	RenderCache.Update(deltaTime)
 	debug.profilebegin("Calculate CFrames")
 	for id, data in idMap do
-		if not data.character or data.character == (getCharacter(player)) then
+		if not data.character or data.character == (GetCharacter(player)) then
 			continue
 		end
 
@@ -366,12 +361,13 @@ RunService.PostSimulation:Connect(function()
 		return
 	end
 	lastSent = os.clock()
-	local char = getCharacter(player)
-	if not char then
+
+	local character = GetCharacter(player)
+	if not character then
 		return
 	end
 
-	local primaryPart = char.PrimaryPart
+	local primaryPart = character.PrimaryPart
 	if not primaryPart then
 		return
 	end
@@ -428,7 +424,7 @@ Character.CharacterAdded:Connect(function(player, character)
 		character:PivotTo(data.character:GetPivot())
 	end
 	data.character = character
-	characters[plr] = character
+	characters[player] = character
 end)
 
 return {
