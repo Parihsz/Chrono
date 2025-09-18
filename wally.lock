@@ -4,7 +4,7 @@ registry = "test"
 
 [[package]]
 name = "parihsz/chrono"
-version = "1.0.14"
+version = "1.2.0"
 dependencies = [["iris", "sirmallard/iris@2.5.0"]]
 
 [[package]]

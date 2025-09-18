@@ -9,7 +9,7 @@ For **Rojo** users:
 In your `wally.toml`, add the following line to your dependencies.
 
 ```toml
-chrono = "parihsz/chrono@1.1.1"
+chrono = "parihsz/chrono@1.2.0"
 ```
 
 For **Studio** users:

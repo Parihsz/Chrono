@@ -7,7 +7,7 @@ export type Snapshot<T> = {
 	cache: { SnapshotData<T> },
 	lerp: (T, T, number) -> T,
 
-	Push: (self: Snapshot<T>, t: number, value: T) -> (),
+	Push: (self: Snapshot<T>, t: number, value: T, _buffer: number?) -> (),
 	GetLatest: (self: Snapshot<T>) -> SnapshotData<T>?,
 	GetAt: (self: Snapshot<T>, t: number) -> T?,
 	Clear: (self: Snapshot<T>) -> (),
@@ -16,7 +16,9 @@ export type Snapshot<T> = {
 local Config = require(script.Parent.Parent.shared.config)
 
 local MAX_LENGTH = 30
-local SHOW_WARNINGS =  Config.SHOW_WARNINGS
+local SNAPSHOT_INACTIVITY_LIMIT = 0.2
+local SNAPSHOT_BUFFER_DEFAULT = 0.1
+local SHOW_WARNINGS = Config.SHOW_WARNINGS
 
 local warn = function(...)
 	if SHOW_WARNINGS then
@@ -26,7 +28,7 @@ end
 
 -- for lune test
 local function Search(cache: { SnapshotData<any> }, timeStamp: number): number
-	for i,v in cache do
+	for i, v in cache do
 		if v.t >= timeStamp then
 			return i
 		end
@@ -34,8 +36,14 @@ local function Search(cache: { SnapshotData<any> }, timeStamp: number): number
 	return #cache + 1
 end
 
-local function Push<T>(self: Snapshot<T>, timeStamp: number, value: T): ()
+local function Push<T>(self: Snapshot<T>, timeStamp: number, value: T, _buffer: number?): ()
 	local cache = self.cache
+	local latest = cache[#cache]
+	if latest and timeStamp - latest.t > SNAPSHOT_INACTIVITY_LIMIT then
+		local buffer = _buffer and _buffer > 0 and _buffer or SNAPSHOT_BUFFER_DEFAULT
+		table.clear(cache)
+		table.insert(cache, { t = timeStamp - buffer, value = latest.value })
+	end
 	local index = Search(cache, timeStamp)
 	table.insert(cache, index, { t = timeStamp, value = value })
 	if #cache > MAX_LENGTH then

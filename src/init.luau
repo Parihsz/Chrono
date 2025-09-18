@@ -79,7 +79,9 @@ function Chrono.Start()
 	setmetatable(Chrono :: any, nil)
 	local config = require(script.shared.config)
 	if config.DISABLE_DEFAULT_REPLICATION and config.ENABLE_CUSTOM_CHARACTERS then
-		warn("DISABLE_DEFAULT_REPLICATION and ENABLE_CUSTOM_CHARACTERS are both enabled. Disabling DISABLE_DEFAULT_REPLICATION since its not needed.")
+		warn(
+			"DISABLE_DEFAULT_REPLICATION and ENABLE_CUSTOM_CHARACTERS are both enabled. Disabling DISABLE_DEFAULT_REPLICATION since its not needed."
+		)
 		config.DISABLE_DEFAULT_REPLICATION = false
 	end
 	Chrono.Config = setmetatable({}, {

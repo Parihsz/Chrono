@@ -297,7 +297,7 @@ local function HandleReplicatedData(clientLastTicks, cframes)
 		end
 
 		--cframes are already decoded when unpacking, so we push directly
-		entry.snapshot:Push(clientLastTicks[id], cframe)
+		entry.snapshot:Push(clientLastTicks[id], cframe, RenderCache.GetBuffer(id))
 	end
 end
 
