@@ -326,7 +326,7 @@ ClientReplicateCFrame.OnServerEvent:Connect(function(player: Player, snapshotBuf
 		data.clientLastTick = snapshot.timestamp
 		data.snapshot:Push(snapshot.timestamp, snapshot.cframe)
 	end
-
+	lastReplicatedTimes[id] = 0
 	local character = player.Character
 	local hrp = character and character.PrimaryPart :: BasePart?
 	if config.DISABLE_DEFAULT_REPLICATION and hrp then
@@ -444,14 +444,14 @@ RunService.PostSimulation:Connect(function(deltaTime)
 		local cframe = CFrame.identity
 		if latestSnapshot then
 			cframe = latestSnapshot.value
-		-- elseif character and character.PrimaryPart then
-		-- 	cframe = (character :: any).PrimaryPart.CFrame
+		elseif character and character.PrimaryPart then
+			cframe = (character :: any).PrimaryPart.CFrame
 		else
 			continue
 		end
 
 		local lastSentCFrame = (data :: any).lastCFrame or CFrame.identity
-		local changed = vector.magnitude(lastSentCFrame.Position - cframe.Position :: any) >= 0.1
+		local changed = vector.magnitude(lastSentCFrame.Position - cframe.Position :: any) >= 0.05
 			or not lastSentCFrame.Rotation:FuzzyEq(cframe.Rotation :: any, 0.0001);
 		(data :: any).lastCFrame = cframe
 

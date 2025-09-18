@@ -297,7 +297,7 @@ local function HandleReplicatedData(clientLastTicks, cframes)
 		end
 
 		--cframes are already decoded when unpacking, so we push directly
-		entry.snapshot:Push(clientLastTicks[id], cframe, RenderCache.GetBuffer(id))
+		entry.snapshot:Push(clientLastTicks[id], cframe)
 	end
 end
 
@@ -374,7 +374,7 @@ RunService.PostSimulation:Connect(function()
 
 	local currentCFrame = primaryPart.CFrame
 
-	local changed = vector.magnitude(lastSentCFrame.Position - currentCFrame.Position :: any) >= 0.1
+	local changed = vector.magnitude(lastSentCFrame.Position - currentCFrame.Position :: any) >= 0.05
 		or not lastSentCFrame.Rotation:FuzzyEq(currentCFrame.Rotation :: any, 0.0001)
 
 	lastSentCFrame = currentCFrame
