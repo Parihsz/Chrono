@@ -201,10 +201,11 @@ else
 		local now = os.clock()
 		debug.profilebegin("Check Npc CFrames")
 		for id, model in AutomaticNpc do
-			if not model.PrimaryPart then
+			local primary = model.PrimaryPart 
+			if not primary then
 				continue
 			end
-			local cf = model.PrimaryPart.CFrame
+			local cf =primary.CFrame
 			ServerReplicate.PushNPCTransform(id, cf, now)
 		end
 		debug.profileend()
@@ -215,3 +216,4 @@ Npc.NpcAdded = NpcAdded.Event
 Npc.NpcRemoved = NpcRemoved.Event
 
 return Npc
+	
