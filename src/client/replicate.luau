@@ -2,14 +2,14 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
-local Config = require(script.Parent.Parent.shared.config)
-local Snapshots = require(script.Parent.Parent.shared.snapshots)
-local Events = require(script.Parent.Parent.events.client)
-local InterpolationBuffer = require(script.Parent.interpolationBuffer)
-local Networkables = require(script.Parent.Parent.shared.makeNetworkable)
-local RenderCache = require(script.Parent.renderCache)
-local Rig = require(script.Parent.Parent.shared.rigs.createCharacter)
-local Character = require(script.Parent.Parent.shared.character)
+local Config = require(script.Parent.Parent.Shared.Config)
+local Snapshots = require(script.Parent.Parent.Shared.Snapshots)
+local Events = require(script.Parent.Parent.Events.Client)
+local InterpolationBuffer = require(script.Parent.InterpolationBuffer)
+local Networkables = require(script.Parent.Parent.Shared.MakeNetworkable)
+local RenderCache = require(script.Parent.RenderCache)
+local Rig = require(script.Parent.Parent.Shared.Rigs.CreateCharacter)
+local Character = require(script.Parent.Parent.Shared.Character)
 
 local CUSTOM_CHARACTERS = Config.ENABLE_CUSTOM_CHARACTERS
 local MAX_UNRELIABLE_BYTES = 900

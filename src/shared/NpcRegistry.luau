@@ -12,19 +12,19 @@ local IS_SERVER = RunService:IsServer()
 local ClientReplicate
 local ServerReplicate
 if IS_CLIENT then
-	ClientReplicate = require(script.Parent.Parent.client.replicate)
+	ClientReplicate = require(script.Parent.Parent.Client.Replicate)
 else
-	ServerReplicate = require(script.Parent.Parent.server.replicate)
+	ServerReplicate = require(script.Parent.Parent.Server.Replicate)
 end
 
-local Config = require(script.Parent.config)
-local Signal = require(script.Parent.signal)  
+local Config = require(script.Parent.Config)
+local Signal = require(script.Parent.Signal)
 
 local NpcAdded: Signal.Signal<number, Model, any> = Signal.new()
 local NpcRemoved: Signal.Signal<number, Model> = Signal.new()
 
 local CAMERA = Instance.new("Camera", workspace)
-CAMERA.Name = "NPCCacheCamera"
+CAMERA.Name = "NpcRegistryCamera"
 local NPC_MODEL_CACHE
 
 if IS_SERVER then
@@ -99,7 +99,7 @@ function Npc.Register(model: Model, npcType: string?, npcModelType: string?, aut
 		)
 	end
 	npcType = npcType or "DEFAULT"
-	local defaultModel = NPC_MODELS[npcModelType or '']
+	local defaultModel = NPC_MODELS[npcModelType or ""]
 
 	local folder_: string = npcModelType or "DEFAULT"
 	local folder: Folder = (CAMERA:FindFirstChild(folder_) or Instance.new("Folder", CAMERA)) :: any
@@ -201,11 +201,11 @@ else
 		local now = os.clock()
 		debug.profilebegin("Check Npc CFrames")
 		for id, model in AutomaticNpc do
-			local primary = model.PrimaryPart 
+			local primary = model.PrimaryPart
 			if not primary then
 				continue
 			end
-			local cf =primary.CFrame
+			local cf = primary.CFrame
 			ServerReplicate.PushNPCTransform(id, cf, now)
 		end
 		debug.profileend()
@@ -216,4 +216,3 @@ Npc.NpcAdded = NpcAdded.Event
 Npc.NpcRemoved = NpcRemoved.Event
 
 return Npc
-	

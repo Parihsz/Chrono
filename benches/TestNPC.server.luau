@@ -19,7 +19,7 @@ local Character = Player.Character or Player.CharacterAdded:Wait()
 Character.Archivable = true
 
 local Chrono = require(ReplicatedStorage.Packages.chrono)
-local NpcCache = Chrono.NpcRegistry
+local NpcRegistry = Chrono.NpcRegistry
 local ServerChrono = Chrono.ChronoServer
 
 print("Starting test...")
@@ -45,14 +45,14 @@ local function createModel()
 	end
 
 	if USE_CHRONO then
-		NpcCache.Register(model, "DEFAULT", nil, true)
+		NpcRegistry.Register(model, "DEFAULT", nil, true)
 		do
 			local rule = ServerChrono.GetReplicationRule(model)
 			rule.filterType = "include" -- This will only replicate to the first player
 			rule.filterPlayers = { Player }
 		end
 		-- task.delay(10, function()
-		-- 	NpcCache.UnRegister(model)
+		-- 	NpcRegistry.UnRegister(model)
 		-- end	)
 	end
 	table.insert(Models, model)

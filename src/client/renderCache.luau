@@ -1,4 +1,4 @@
-local Config = require(script.Parent.Parent.shared.config)
+local Config = require(script.Parent.Parent.Shared.Config)
 
 local playerTickRates
 local BufferTracker
@@ -30,7 +30,7 @@ local function GetBuffer(id: number): number
 			warn(`RenderCache: No NPC config found for type {npcType}. Make sure to define it in the config`)
 			npcConfig = Config.NPC_TYPES["DEFAULT"]
 		end
-		return npcConfig.BUFFER 
+		return npcConfig.BUFFER
 	else
 		return BufferTracker.GetBuffer(id, playerTickRates[id] or Config.TICK_RATE)
 	end

@@ -1,5 +1,5 @@
-local RenderCache = require(script.Parent.renderCache)
-local Config = require(script.Parent.Parent.shared.config)
+local RenderCache = require(script.Parent.RenderCache)
+local Config = require(script.Parent.Parent.Shared.Config)
 
 return function(minBuffer: number, maxBuffer: number, alpha: number)
 	--average latency will be the average RTT between the client & server

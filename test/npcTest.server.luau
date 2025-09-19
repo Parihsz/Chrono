@@ -1,9 +1,9 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-local npcCache = require(ReplicatedStorage.Packages.chrono.shared.npcCache)
+local NpcRegistry = require(ReplicatedStorage.Packages.chrono.Shared.NpcRegistry)
 
 do
-    return
+	return
 end
 
 local player = game:GetService("Players").PlayerAdded:Wait()
@@ -14,4 +14,4 @@ model.Archivable = true
 local clone = model:Clone()
 clone.Parent = workspace
 
-npcCache.Register(clone, "DEFAULT", "TestNPCs", true)
+NpcRegistry.Register(clone, "DEFAULT", "TestNPCs", true)

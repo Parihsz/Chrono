@@ -1,5 +1,5 @@
-option ClientOutput = "./events/client"
-option ServerOutput = "./events/server"
+option ClientOutput = "./Events/Client"
+option ServerOutput = "./Events/Server"
 option RemoteScope = "CHRONO"
 
 struct Transform {

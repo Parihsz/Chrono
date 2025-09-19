@@ -14,7 +14,7 @@ export type Snapshot<T> = {
 	Clear: (self: Snapshot<T>) -> (),
 }
 
-local Config = require(script.Parent.Parent.shared.config)
+local Config = require(script.Parent.Parent.Shared.Config)
 
 local MAX_LENGTH = 30
 local SHOW_WARNINGS = Config.SHOW_WARNINGS

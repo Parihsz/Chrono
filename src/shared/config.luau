@@ -10,7 +10,7 @@ return {
 
 	PROXIMITY = 100,
 
-	ENABLE_CUSTOM_CHARACTERS = true, -- this will disable default roblox replication as well.
+	ENABLE_CUSTOM_CHARACTERS = false, -- this will disable default roblox replication as well.
 	DISABLE_DEFAULT_REPLICATION = true, -- this is if you want to disable the default roblox replication, but still use their controller
 
 	SEND_FULL_ROTATION = false,

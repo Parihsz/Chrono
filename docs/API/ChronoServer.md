@@ -43,7 +43,7 @@ Registers a new **NPC** on the server and returns its **network ID**.
   Defaults to `"DEFAULT"`.
 
 :::danger
-Use NpcCache for physical npcs, or you will need to manually push transforms for movement to be replicated
+Use NpcRegistry for physical npcs, or you will need to manually push transforms for movement to be replicated
 :::
 ---
 

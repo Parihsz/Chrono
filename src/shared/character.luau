@@ -1,8 +1,8 @@
 local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
-local Config = require(script.Parent.config)
-local Signal = require(script.Parent.signal)
+local Config = require(script.Parent.Config)
+local Signal = require(script.Parent.Signal)
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local IS_SERVER = RunService:IsServer()

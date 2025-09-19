@@ -4,7 +4,7 @@
 
 When required, NpcRegistry automatically:
 
-- Creates a **`NPCCacheCamera`** under `workspace` to hold **client clones**.
+- Creates a **`NpcRegistryCamera`** under `workspace` to hold **client clones**.
 - Creates or waits for a **`NPC_MODEL_CACHE`** folder in `ReplicatedStorage` for **replicated NPC models**.
 - Connects to:
 
@@ -109,7 +109,7 @@ Fired when an NPC is removed.
 
 On the **client**, NpcRegistry:
 
-1. Clones each NPC into `workspace.NPCCacheCamera` for rendering.
+1. Clones each NPC into `workspace.NpcRegistryCamera` for rendering.
 2. Registers the clone with `ClientReplicate` for **smooth interpolation**.
 3. Destroys the clone and unregisters automatically when the NPC is removed.
 
@@ -134,12 +134,12 @@ end)
 
 --Register npc on server
 local npcModel = workspace:WaitForChild("Goblin")
-NpcCache.Register(npcModel, "DEFAULT", nil, true, { EyeColor = "Green" })
+NpcRegistry.Register(npcModel, "DEFAULT", nil, true, { EyeColor = "Green" })
 
 --Change cframe
 npcModel:PivotTo(CFrame.new(Vector3.new(20, 5, -20)))
 
 --Unregister for cleanup
-NpcCache.UnRegister(npcModel)
+NpcRegistry.UnRegister(npcModel)
 ```
 

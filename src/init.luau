@@ -1,6 +1,6 @@
 local RunService = game:GetService("RunService")
 
-local NpcCache = require(script.shared.npcCache)
+local NpcRegistry = require(script.Shared.NpcRegistry)
 local ServerReplicate
 local ClientReplicate
 local InterpolationBuffer
@@ -8,7 +8,7 @@ local RenderCache
 local TogglePlayerReplication
 local Character
 
-local Snapshots = require(script.shared.snapshots)
+local Snapshots = require(script.Shared.Snapshots)
 export type SnapshotData<T> = Snapshots.SnapshotData<T>
 export type Snapshot<T> = Snapshots.Snapshot<T>
 
@@ -59,25 +59,25 @@ function Chrono.Start()
 	LoadFolder(script.shared)
 
 	if RunService:IsServer() then
-		ServerReplicate = require(script.server.replicate)
+		ServerReplicate = require(script.Server.Replicate)
 		TogglePlayerReplication = ServerReplicate.TogglePlayerReplication
 	else
-		ClientReplicate = require(script.client.replicate)
-		InterpolationBuffer = require(script.client.interpolationBuffer)
-		RenderCache = require(script.client.renderCache)
+		ClientReplicate = require(script.Client.Replicate)
+		InterpolationBuffer = require(script.Client.InterpolationBuffer)
+		RenderCache = require(script.Client.RenderCache)
 	end
-	Character = require(script.shared.character)
+	Character = require(script.Shared.Character)
 
 	Chrono.Character = Character
 	Chrono.ChronoClient = ClientReplicate
 	Chrono.ChronoServer = ServerReplicate
-	Chrono.NpcRegistry = NpcCache
-	Chrono.Snapshots = require(script.shared.snapshots)
+	Chrono.NpcRegistry = NpcRegistry
+	Chrono.Snapshots = require(script.Shared.Snapshots)
 	Chrono.InterpolationBuffer = InterpolationBuffer
 	Chrono.RenderCache = RenderCache
 	Chrono.TogglePlayerReplication = TogglePlayerReplication
 	setmetatable(Chrono :: any, nil)
-	local config = require(script.shared.config)
+	local config = require(script.Shared.Config)
 	if config.DISABLE_DEFAULT_REPLICATION and config.ENABLE_CUSTOM_CHARACTERS then
 		warn(
 			"DISABLE_DEFAULT_REPLICATION and ENABLE_CUSTOM_CHARACTERS are both enabled. Disabling DISABLE_DEFAULT_REPLICATION since its not needed."
@@ -94,7 +94,7 @@ function Chrono.Start()
 	}) :: any
 end
 
-Chrono.Config = require(script.shared.config)
+Chrono.Config = require(script.Shared.Config)
 return (
 	setmetatable(Chrono, {
 		__index = function(_, key)

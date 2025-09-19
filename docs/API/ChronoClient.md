@@ -11,7 +11,7 @@ Registers a **client-side NPC** for visual interpolation.
 - **`npcType`** *(optional)* – Type key in `Config.NPC_TYPES`  
 
 :::tip
-This is automatically called when registered in NpcCache on the server.
+This is automatically called when registered in NpcRegistry on the server.
 :::
 ---
 

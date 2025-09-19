@@ -4,15 +4,14 @@ local RunService = game:GetService("RunService")
 local chrono = require(ReplicatedStorage.Packages.chrono)
 
 if not chrono.Config.ENABLE_CUSTOM_CHARACTERS then
-    return nil
-end 
+	return nil
+end
 
 if RunService:IsServer() then
 	Players.PlayerAdded:Connect(function(player)
-
-		player.CharacterAdded:Connect(function(char:Model)
-            chrono.Character.SetCharacter(player, char)
-        end)
+		player.CharacterAdded:Connect(function(char: Model)
+			chrono.Character.SetCharacter(player, char)
+		end)
 	end)
 else
 	chrono.Character.CharacterAdded:Connect(function(player, model, data)
