@@ -11,7 +11,7 @@
 | Roblox (150 NPCs, following player)           | 13.25       | 242.19      |
 
 ---
-[Chrono & Roblox NPC/Part Benchmark](https://github.com/parihsz/chrono/raw/master/benches/TestNPC.server.luau)\
+[Chrono & Roblox NPC/Part Benchmark](https://github.com/parihsz/chrono/raw/master/benchmarks/TestNPC.server.luau)\
 [Download BetterReplication Benchmark RBXL](https://github.com/parihsz/chrono/raw/master/docs/Benchmarks/BetterReplicationBench.rbxl)
 
 
