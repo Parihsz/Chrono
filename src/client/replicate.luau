@@ -27,8 +27,10 @@ local idMap = {} :: {
 		snapshot: Snapshots.Snapshot<CFrame>,
 		character: Model?,
 		lastCFrame: CFrame?,
+
 		isNPC: boolean?,
 		npcType: string?,
+
 		player: Player?,
 		_characterAdded: RBXScriptConnection?,
 	},
@@ -239,11 +241,13 @@ local function PlayerAdded(player: Player, id: number)
 	}
 
 	RenderCache.Add(id)
+
 	if not CUSTOM_CHARACTERS then
 		idMap[id]._characterAdded = player.CharacterAdded:Connect(function(char)
 			NewCharacter(idMap[id])
 		end)
 	end
+
 	NewCharacter(idMap[id])
 end
 

@@ -3,7 +3,6 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local StarterPlayer = game:GetService("StarterPlayer")
 
-local grid = require(ReplicatedStorage.Packages.chrono.shared.grid)
 local Config = require(script.Parent.Parent.shared.config)
 local Snapshots = require(script.Parent.Parent.shared.snapshots)
 local Grid = require(script.Parent.Parent.shared.grid)
@@ -39,11 +38,13 @@ local idMap = {} :: {
 		player: Player?,
 		snapshot: Snapshots.Snapshot<CFrame>,
 		clientLastTick: number?,
+
 		serverOwned: boolean?,
 		npcType: string?,
 		model: Model?,
-		_charAdded: RBXScriptConnection?,
-		_charRemoving: RBXScriptConnection?,
+
+		_characterAdded: RBXScriptConnection?,
+		_characterRemoving: RBXScriptConnection?,
 		replicationRule: ReplicationRule?,
 	},
 }
@@ -243,8 +244,8 @@ Players.PlayerAdded:Connect(function(player: Player)
 
 		serverOwned = false,
 		npcType = nil,
-		_charAdded = nil,
-		_charRemoving = nil,
+		_characterAdded = nil,
+		_characterRemoving = nil,
 	}
 
 	lastReplicatedTimes[id] = 0
@@ -266,10 +267,10 @@ Players.PlayerAdded:Connect(function(player: Player)
 		player = player.Name,
 	})
 
-	idMap[id]._charAdded = player.CharacterAdded:Connect(function(character)
+	idMap[id]._characterAdded = player.CharacterAdded:Connect(function(character)
 		OnCharacterAdded(player, character, id)
 	end)
-	idMap[id]._charRemoving = player.CharacterRemoving:Connect(OnCharacterRemoving)
+	idMap[id]._characterRemoving = player.CharacterRemoving:Connect(OnCharacterRemoving)
 end)
 
 Character.CharacterRemoved:Connect(function(player: Player, character: Model)
@@ -283,14 +284,14 @@ end)
 Players.PlayerRemoving:Connect(function(player)
 	local id = playerIdMap[player]
 	if id then
-		local _characterAdded = idMap[id]._charAdded
+		local _characterAdded = idMap[id]._characterAdded
 		if _characterAdded then
 			_characterAdded:Disconnect()
 		end
 
-		local _charRemoving = idMap[id]._charRemoving
-		if _charRemoving then
-			_charRemoving:Disconnect()
+		local _characterRemoving = idMap[id]._characterRemoving
+		if _characterRemoving then
+			_characterRemoving:Disconnect()
 		end
 
 		if replicators[id] then
@@ -326,9 +327,11 @@ ClientReplicateCFrame.OnServerEvent:Connect(function(player: Player, snapshotBuf
 		data.clientLastTick = snapshot.timestamp
 		data.snapshot:Push(snapshot.timestamp, snapshot.cframe)
 	end
+
 	lastReplicatedTimes[id] = 0
 	local character = player.Character
 	local hrp = character and character.PrimaryPart :: BasePart?
+
 	if config.DISABLE_DEFAULT_REPLICATION and hrp then
 		hrp.Anchored = true
 	end
