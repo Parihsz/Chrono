@@ -138,7 +138,9 @@ function Grid.AddEntity(entity: Model, entityType: string)
 end
 
 function Grid.RemoveEntity(entity: Model)
-	if not entity then return end
+	if not entity then
+		return
+	end
 	if lastPositions[entity] then
 		RemoveOld(entity, entities[entity], lastPositions[entity])
 	end
@@ -148,7 +150,6 @@ end
 
 function Grid.GetNearbyEntities(model: Model?, range: number, entityTypes: { string }?): { any }
 	if not model then
-		warn("Model is nil")
 		return {}
 	end
 	local position = model:GetPivot().Position :: any
