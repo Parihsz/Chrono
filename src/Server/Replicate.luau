@@ -7,7 +7,6 @@ local Config = require(script.Parent.Parent.Shared.Config)
 local Snapshots = require(script.Parent.Parent.Shared.Snapshots)
 local Grid = require(script.Parent.Parent.Shared.Grid)
 local Events = require(script.Parent.Parent.Events.Server)
-local config = require(script.Parent.Parent.Shared.Config)
 local Networkables = require(script.Parent.Parent.Shared.MakeNetworkable)
 local Character = require(script.Parent.Parent.Shared.Character)
 
@@ -205,14 +204,14 @@ local function GetNpcConfig(npcType: string?): any
 end
 
 local function OnCharacterAdded(player: Player, character: Model, id: number)
-	if config.DISABLE_DEFAULT_REPLICATION then
+	if Config.DISABLE_DEFAULT_REPLICATION then
 		return
 	end
 	Grid.AddEntity(character, "player")
 end
 
 local function OnCharacterRemoving(character: Model)
-	if config.DISABLE_DEFAULT_REPLICATION then
+	if Config.DISABLE_DEFAULT_REPLICATION then
 		return
 	end
 	Grid.RemoveEntity(character)
@@ -348,7 +347,7 @@ ClientReplicateCFrame.OnServerEvent:Connect(function(player: Player, snapshotBuf
 	local character = player.Character
 	local hrp = character and character.PrimaryPart :: BasePart?
 
-	if config.DISABLE_DEFAULT_REPLICATION and hrp then
+	if Config.DISABLE_DEFAULT_REPLICATION and hrp then
 		hrp.Anchored = true
 	end
 end)
@@ -393,7 +392,7 @@ local function GetTickInterval(character: Model?, id: number): number
 		return baseTick
 	end
 
-	local model = if config.DISABLE_DEFAULT_REPLICATION then replicators[id] else character
+	local model = if Config.DISABLE_DEFAULT_REPLICATION then replicators[id] else character
 	local nearbyPlayers = Grid.GetNearbyEntities(model, Config.PROXIMITY, { "player" })
 
 	local multiplier = if Config.DISABLE_DEFAULT_REPLICATION then 4 else 50
