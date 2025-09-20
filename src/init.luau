@@ -55,8 +55,8 @@ function Chrono.Start()
 	end
 	started = true
 
-	LoadFolder(if RunService:IsServer() then script.server else script.client)
-	LoadFolder(script.shared)
+	LoadFolder(if RunService:IsServer() then script.Server else script.Client)
+	LoadFolder(script.Shared)
 
 	if RunService:IsServer() then
 		ServerReplicate = require(script.Server.Replicate)

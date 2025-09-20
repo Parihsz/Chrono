@@ -205,10 +205,16 @@ local function GetNpcConfig(npcType: string?): any
 end
 
 local function OnCharacterAdded(player: Player, character: Model, id: number)
+	if config.DISABLE_DEFAULT_REPLICATION then
+		return
+	end
 	Grid.AddEntity(character, "player")
 end
 
 local function OnCharacterRemoving(character: Model)
+	if config.DISABLE_DEFAULT_REPLICATION then
+		return
+	end
 	Grid.RemoveEntity(character)
 end
 
@@ -257,6 +263,12 @@ Players.PlayerAdded:Connect(function(player: Player)
 			clone.Parent = workspace.CurrentCamera
 
 			replicators[id] = clone
+
+			Grid.AddEntity(clone, "player")
+		else
+			warn(
+				"No Replicator model found in StarterPlayer, you must add one for fully custom replication to work properly"
+			)
 		end
 	end
 
@@ -278,7 +290,9 @@ Character.CharacterRemoved:Connect(function(player: Player, character: Model)
 end)
 
 Character.CharacterAdded:Connect(function(player: Player, character: Model)
-	Grid.AddEntity(character, "player")
+	if not Config.DISABLE_DEFAULT_REPLICATION then
+		Grid.AddEntity(character, "player")
+	end
 end)
 
 Players.PlayerRemoving:Connect(function(player)
@@ -295,9 +309,11 @@ Players.PlayerRemoving:Connect(function(player)
 		end
 
 		if replicators[id] then
+			Grid.RemoveEntity(replicators[id])
 			pcall(workspace.Destroy, replicators[id])
 			replicators[id] = nil
 		end
+
 		idMap[id] = nil
 		lastReplicatedTimes[id] = nil
 		playerIdMap[player] = nil
@@ -377,8 +393,11 @@ local function GetTickInterval(character: Model?, id: number): number
 		return baseTick
 	end
 
-	local nearbyPlayers = Grid.GetNearbyEntities(character, Config.PROXIMITY, { "player" })
-	local newTickRate = if #nearbyPlayers > 1 then baseTick else baseTick * 2
+	local model = if config.DISABLE_DEFAULT_REPLICATION then replicators[id] else character
+	local nearbyPlayers = Grid.GetNearbyEntities(model, Config.PROXIMITY, { "player" })
+
+	local multiplier = if Config.DISABLE_DEFAULT_REPLICATION then 4 else 50
+	local newTickRate = if #nearbyPlayers > 1 then baseTick else baseTick * multiplier
 
 	if newTickRate ~= playerTickRates[id] then
 		playerTickRates[id] = newTickRate

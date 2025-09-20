@@ -4,7 +4,7 @@ local Iris = require(ReplicatedStorage.DevPackages.iris)
 local Replication = require(ReplicatedStorage.Packages.chrono.Client.Replicate)
 
 local GetAllNetworkIds = Replication.GetAllNetworkIds
-local BufferTracker = Replication.BufferTrackerrok
+local BufferTracker = Replication.BufferTracker
 
 local playerTickRates = Replication.playerTickRates
 local idMap = Replication.idMap
