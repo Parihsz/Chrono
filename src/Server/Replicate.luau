@@ -24,6 +24,7 @@ local ServerReplicateCFrame = Instance.new("UnreliableRemoteEvent")
 ServerReplicateCFrame.Name = "ServerReplicateCFrame"
 ServerReplicateCFrame.Parent = ReplicatedStorage
 
+local new_Players = {}
 local idStack = {} :: { number }
 local playerIdMap = {} :: { [Player]: number }
 
@@ -242,6 +243,9 @@ end
 Players.PlayerAdded:Connect(function(player: Player)
 	local id = GetNextID()
 	playerIdMap[player] = id
+	task.delay(1, function()
+		table.insert(new_Players, player)
+	end)
 	idMap[id] = {
 		player = player,
 		snapshot = Snapshots(CFrame.identity.Lerp),
@@ -443,6 +447,7 @@ RunService.PostSimulation:Connect(function(deltaTime)
 	end
 
 	local allPlayers = {}
+	local hasNewPlayers = #new_Players > 0
 	for id, data in idMap do
 		local character = data.player and GetCharacter(data.player)
 		local isNPC = data.serverOwned == true
@@ -481,9 +486,23 @@ RunService.PostSimulation:Connect(function(deltaTime)
 		end
 
 		if not changed then
+			if hasNewPlayers then
+				for _, newPlayer in new_Players do
+					local rule = data.replicationRule
+					if not rule or (rule.filterType == "exclude" and not table.find(rule.filterPlayers, newPlayer))
+						or (rule.filterType == "include" and table.find(rule.filterPlayers, newPlayer)) then
+						local list = playerSpecific[newPlayer]
+						if list then
+							local buff = buffer.create(SNAPSHOT_SIZE)
+							PackSnapshotData(buff, 0, data.clientLastTick or now, cframe, id)
+							table.insert(list, buff)
+						end
+					end
+				end
+			end
 			continue
 		end
-
+		
 		local buff = buffer.create(SNAPSHOT_SIZE)
 		PackSnapshotData(buff, 0, data.clientLastTick or now, cframe, id)
 
@@ -512,7 +531,7 @@ RunService.PostSimulation:Connect(function(deltaTime)
 			end
 		end
 	end
-
+	new_Players = {}
 	debug.profileend()
 	debug.profilebegin("FlushNPCs")
 
