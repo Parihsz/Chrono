@@ -404,6 +404,7 @@ local function CheckCFrameChanges(cframe: CFrame, last: CFrame)
 end
 
 local lastSentCFrame = CFrame.identity
+
 local function HandleNpcs()
 	local now = os.clock()
 	local npcConfigs = Config.NPC_TYPES
@@ -445,6 +446,7 @@ local function HandleNpcs()
 		})
 	end
 end
+
 local function HandleCharacter()
 	if os.clock() - lastSent < (playerTickRates[playerNetworkId] or Config.TICK_RATE) then
 		return
