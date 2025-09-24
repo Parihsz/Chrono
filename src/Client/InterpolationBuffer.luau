@@ -58,9 +58,23 @@ return function(minBuffer: number, maxBuffer: number, alpha: number)
 		return buffer
 	end
 
+	local function Remove(id: number)
+		playerLatencies[id] = nil
+		RenderCache.Remove(id)
+	end
+
+	local function Clear(id)
+		playerLatencies[id] = nil
+		RenderCache.Remove(id)
+		RenderCache.Add(id)
+	end
+
 	return {
 		RegisterPacket = RegisterPacket,
 		GetBuffer = GetBuffer,
+		Remove = Remove,
 		PlayerLatencies = playerLatencies,
+		Clear = Clear,
+		
 	}
 end

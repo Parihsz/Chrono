@@ -15,9 +15,10 @@ local CUSTOM_CHARACTERS = Config.ENABLE_CUSTOM_CHARACTERS
 local MAX_UNRELIABLE_BYTES = 900
 local SNAPSHOT_SIZE = if Config.SEND_FULL_ROTATION then 24 else 20
 local HEADER_SIZE = 2
+local MAX_AWAITING_TIME = 2 --seconds
 local MAX_BATCH = (MAX_UNRELIABLE_BYTES - HEADER_SIZE) // SNAPSHOT_SIZE
 
-local outgoingSnapshots = {} :: { { timestamp: number, cframe: CFrame } }
+local outgoingSnapshots = {} :: { { timestamp: number, cframe: CFrame, id: number } }
 
 local ClientReplicateCFrame: UnreliableRemoteEvent = ReplicatedStorage:WaitForChild("ClientReplicateCFrame") :: any
 local ServerReplicateCFrame: UnreliableRemoteEvent = ReplicatedStorage:WaitForChild("ServerReplicateCFrame") :: any
@@ -27,6 +28,7 @@ local idMap = {} :: {
 		snapshot: Snapshots.Snapshot<CFrame>,
 		character: Model?,
 		lastCFrame: CFrame?,
+		lastSent: number?,
 
 		isNPC: boolean?,
 		npcType: string?,
@@ -35,6 +37,14 @@ local idMap = {} :: {
 		_characterAdded: RBXScriptConnection?,
 	},
 }
+
+local awaitingSnapshots = {} :: { [number]: { timestamp: number, cframe: CFrame, clock: number} }
+
+local clientOwnerShip: {}
+task.defer(function()
+	local NpcRegistry = (require)(script.Parent.Parent.Shared.NpcRegistry)
+	clientOwnerShip = NpcRegistry._ClientOwners
+end)
 
 local playerToId = {} :: { [Player]: number }
 local player = Players.LocalPlayer
@@ -105,7 +115,7 @@ local function UnpackSnapshotData(buff: buffer, offset: number): any
 	return value
 end
 
-local function PackSnapshotData(buff: buffer, offset: number, timestamp: number, cframe: CFrame)
+local function PackSnapshotData(buff: buffer, offset: number, timestamp: number, cframe: CFrame,id : number)
 	buffer.writef32(buff, offset + 0, timestamp)
 	buffer.writef32(buff, offset + 4, cframe.Position.X)
 	buffer.writef32(buff, offset + 8, cframe.Position.Y)
@@ -121,10 +131,12 @@ local function PackSnapshotData(buff: buffer, offset: number, timestamp: number,
 		buffer.writeu16(buff, offset + 16, mappedX)
 		buffer.writeu16(buff, offset + 18, mappedY)
 		buffer.writeu16(buff, offset + 20, mappedZ)
+		buffer.writeu16(buff, offset + 22, id)
 	else
 		local networkable = Networkables.MakeYawNetworkable(cframe)
 		local mappedRotationY = math.map(networkable.RotationY, -math.pi, math.pi, 0, 2 ^ 16 - 1)
 		buffer.writeu16(buff, offset + 16, mappedRotationY)
+		buffer.writeu16(buff, offset + 18, id)
 	end
 end
 
@@ -139,7 +151,7 @@ local function Flush()
 	for i = 1, count do
 		local snapshot = outgoingSnapshots[#outgoingSnapshots]
 		outgoingSnapshots[#outgoingSnapshots] = nil
-		PackSnapshotData(snapshotBuffer, offset, snapshot.timestamp, snapshot.cframe)
+		PackSnapshotData(snapshotBuffer, offset, snapshot.timestamp, snapshot.cframe,snapshot.id)
 		offset += SNAPSHOT_SIZE
 	end
 
@@ -161,6 +173,11 @@ local function RegisterClientNPC(id: number, model: Model, npcType: string?)
 		}
 		RenderCache.Add(id, true, npcType)
 	end
+	
+	if clientOwnerShip[id] and clientOwnerShip[id] ~= true then
+		idMap[id].snapshot:Push(os.clock(), clientOwnerShip[id])
+		clientOwnerShip[id] = true
+	end
 
 	idMap[id].character = model
 
@@ -175,7 +192,7 @@ local function UnregisterNPC(id: number): Model?
 		return nil
 	end
 
-	RenderCache.Remove(id)
+	bufferTracker.Remove(id)
 
 	idMap[id] = nil
 	return data.character
@@ -315,6 +332,13 @@ ServerReplicateCFrame.OnClientEvent:Connect(function(snapshotBuffer)
 		offset += SNAPSHOT_SIZE
 
 		local id = snapshot.id
+		if not idMap[id] then
+			if awaitingSnapshots[id] and awaitingSnapshots[id].timestamp > snapshot.timestamp then
+				continue
+			end
+			awaitingSnapshots[id] = { timestamp = snapshot.timestamp, cframe = snapshot.cframe, clock = os.clock() }
+			continue
+		end
 		cframes[id] = snapshot.cframe
 		timestamps[id] = snapshot.timestamp
 	end
@@ -344,9 +368,22 @@ RunService.PreRender:Connect(function(deltaTime: number)
 		local targetCFrame = data.snapshot:GetAt(targetRenderTime)
 		debug.profileend()
 
+		if clientOwnerShip[id] and (data::any).initializedCFrame then
+			continue
+		end
+		if clientOwnerShip[id]  then
+			local latest = data.snapshot:GetLatest()
+			if not latest then
+				continue
+			end
+			
+			targetCFrame = latest.value
+			;(data::any).initializedCFrame = true
+		end
+
 		debug.profilebegin("Prepare CFrame")
 		if targetCFrame then
-			data.lastCFrame = targetCFrame
+			--data.lastCFrame = targetCFrame
 
 			-- make sure it isn't welded to anything else (e.g. being carried)
 
@@ -359,8 +396,50 @@ RunService.PreRender:Connect(function(deltaTime: number)
 	debug.profileend()
 end)
 
+local function checkCFrameChanges(cf: CFrame, last: CFrame)
+	local changed = (last.Position - cf.Position).Magnitude >= 0.05 or not last.Rotation:FuzzyEq(cf.Rotation, 0.0001)
+	return changed
+end
+
 local lastSentCFrame = CFrame.identity
-RunService.PostSimulation:Connect(function()
+local function HandleNpcs()
+	local now = os.clock()
+	local npcConfigs = Config.NPC_TYPES
+
+	for i: any in clientOwnerShip do
+		local data = idMap[i]
+		--The client has to atleast received one snapshot before we start sending updates
+		if not data or not data.snapshot:GetLatest() then
+			continue
+		end
+		
+		local tickRate = npcConfigs[data.npcType or "DEFAULT"].TICK_RATE
+		if now - (data.lastSent or 0) < tickRate then
+			continue
+		end
+		data.lastSent = now
+		if not data.character then
+			continue
+		end
+		local char = data.character
+		local primaryPart = char.PrimaryPart
+		if not primaryPart then
+			continue
+		end
+		local currentCFrame = primaryPart.CFrame
+		local changed = checkCFrameChanges(currentCFrame, data.lastCFrame or CFrame.identity)
+		if not changed then
+			continue
+		end
+		data.lastCFrame = currentCFrame
+		table.insert(outgoingSnapshots, {
+			timestamp = os.clock(),
+			cframe = currentCFrame,
+			id = i+1,
+		})
+	end
+end
+local function handleCharacter()
 	if os.clock() - lastSent < (playerTickRates[playerNetworkId] or Config.TICK_RATE) then
 		return
 	end
@@ -378,8 +457,7 @@ RunService.PostSimulation:Connect(function()
 
 	local currentCFrame = primaryPart.CFrame
 
-	local changed = vector.magnitude(lastSentCFrame.Position - currentCFrame.Position :: any) >= 0.05
-		or not lastSentCFrame.Rotation:FuzzyEq(currentCFrame.Rotation :: any, 0.0001)
+	local changed = checkCFrameChanges(currentCFrame, lastSentCFrame)
 
 	lastSentCFrame = currentCFrame
 
@@ -390,7 +468,27 @@ RunService.PostSimulation:Connect(function()
 	table.insert(outgoingSnapshots, {
 		timestamp = os.clock(),
 		cframe = currentCFrame,
+		id = 0
 	})
+end
+local function handleAwaitingSnapshots()
+	local now = os.clock()
+	for id, snapshot in awaitingSnapshots do
+		if now - snapshot.clock < MAX_AWAITING_TIME then
+			if idMap[id] then
+			
+				HandleReplicatedData({ [id] = snapshot.timestamp }, { [id] = snapshot.cframe })
+				awaitingSnapshots[id] = nil
+			end
+		else
+			awaitingSnapshots[id] = nil
+		end
+	end
+end
+RunService.PostSimulation:Connect(function()
+	handleAwaitingSnapshots()
+	handleCharacter()
+	HandleNpcs()
 	Flush()
 end)
 
