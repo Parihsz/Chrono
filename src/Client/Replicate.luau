@@ -41,7 +41,8 @@ local idMap = {} :: {
 
 local awaitingSnapshots = {} :: { [number]: { timestamp: number, cframe: CFrame, clock: number } }
 
-local clientOwnerShip: {}
+local clientOwnerShip: {} 
+
 task.defer(function()
 	local NpcRegistry = (require)(script.Parent.Parent.Shared.NpcRegistry)
 	clientOwnerShip = NpcRegistry._ClientOwners
@@ -81,18 +82,18 @@ end
 
 local playerNetworkId = 300
 
-local function UnpackSnapshotData(buff: buffer, offset: number): any
+local function UnpackSnapshotData(snapshotBuffer: buffer, offset: number): any
 	local value = {}
-	value.timestamp = buffer.readf32(buff, offset + 0)
+	value.timestamp = buffer.readf32(snapshotBuffer, offset + 0)
 
-	local x = buffer.readf32(buff, offset + 4)
-	local y = buffer.readf32(buff, offset + 8)
-	local z = buffer.readf32(buff, offset + 12)
+	local x = buffer.readf32(snapshotBuffer, offset + 4)
+	local y = buffer.readf32(snapshotBuffer, offset + 8)
+	local z = buffer.readf32(snapshotBuffer, offset + 12)
 
 	if Config.SEND_FULL_ROTATION then
-		local mappedX = buffer.readu16(buff, offset + 16)
-		local mappedY = buffer.readu16(buff, offset + 18)
-		local mappedZ = buffer.readu16(buff, offset + 20)
+		local mappedX = buffer.readu16(snapshotBuffer, offset + 16)
+		local mappedY = buffer.readu16(snapshotBuffer, offset + 18)
+		local mappedZ = buffer.readu16(snapshotBuffer, offset + 20)
 
 		local rx = math.map(mappedX, 0, 2 ^ 16 - 1, -1, 1)
 		local ry = math.map(mappedY, 0, 2 ^ 16 - 1, -1, 1)
@@ -102,25 +103,25 @@ local function UnpackSnapshotData(buff: buffer, offset: number): any
 			Position = vector.create(x, y, z) :: any,
 			Rotation = { x = rx, y = ry, z = rz },
 		})
-		value.id = buffer.readu16(buff, offset + 22)
+		value.id = buffer.readu16(snapshotBuffer, offset + 22)
 	else
-		local rotationY = buffer.readu16(buff, offset + 16)
+		local rotationY = buffer.readu16(snapshotBuffer, offset + 16)
 		local remappedRotationY = math.map(rotationY, 0, 2 ^ 16 - 1, -math.pi, math.pi)
 		value.cframe = Networkables.DecodeYawCFrame({
 			Position = vector.create(x, y, z) :: any,
 			RotationY = remappedRotationY,
 		})
-		value.id = buffer.readu16(buff, offset + 18)
+		value.id = buffer.readu16(snapshotBuffer, offset + 18)
 	end
 
 	return value
 end
 
-local function PackSnapshotData(buff: buffer, offset: number, timestamp: number, cframe: CFrame, id: number)
-	buffer.writef32(buff, offset + 0, timestamp)
-	buffer.writef32(buff, offset + 4, cframe.Position.X)
-	buffer.writef32(buff, offset + 8, cframe.Position.Y)
-	buffer.writef32(buff, offset + 12, cframe.Position.Z)
+local function PackSnapshotData(snapshotBuffer: buffer, offset: number, timestamp: number, cframe: CFrame, id: number)
+	buffer.writef32(snapshotBuffer, offset + 0, timestamp)
+	buffer.writef32(snapshotBuffer, offset + 4, cframe.Position.X)
+	buffer.writef32(snapshotBuffer, offset + 8, cframe.Position.Y)
+	buffer.writef32(snapshotBuffer, offset + 12, cframe.Position.Z)
 
 	if Config.SEND_FULL_ROTATION then
 		local networkable = Networkables.MakeNetworkable(cframe)
@@ -129,15 +130,15 @@ local function PackSnapshotData(buff: buffer, offset: number, timestamp: number,
 		local mappedY = math.map(networkable.Rotation.y, -1, 1, 0, 2 ^ 16 - 1)
 		local mappedZ = math.map(networkable.Rotation.z, -1, 1, 0, 2 ^ 16 - 1)
 
-		buffer.writeu16(buff, offset + 16, mappedX)
-		buffer.writeu16(buff, offset + 18, mappedY)
-		buffer.writeu16(buff, offset + 20, mappedZ)
-		buffer.writeu16(buff, offset + 22, id)
+		buffer.writeu16(snapshotBuffer, offset + 16, mappedX)
+		buffer.writeu16(snapshotBuffer, offset + 18, mappedY)
+		buffer.writeu16(snapshotBuffer, offset + 20, mappedZ)
+		buffer.writeu16(snapshotBuffer, offset + 22, id)
 	else
 		local networkable = Networkables.MakeYawNetworkable(cframe)
 		local mappedRotationY = math.map(networkable.RotationY, -math.pi, math.pi, 0, 2 ^ 16 - 1)
-		buffer.writeu16(buff, offset + 16, mappedRotationY)
-		buffer.writeu16(buff, offset + 18, id)
+		buffer.writeu16(snapshotBuffer, offset + 16, mappedRotationY)
+		buffer.writeu16(snapshotBuffer, offset + 18, id)
 	end
 end
 
@@ -397,8 +398,8 @@ RunService.PreRender:Connect(function(deltaTime: number)
 	debug.profileend()
 end)
 
-local function checkCFrameChanges(cf: CFrame, last: CFrame)
-	local changed = (last.Position - cf.Position).Magnitude >= 0.05 or not last.Rotation:FuzzyEq(cf.Rotation, 0.0001)
+local function CheckCFrameChanges(cframe: CFrame, last: CFrame)
+	local changed = (last.Position - cframe.Position).Magnitude >= 0.05 or not last.Rotation:FuzzyEq(cframe.Rotation, 0.0001)
 	return changed
 end
 
@@ -418,20 +419,24 @@ local function HandleNpcs()
 		if now - (data.lastSent or 0) < tickRate then
 			continue
 		end
+
 		data.lastSent = now
 		if not data.character then
 			continue
 		end
-		local char = data.character
-		local primaryPart = char.PrimaryPart
+
+		local character = data.character
+		local primaryPart = character.PrimaryPart
 		if not primaryPart then
 			continue
 		end
+
 		local currentCFrame = primaryPart.CFrame
-		local changed = checkCFrameChanges(currentCFrame, data.lastCFrame or CFrame.identity)
+		local changed = CheckCFrameChanges(currentCFrame, data.lastCFrame or CFrame.identity)
 		if not changed then
 			continue
 		end
+
 		data.lastCFrame = currentCFrame
 		table.insert(outgoingSnapshots, {
 			timestamp = os.clock(),
@@ -440,10 +445,11 @@ local function HandleNpcs()
 		})
 	end
 end
-local function handleCharacter()
+local function HandleCharacter()
 	if os.clock() - lastSent < (playerTickRates[playerNetworkId] or Config.TICK_RATE) then
 		return
 	end
+
 	lastSent = os.clock()
 
 	local character = GetCharacter(player)
@@ -458,7 +464,7 @@ local function handleCharacter()
 
 	local currentCFrame = primaryPart.CFrame
 
-	local changed = checkCFrameChanges(currentCFrame, lastSentCFrame)
+	local changed = CheckCFrameChanges(currentCFrame, lastSentCFrame)
 
 	lastSentCFrame = currentCFrame
 
@@ -472,7 +478,8 @@ local function handleCharacter()
 		id = 0,
 	})
 end
-local function handleAwaitingSnapshots()
+
+local function HandleAwaitingSnapshots()
 	local now = os.clock()
 	for id, snapshot in awaitingSnapshots do
 		if now - snapshot.clock < MAX_AWAITING_TIME then
@@ -485,9 +492,10 @@ local function handleAwaitingSnapshots()
 		end
 	end
 end
+
 RunService.PostSimulation:Connect(function()
-	handleAwaitingSnapshots()
-	handleCharacter()
+	HandleAwaitingSnapshots()
+	HandleCharacter()
 	HandleNpcs()
 	Flush()
 end)
