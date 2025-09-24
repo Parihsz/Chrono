@@ -149,7 +149,7 @@ end
 
 local RandomOffset = Random.new()
 local function ReturnID(id: number)
-	task.delay(RandomOffset:NextNumber(2,4), table.insert, idStack, id) -- this way we don't immediately reuse ids
+	task.delay(RandomOffset:NextNumber(2, 4), table.insert, idStack, id) -- this way we don't immediately reuse ids
 end
 
 local function GetIdFrom(input: Player | Model | number): number?
@@ -504,10 +504,8 @@ RunService.PostSimulation:Connect(function(deltaTime)
 			t = 1
 		end
 		if not changed or inInterval then
-			
 			if hasNewPlayers then
-
-				for _, newPlayer:any in newPlayers do
+				for _, newPlayer: any in newPlayers do
 					local rule = data.replicationRule
 					if
 						not rule
@@ -525,10 +523,9 @@ RunService.PostSimulation:Connect(function(deltaTime)
 			end
 			continue
 		end
-	
 
 		local buff = buffer.create(SNAPSHOT_SIZE)
-		PackSnapshotData(buff, 0,t, cframe, id)
+		PackSnapshotData(buff, 0, t, cframe, id)
 
 		local replicationRule = data.replicationRule
 		if not replicationRule or (#replicationRule.filterPlayers == 0 and replicationRule.filterType == "exclude") then
@@ -572,8 +569,8 @@ RunService.PostSimulation:Connect(function(deltaTime)
 
 	debug.profilebegin("Move Client Npcs")
 
-	for plr,ids:any in clientOwners do
-		for id,_ in ids do
+	for plr, ids: any in clientOwners do
+		for id, _ in ids do
 			local data = idMap[id]
 			if not data or not data.model or not data.model.PrimaryPart then
 				continue
@@ -704,13 +701,13 @@ local function PushNPCTransform(target: number | Model, cframe: CFrame, t: numbe
 
 	if data and data.serverOwned then
 		local timestamp = t or os.clock()
-		data.snapshot:Push(timestamp, cframe)
+		data.snapshot:Push(timestamp, cframe, timestamp)
 		data.clientLastTick = timestamp
 	end
 end
 
 return {
-	_newPlayers = newPlayers, -- This is needed for NpcRegistry 
+	_newPlayers = newPlayers, -- This is needed for NpcRegistry
 	idMap = idMap,
 	Replicators = replicators,
 

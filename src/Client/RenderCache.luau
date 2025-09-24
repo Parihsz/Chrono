@@ -106,7 +106,7 @@ local function GetEstimatedServerTime(id: number): number
 		return 0
 	end
 	return info.lastClockAt + (os.clock() - info.lastClockDuration)
-end 
+end
 
 local function Add(id: number, isNPC: boolean?, npcType: string?)
 	if not clientClockInfo[id] then

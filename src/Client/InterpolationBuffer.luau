@@ -75,6 +75,5 @@ return function(minBuffer: number, maxBuffer: number, alpha: number)
 		Remove = Remove,
 		PlayerLatencies = playerLatencies,
 		Clear = Clear,
-		
 	}
 end

@@ -202,7 +202,7 @@ function Npc.SetPosition(id: number, cframe: CFrame)
 			return
 		end
 		if data.networkOwner then
-			NpcRegistryRemote:FireClient(data.networkOwner,'m', id, cframe)
+			NpcRegistryRemote:FireClient(data.networkOwner, "m", id, cframe)
 			return
 		end
 		local model = Cache[id]
@@ -211,7 +211,6 @@ function Npc.SetPosition(id: number, cframe: CFrame)
 		end
 		ServerReplicate.PushNPCTransform(id, cframe, os.clock())
 	end
-	
 end
 
 function Npc.SetNetworkOwner(id: number, player: Player?)
@@ -232,7 +231,7 @@ function Npc.SetNetworkOwner(id: number, player: Player?)
 		NpcRegistryRemote:FireClient(existingOwner, "r", id)
 	end
 	data.networkOwner = player
-	NpcRegistryRemote:FireAllClients("c", id)
+	NpcRegistryRemote:FireAllClients("c", id, player)
 	local idMapData = ServerReplicate.idMap[id]
 	if idMapData then
 		idMapData.clientLastTick = nil
@@ -315,8 +314,7 @@ if IS_CLIENT then
 			end
 		end)
 		Check()
-		NpcRegistryRemote.OnClientEvent:Connect(function(t, id,cf)
-			
+		NpcRegistryRemote.OnClientEvent:Connect(function(t, id, other)
 			if t == "a" then
 				ClientOwners[id] = ClientOwners[id] or true
 			elseif t == "r" then
@@ -327,7 +325,7 @@ if IS_CLIENT then
 					ClientOwners[v] = data
 
 					local idData = ClientReplicate.idMap[v]
-				
+
 					if idData and typeof(data) == "CFrame" then
 						idData.snapshot:Push(os.clock(), data)
 					end
@@ -336,25 +334,25 @@ if IS_CLIENT then
 				task.wait(0.1) -- give some time for the server to update
 				local idData = ClientReplicate.idMap[id]
 				if idData then
+					idData.networkOwner = other
 					local latest = idData.snapshot:GetLatest()
 					idData.snapshot:Clear()
 					if latest then
 						idData.snapshot:Push(0, latest.value)
 					end
 					ClientReplicate.BufferTracker.Clear(id)
-					
 				end
 			elseif t == "m" then
 				local model = Cache[id]
-				if model and model.PrimaryPart and typeof(cf) == "CFrame" then
-					model.PrimaryPart.CFrame = cf
+				if model and model.PrimaryPart and typeof(other) == "CFrame" then
+					model.PrimaryPart.CFrame = other
 				end
 				local idData = ClientReplicate.idMap[id]
 				if not idData then
-					ClientOwners[id] = cf
+					ClientOwners[id] = other
 					return
 				end
-				idData.snapshot:Push(os.clock(), cf)
+				idData.snapshot:Push(os.clock(), other)
 			end
 		end)
 		NpcRegistryRemote:FireServer()
@@ -381,9 +379,16 @@ else
 		NpcRegistryRemote.OnServerEvent:Wait()
 
 		table.insert(ServerReplicate._newPlayers, player) -- Allow the replicate module to setup the player
-		if not ClientOwners[player] then
-			return
-		end
+		-- for i,playerO in ClientOwners do
+		-- 	local ids = {}
+		-- 	for id in playerO do
+		-- 		table.insert(ids, id)
+		-- 	end
+		-- 	NpcRegistryRemote:FireClient(player :: Player,"o" ,playerO,ids)
+		-- end
+		-- if not ClientOwners[player] then
+		-- 	return
+		-- end
 
 		local npcS = {}
 		for id in ClientOwners[player] do
@@ -399,7 +404,7 @@ else
 			npcS[tostring(id)] = latest.value
 		end
 
-		NpcRegistryRemote:FireClient(player :: Player,"i" ,npcS)
+		NpcRegistryRemote:FireClient(player :: Player, "i", npcS)
 	end)
 end
 

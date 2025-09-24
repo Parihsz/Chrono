@@ -25,6 +25,7 @@ local ServerReplicateCFrame: UnreliableRemoteEvent = ReplicatedStorage:WaitForCh
 
 local idMap = {} :: {
 	[number]: {
+		networkOwner: boolean?,
 		snapshot: Snapshots.Snapshot<CFrame>,
 		character: Model?,
 		lastCFrame: CFrame?,
@@ -38,7 +39,7 @@ local idMap = {} :: {
 	},
 }
 
-local awaitingSnapshots = {} :: { [number]: { timestamp: number, cframe: CFrame, clock: number} }
+local awaitingSnapshots = {} :: { [number]: { timestamp: number, cframe: CFrame, clock: number } }
 
 local clientOwnerShip: {}
 task.defer(function()
@@ -115,7 +116,7 @@ local function UnpackSnapshotData(buff: buffer, offset: number): any
 	return value
 end
 
-local function PackSnapshotData(buff: buffer, offset: number, timestamp: number, cframe: CFrame,id : number)
+local function PackSnapshotData(buff: buffer, offset: number, timestamp: number, cframe: CFrame, id: number)
 	buffer.writef32(buff, offset + 0, timestamp)
 	buffer.writef32(buff, offset + 4, cframe.Position.X)
 	buffer.writef32(buff, offset + 8, cframe.Position.Y)
@@ -151,7 +152,7 @@ local function Flush()
 	for i = 1, count do
 		local snapshot = outgoingSnapshots[#outgoingSnapshots]
 		outgoingSnapshots[#outgoingSnapshots] = nil
-		PackSnapshotData(snapshotBuffer, offset, snapshot.timestamp, snapshot.cframe,snapshot.id)
+		PackSnapshotData(snapshotBuffer, offset, snapshot.timestamp, snapshot.cframe, snapshot.id)
 		offset += SNAPSHOT_SIZE
 	end
 
@@ -173,7 +174,7 @@ local function RegisterClientNPC(id: number, model: Model, npcType: string?)
 		}
 		RenderCache.Add(id, true, npcType)
 	end
-	
+
 	if clientOwnerShip[id] and clientOwnerShip[id] ~= true then
 		idMap[id].snapshot:Push(os.clock(), clientOwnerShip[id])
 		clientOwnerShip[id] = true
@@ -311,14 +312,14 @@ local function HandleReplicatedData(clientLastTicks, cframes)
 
 	for id, cframe in cframes do
 		local entry = idMap[id]
+		local targetTime = RenderCache.GetTargetRenderTime(id)
 		if not entry then
 			continue
-		elseif entry.isNPC and entry.npcType and not RenderCache.GetTargetRenderTime(id) then
+		elseif entry.isNPC and entry.npcType and not targetTime then
 			RenderCache.Add(id, true, entry.npcType)
 		end
-
 		--cframes are already decoded when unpacking, so we push directly
-		entry.snapshot:Push(clientLastTicks[id], cframe)
+		entry.snapshot:Push(clientLastTicks[id], cframe, targetTime)
 	end
 end
 
@@ -368,17 +369,17 @@ RunService.PreRender:Connect(function(deltaTime: number)
 		local targetCFrame = data.snapshot:GetAt(targetRenderTime)
 		debug.profileend()
 
-		if clientOwnerShip[id] and (data::any).initializedCFrame then
+		if clientOwnerShip[id] and (data :: any).initializedCFrame then
 			continue
 		end
-		if clientOwnerShip[id]  then
+		if clientOwnerShip[id] then
 			local latest = data.snapshot:GetLatest()
 			if not latest then
 				continue
 			end
-			
-			targetCFrame = latest.value
-			;(data::any).initializedCFrame = true
+
+			targetCFrame = latest.value;
+			(data :: any).initializedCFrame = true
 		end
 
 		debug.profilebegin("Prepare CFrame")
@@ -412,7 +413,7 @@ local function HandleNpcs()
 		if not data or not data.snapshot:GetLatest() then
 			continue
 		end
-		
+
 		local tickRate = npcConfigs[data.npcType or "DEFAULT"].TICK_RATE
 		if now - (data.lastSent or 0) < tickRate then
 			continue
@@ -435,7 +436,7 @@ local function HandleNpcs()
 		table.insert(outgoingSnapshots, {
 			timestamp = os.clock(),
 			cframe = currentCFrame,
-			id = i+1,
+			id = i + 1,
 		})
 	end
 end
@@ -468,7 +469,7 @@ local function handleCharacter()
 	table.insert(outgoingSnapshots, {
 		timestamp = os.clock(),
 		cframe = currentCFrame,
-		id = 0
+		id = 0,
 	})
 end
 local function handleAwaitingSnapshots()
@@ -476,7 +477,6 @@ local function handleAwaitingSnapshots()
 	for id, snapshot in awaitingSnapshots do
 		if now - snapshot.clock < MAX_AWAITING_TIME then
 			if idMap[id] then
-			
 				HandleReplicatedData({ [id] = snapshot.timestamp }, { [id] = snapshot.cframe })
 				awaitingSnapshots[id] = nil
 			end
