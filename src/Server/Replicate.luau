@@ -24,9 +24,15 @@ local ServerReplicateCFrame = Instance.new("UnreliableRemoteEvent")
 ServerReplicateCFrame.Name = "ServerReplicateCFrame"
 ServerReplicateCFrame.Parent = ReplicatedStorage
 
-local new_Players = {}
+local newPlayers = {}
 local idStack = {} :: { number }
 local playerIdMap = {} :: { [Player]: number }
+local clientOwners = {}
+
+task.defer(function()
+	local NpcRegistry = (require)(script.Parent.Parent.Shared.NpcRegistry)
+	clientOwners = NpcRegistry._ClientOwners
+end)
 
 export type ReplicationRule = {
 	filterType: "include" | "exclude",
@@ -42,6 +48,7 @@ local idMap = {} :: {
 		serverOwned: boolean?,
 		npcType: string?,
 		model: Model?,
+		networkOwner: Player?,
 
 		_characterAdded: RBXScriptConnection?,
 		_characterRemoving: RBXScriptConnection?,
@@ -65,11 +72,11 @@ local function GetCharacter(player: Player): Model?
 	end
 end
 
-local function PackSnapshotData(buff: buffer, offset: number, timestamp: number, cframe: CFrame, id: number)
-	buffer.writef32(buff, offset + 0, timestamp)
-	buffer.writef32(buff, offset + 4, cframe.Position.X)
-	buffer.writef32(buff, offset + 8, cframe.Position.Y)
-	buffer.writef32(buff, offset + 12, cframe.Position.Z)
+local function PackSnapshotData(snapshotBuffer: buffer, offset: number, timestamp: number, cframe: CFrame, id: number)
+	buffer.writef32(snapshotBuffer, offset + 0, timestamp)
+	buffer.writef32(snapshotBuffer, offset + 4, cframe.Position.X)
+	buffer.writef32(snapshotBuffer, offset + 8, cframe.Position.Y)
+	buffer.writef32(snapshotBuffer, offset + 12, cframe.Position.Z)
 
 	if Config.SEND_FULL_ROTATION then
 		local networkable = Networkables.MakeNetworkable(cframe)
@@ -78,30 +85,30 @@ local function PackSnapshotData(buff: buffer, offset: number, timestamp: number,
 		local mappedY = math.map(networkable.Rotation.y, -1, 1, 0, 2 ^ 16 - 1)
 		local mappedZ = math.map(networkable.Rotation.z, -1, 1, 0, 2 ^ 16 - 1)
 
-		buffer.writeu16(buff, offset + 16, mappedX)
-		buffer.writeu16(buff, offset + 18, mappedY)
-		buffer.writeu16(buff, offset + 20, mappedZ)
-		buffer.writeu16(buff, offset + 22, id)
+		buffer.writeu16(snapshotBuffer, offset + 16, mappedX)
+		buffer.writeu16(snapshotBuffer, offset + 18, mappedY)
+		buffer.writeu16(snapshotBuffer, offset + 20, mappedZ)
+		buffer.writeu16(snapshotBuffer, offset + 22, id)
 	else
 		local networkable = Networkables.MakeYawNetworkable(cframe)
 		local mappedRotationY = math.map(networkable.RotationY, -math.pi, math.pi, 0, 2 ^ 16 - 1)
-		buffer.writeu16(buff, offset + 16, mappedRotationY)
-		buffer.writeu16(buff, offset + 18, id)
+		buffer.writeu16(snapshotBuffer, offset + 16, mappedRotationY)
+		buffer.writeu16(snapshotBuffer, offset + 18, id)
 	end
 end
 
-local function UnpackSnapshotData(buff: buffer, offset: number): { timestamp: number, cframe: CFrame, id: number }
+local function UnpackSnapshotData(snapshotBuffer: buffer, offset: number): { timestamp: number, cframe: CFrame, id: number }
 	local value = {}
-	value.timestamp = buffer.readf32(buff, offset + 0)
+	value.timestamp = buffer.readf32(snapshotBuffer, offset + 0)
 
-	local x = buffer.readf32(buff, offset + 4)
-	local y = buffer.readf32(buff, offset + 8)
-	local z = buffer.readf32(buff, offset + 12)
+	local x = buffer.readf32(snapshotBuffer, offset + 4)
+	local y = buffer.readf32(snapshotBuffer, offset + 8)
+	local z = buffer.readf32(snapshotBuffer, offset + 12)
 
 	if Config.SEND_FULL_ROTATION then
-		local mappedX = buffer.readu16(buff, offset + 16)
-		local mappedY = buffer.readu16(buff, offset + 18)
-		local mappedZ = buffer.readu16(buff, offset + 20)
+		local mappedX = buffer.readu16(snapshotBuffer, offset + 16)
+		local mappedY = buffer.readu16(snapshotBuffer, offset + 18)
+		local mappedZ = buffer.readu16(snapshotBuffer, offset + 20)
 
 		local rx = math.map(mappedX, 0, 2 ^ 16 - 1, -1, 1)
 		local ry = math.map(mappedY, 0, 2 ^ 16 - 1, -1, 1)
@@ -111,16 +118,16 @@ local function UnpackSnapshotData(buff: buffer, offset: number): { timestamp: nu
 			Position = vector.create(x, y, z) :: any,
 			Rotation = { x = rx, y = ry, z = rz },
 		})
-		value.id = buffer.readu16(buff, offset + 22)
+		value.id = buffer.readu16(snapshotBuffer, offset + 22)
 	else
-		local rotationY = buffer.readu16(buff, offset + 16)
+		local rotationY = buffer.readu16(snapshotBuffer, offset + 16)
 		local remapped = math.map(rotationY, 0, 2 ^ 16 - 1, -math.pi, math.pi)
 
 		value.cframe = Networkables.DecodeYawCFrame({
 			Position = vector.create(x, y, z) :: any,
 			RotationY = remapped,
 		})
-		value.id = buffer.readu16(buff, offset + 18)
+		value.id = buffer.readu16(snapshotBuffer, offset + 18)
 	end
 
 	return value
@@ -140,8 +147,9 @@ local function GetNextID(): number
 	return IncrementalFactoryUID
 end
 
+local RandomOffset = Random.new()
 local function ReturnID(id: number)
-	table.insert(idStack, id)
+	task.delay(RandomOffset:NextNumber(2, 4), table.insert, idStack, id) -- this way we don't immediately reuse ids
 end
 
 local function GetIdFrom(input: Player | Model | number): number?
@@ -243,9 +251,7 @@ end
 Players.PlayerAdded:Connect(function(player: Player)
 	local id = GetNextID()
 	playerIdMap[player] = id
-	task.delay(1, function()
-		table.insert(new_Players, player)
-	end)
+
 	idMap[id] = {
 		player = player,
 		snapshot = Snapshots(CFrame.identity.Lerp),
@@ -326,28 +332,34 @@ Players.PlayerRemoving:Connect(function(player)
 end)
 
 ClientReplicateCFrame.OnServerEvent:Connect(function(player: Player, snapshotBuffer: buffer)
-	local id = playerIdMap[player]
-	if not id then
-		return
-	end
-
-	local data = idMap[id]
-	if not data or not data.snapshot then
-		return
-	end
-
+	local playerId = playerIdMap[player]
 	SNAPSHOT_SIZE = if Config.SEND_FULL_ROTATION then 24 else 20
 
+	local ownedNpcs = clientOwners[player] or {}
 	local offset = 0
+
 	for i = 1, buffer.len(snapshotBuffer) // SNAPSHOT_SIZE do
 		local snapshot = UnpackSnapshotData(snapshotBuffer, offset)
 		offset += SNAPSHOT_SIZE
+		local id = snapshot.id - 1
+		if id == -1 then
+			id = playerId
+		end
 
+		local data = idMap[id]
+		if not data then
+			continue
+		end
+
+		if id ~= playerId and not ownedNpcs[id] then
+			continue
+		end
 		data.clientLastTick = snapshot.timestamp
 		data.snapshot:Push(snapshot.timestamp, snapshot.cframe)
+
+		lastReplicatedTimes[id] = 0
 	end
 
-	lastReplicatedTimes[id] = 0
 	local character = player.Character
 	local hrp = character and character.PrimaryPart :: BasePart?
 
@@ -416,18 +428,19 @@ local function Flush(buffers: { buffer }, specificPlayer: Player?)
 		return false
 	end
 
-	local buff = buffer.create(count * SNAPSHOT_SIZE)
+	local snapshotBuffer = buffer.create(count * SNAPSHOT_SIZE)
 	local offset = 0
+
 	for i = 1, count do
 		local b: any = table.remove(buffers)
-		buffer.copy(buff, offset, b, 0, SNAPSHOT_SIZE)
+		buffer.copy(snapshotBuffer, offset, b, 0, SNAPSHOT_SIZE)
 		offset += SNAPSHOT_SIZE
 	end
 
 	if specificPlayer then
-		ServerReplicateCFrame:FireClient(specificPlayer, buff)
+		ServerReplicateCFrame:FireClient(specificPlayer, snapshotBuffer)
 	else
-		ServerReplicateCFrame:FireAllClients(buff)
+		ServerReplicateCFrame:FireAllClients(snapshotBuffer)
 	end
 
 	Flush(buffers, specificPlayer)
@@ -447,7 +460,8 @@ RunService.PostSimulation:Connect(function(deltaTime)
 	end
 
 	local allPlayers = {}
-	local hasNewPlayers = #new_Players > 0
+	local hasNewPlayers = #newPlayers > 0
+
 	for id, data in idMap do
 		local character = data.player and GetCharacter(data.player)
 		local isNPC = data.serverOwned == true
@@ -461,13 +475,18 @@ RunService.PostSimulation:Connect(function(deltaTime)
 		local now = os.clock()
 		local lastReplicated = lastReplicatedTimes[id]
 
-		if now - lastReplicated < tickInterval then
+		local inInterval = now - lastReplicated < tickInterval
+		if inInterval and not hasNewPlayers then
 			continue
 		end
-		lastReplicatedTimes[id] = now
+
+		if not inInterval then
+			lastReplicatedTimes[id] = now
+		end
 
 		local latestSnapshot = data.snapshot:GetLatest()
 		local cframe = CFrame.identity
+
 		if latestSnapshot then
 			cframe = latestSnapshot.value
 		elseif character and character.PrimaryPart then
@@ -485,37 +504,48 @@ RunService.PostSimulation:Connect(function(deltaTime)
 			character.PrimaryPart.CFrame = cframe
 		end
 
-		if not changed then
+		local t = now
+
+		if data.clientLastTick then
+			t = data.clientLastTick
+		elseif not data.clientLastTick and data.networkOwner then
+			t = 1
+		end
+		
+		if not changed or inInterval then
 			if hasNewPlayers then
-				for _, newPlayer in new_Players do
+				for _, newPlayer: any in newPlayers do
 					local rule = data.replicationRule
-					if not rule or (rule.filterType == "exclude" and not table.find(rule.filterPlayers, newPlayer))
-						or (rule.filterType == "include" and table.find(rule.filterPlayers, newPlayer)) then
+					if
+						not rule
+						or (rule.filterType == "exclude" and not table.find(rule.filterPlayers, newPlayer))
+						or (rule.filterType == "include" and table.find(rule.filterPlayers, newPlayer))
+					then
 						local list = playerSpecific[newPlayer]
 						if list then
-							local buff = buffer.create(SNAPSHOT_SIZE)
-							PackSnapshotData(buff, 0, data.clientLastTick or now, cframe, id)
-							table.insert(list, buff)
+							local snapshotBuffer = buffer.create(SNAPSHOT_SIZE)
+							PackSnapshotData(snapshotBuffer, 0, t, cframe, id)
+							table.insert(list, snapshotBuffer)
 						end
 					end
 				end
 			end
 			continue
 		end
-		
-		local buff = buffer.create(SNAPSHOT_SIZE)
-		PackSnapshotData(buff, 0, data.clientLastTick or now, cframe, id)
+
+		local snapshotBuffer = buffer.create(SNAPSHOT_SIZE)
+		PackSnapshotData(snapshotBuffer, 0, t, cframe, id)
 
 		local replicationRule = data.replicationRule
 		if not replicationRule or (#replicationRule.filterPlayers == 0 and replicationRule.filterType == "exclude") then
-			table.insert(allPlayers, buff)
+			table.insert(allPlayers, snapshotBuffer)
 		else
 			if replicationRule.filterType == "include" then
 				local check = {}
 				for _, player in replicationRule.filterPlayers do
 					if not check[player] and playerSpecific[player] then
 						check[player] = true
-						table.insert(playerSpecific[player], buff)
+						table.insert(playerSpecific[player], snapshotBuffer)
 					end
 				end
 			else
@@ -525,13 +555,14 @@ RunService.PostSimulation:Connect(function(deltaTime)
 				end
 				for player, list in playerSpecific do
 					if not excluded[player] then
-						table.insert(list, buff)
+						table.insert(list, snapshotBuffer)
 					end
 				end
 			end
 		end
 	end
-	new_Players = {}
+
+	table.clear(newPlayers)
 	debug.profileend()
 	debug.profilebegin("FlushNPCs")
 
@@ -542,6 +573,24 @@ RunService.PostSimulation:Connect(function(deltaTime)
 
 	for player, list in playerSpecific do
 		Flush(list, player)
+	end
+
+	debug.profileend()
+
+	debug.profilebegin("Move Client Npcs")
+
+	for player, ids: any in clientOwners do
+		for id, _ in ids do
+			local data = idMap[id]
+			if not data or not data.model or not data.model.PrimaryPart then
+				continue
+			end
+
+			local latestSnapshot = data.snapshot:GetLatest()
+			if latestSnapshot then
+				data.model.PrimaryPart.CFrame = latestSnapshot.value
+			end
+		end
 	end
 
 	debug.profileend()
@@ -662,12 +711,13 @@ local function PushNPCTransform(target: number | Model, cframe: CFrame, t: numbe
 
 	if data and data.serverOwned then
 		local timestamp = t or os.clock()
-		data.snapshot:Push(timestamp, cframe)
+		data.snapshot:Push(timestamp, cframe, timestamp)
 		data.clientLastTick = timestamp
 	end
 end
 
 return {
+	_newPlayers = newPlayers, -- This is needed for NpcRegistry
 	idMap = idMap,
 	Replicators = replicators,
 

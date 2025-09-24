@@ -8,7 +8,7 @@ export type Snapshot<T> = {
 	cache: { SnapshotData<T> },
 	lerp: (T, T, number) -> T,
 
-	Push: (self: Snapshot<T>, t: number, value: T) -> (),
+	Push: (self: Snapshot<T>, t: number, value: T, _targetTime: number?) -> (),
 	GetLatest: (self: Snapshot<T>) -> SnapshotData<T>?,
 	GetAt: (self: Snapshot<T>, t: number) -> T?,
 	Clear: (self: Snapshot<T>) -> (),
@@ -35,8 +35,17 @@ local function Search(cache: { SnapshotData<any> }, timeStamp: number): number
 	return #cache + 1
 end
 
-local function Push<T>(self: Snapshot<T>, timeStamp: number, value: T): ()
+local function Push<T>(self: Snapshot<T>, timeStamp: number, value: T, _targetTime: number?): ()
 	local cache = self.cache
+
+	local latest = cache[#cache] -- This is a fail-safe for incase during ownership changing incase the newer timestamp for owner is diffrent from the previous owner and failed to pass other fail safes.
+	if latest and timeStamp - latest.t < 5 and _targetTime then
+		if math.abs(_targetTime - latest.t) > 5 then
+			table.clear(cache)
+			print("Clearing Snapshot due to large time difference during ownership change")
+		end
+	end
+
 	local index = Search(cache, timeStamp)
 	table.insert(cache, index, { t = timeStamp, value = value })
 	if #cache > MAX_LENGTH then
