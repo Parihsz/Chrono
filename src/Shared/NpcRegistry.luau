@@ -235,6 +235,7 @@ function Npc.SetNetworkOwner(id: number, player: Player?)
 	NpcRegistryRemote:FireAllClients("c", id)
 	local idMapData = ServerReplicate.idMap[id]
 	if idMapData then
+		idMapData.clientLastTick = nil
 		local latest = idMapData.snapshot:GetLatest()
 		idMapData.snapshot:Clear()
 		if latest then
@@ -332,6 +333,7 @@ if IS_CLIENT then
 					end
 				end
 			elseif t == "c" then
+				task.wait(0.1) -- give some time for the server to update
 				local idData = ClientReplicate.idMap[id]
 				if idData then
 					local latest = idData.snapshot:GetLatest()

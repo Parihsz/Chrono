@@ -497,7 +497,12 @@ RunService.PostSimulation:Connect(function(deltaTime)
 		if CUSTOM_CHARACTERS and character and character.PrimaryPart then
 			character.PrimaryPart.CFrame = cframe
 		end
-
+		local t = now
+		if data.clientLastTick then
+			t = data.clientLastTick
+		elseif not data.clientLastTick and data.networkOwner then
+			t = 1
+		end
 		if not changed or inInterval then
 			
 			if hasNewPlayers then
@@ -512,7 +517,7 @@ RunService.PostSimulation:Connect(function(deltaTime)
 						local list = playerSpecific[newPlayer]
 						if list then
 							local buff = buffer.create(SNAPSHOT_SIZE)
-							PackSnapshotData(buff, 0, data.clientLastTick or now, cframe, id)
+							PackSnapshotData(buff, 0, t, cframe, id)
 							table.insert(list, buff)
 						end
 					end
@@ -523,7 +528,7 @@ RunService.PostSimulation:Connect(function(deltaTime)
 	
 
 		local buff = buffer.create(SNAPSHOT_SIZE)
-		PackSnapshotData(buff, 0, data.clientLastTick or now, cframe, id)
+		PackSnapshotData(buff, 0,t, cframe, id)
 
 		local replicationRule = data.replicationRule
 		if not replicationRule or (#replicationRule.filterPlayers == 0 and replicationRule.filterType == "exclude") then
