@@ -28,6 +28,14 @@ Adds the NPC model to the config. Used for creating a copy on the client.
 Make sure the model is set on both the server and the client.
 :::
 
+---
+
+### `Npc.GetModel(id: number) → Model?`
+
+Returns the **original model** for a given NPC ID, if registered.
+
+---
+
 ## Server API
 
 ### `Npc.Register(model: Model, npcType: string?, modelType: string?, automaticUpdate: boolean?,initData:any?) → number`
@@ -63,13 +71,6 @@ Unregisters an NPC from the server and cleans up its cache.
 **Returns:**  
 The original NPC `Model`.
 
----
-
-### `Npc.GetModel(id: number) → Model?`
-
-Returns the **original model** for a given NPC ID, if registered.
-
----
 
 
 ## Signals
