@@ -41,7 +41,7 @@ local idMap = {} :: {
 
 local awaitingSnapshots = {} :: { [number]: { timestamp: number, cframe: CFrame, clock: number } }
 
-local clientOwnerShip: {} 
+local clientOwnerShip: {}
 
 task.defer(function()
 	local NpcRegistry = (require)(script.Parent.Parent.Shared.NpcRegistry)
@@ -319,8 +319,16 @@ local function HandleReplicatedData(clientLastTicks, cframes)
 		elseif entry.isNPC and entry.npcType and not targetTime then
 			RenderCache.Add(id, true, entry.npcType)
 		end
+
+		local latest = entry.snapshot:GetLatest()
+		if latest and clientLastTicks[id] - latest.t < 5 and targetTime then
+			if math.abs(targetTime - latest.t) > 5 then
+				entry.snapshot:Clear()
+				warn(`Clearing Snapshot due to large time difference during ownership changes`)
+			end
+		end
 		--cframes are already decoded when unpacking, so we push directly
-		entry.snapshot:Push(clientLastTicks[id], cframe, targetTime)
+		entry.snapshot:Push(clientLastTicks[id], cframe)
 	end
 end
 
@@ -399,7 +407,8 @@ RunService.PreRender:Connect(function(deltaTime: number)
 end)
 
 local function CheckCFrameChanges(cframe: CFrame, last: CFrame)
-	local changed = (last.Position - cframe.Position).Magnitude >= 0.05 or not last.Rotation:FuzzyEq(cframe.Rotation, 0.0001)
+	local changed = (last.Position - cframe.Position).Magnitude >= 0.05
+		or not last.Rotation:FuzzyEq(cframe.Rotation, 0.0001)
 	return changed
 end
 

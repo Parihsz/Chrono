@@ -1,4 +1,3 @@
-local RunService = game:GetService("RunService")
 export type SnapshotData<T> = {
 	t: number,
 	value: T,
@@ -6,9 +5,11 @@ export type SnapshotData<T> = {
 
 export type Snapshot<T> = {
 	cache: { SnapshotData<T> },
-	lerp: (T, T, number) -> T,
+	head: number,
+	count: number,
+	Lerp: (T, T, number) -> T,
 
-	Push: (self: Snapshot<T>, t: number, value: T, _targetTime: number?) -> (),
+	Push: (self: Snapshot<T>, t: number, value: T) -> (),
 	GetLatest: (self: Snapshot<T>) -> SnapshotData<T>?,
 	GetAt: (self: Snapshot<T>, t: number) -> T?,
 	Clear: (self: Snapshot<T>) -> (),
@@ -19,104 +20,164 @@ local Config = require(script.Parent.Parent.Shared.Config)
 local MAX_LENGTH = 30
 local SHOW_WARNINGS = Config.SHOW_WARNINGS
 
-local warn = function(...)
+local function WarnIfEnabled(...)
 	if SHOW_WARNINGS then
 		warn(...)
 	end
 end
 
--- for lune test
-local function Search(cache: { SnapshotData<any> }, timeStamp: number): number
-	for i, v in cache do
-		if v.t >= timeStamp then
-			return i
-		end
-	end
-	return #cache + 1
+local function GetBufferIndex(head: number, relativeIndex: number): number
+	return (head + relativeIndex - 2) % MAX_LENGTH + 1
 end
 
-local function Push<T>(self: Snapshot<T>, timeStamp: number, value: T, _targetTime: number?): ()
-	local cache = self.cache
+local function BinarySearchInsertionPoint<T>(self: Snapshot<T>, timeStamp: number): number
+	local count = self.count
+	if count == 0 then
+		return 1
+	end
 
-	local latest = cache[#cache] -- This is a fail-safe for incase during ownership changing incase the newer timestamp for owner is diffrent from the previous owner and failed to pass other fail safes.
-	if latest and timeStamp - latest.t < 5 and _targetTime then
-		if math.abs(_targetTime - latest.t) > 5 then
-			table.clear(cache)
-			print("Clearing Snapshot due to large time difference during ownership change")
+	local left = 1
+	local right = count
+	local cache = self.cache
+	local head = self.head
+
+	while left <= right do
+		local mid = (left + right) // 2
+		local bufferIndex = GetBufferIndex(head, mid)
+		local midTime = cache[bufferIndex].t
+
+		if midTime < timeStamp then
+			left = mid + 1
+		else
+			right = mid - 1
 		end
 	end
 
-	local index = Search(cache, timeStamp)
-	table.insert(cache, index, { t = timeStamp, value = value })
-	if #cache > MAX_LENGTH then
-		table.remove(cache, 1)
+	return left
+end
+
+local function ShiftElementsRight<T>(self: Snapshot<T>, startPos: number, endPos: number)
+	local cache = self.cache
+	local head = self.head
+
+	for i = endPos, startPos, -1 do
+		local fromIndex = GetBufferIndex(head, i)
+		local toIndex = GetBufferIndex(head, i + 1)
+		cache[toIndex] = cache[fromIndex]
+	end
+end
+
+local function Push<T>(self: Snapshot<T>, timeStamp: number, value: T): ()
+	local newData = { t = timeStamp, value = value }
+
+	if self.count == 0 then
+		self.cache[self.head] = newData
+		self.count = 1
+		return
+	end
+
+	local insertionPos = BinarySearchInsertionPoint(self, timeStamp)
+
+	if insertionPos > self.count then
+		if self.count < MAX_LENGTH then
+			local newIndex = GetBufferIndex(self.head, self.count + 1)
+			self.cache[newIndex] = newData
+			self.count += 1
+		else
+			local newIndex = self.head
+			self.cache[newIndex] = newData
+			self.head = self.head % MAX_LENGTH + 1
+		end
+	else
+		if self.count < MAX_LENGTH then
+			ShiftElementsRight(self, insertionPos, self.count)
+			local insertIndex = GetBufferIndex(self.head, insertionPos)
+			self.cache[insertIndex] = newData
+			self.count += 1
+		else
+			for i = 1, insertionPos - 1 do
+				local fromIndex = GetBufferIndex(self.head, i + 1)
+				local toIndex = GetBufferIndex(self.head, i)
+				self.cache[toIndex] = self.cache[fromIndex]
+			end
+			local insertIndex = GetBufferIndex(self.head, insertionPos)
+			self.cache[insertIndex] = newData
+		end
 	end
 end
 
 local function GetLatest<T>(self: Snapshot<T>): SnapshotData<T>?
-	local cache = self.cache
-	if #cache > 0 then
-		return cache[#cache]
+	if self.count == 0 then
+		return nil
 	end
-	return nil
-end
 
-local function GetBefore<T>(self: Snapshot<T>, before: number): SnapshotData<T>?
-	local cache = self.cache
-	for i = #cache, 1, -1 do
-		if cache[i].t < before then
-			return cache[i]
-		end
-	end
-	return nil
-end
-
-local function GetAfter<T>(self: Snapshot<T>, after: number): SnapshotData<T>?
-	local cache = self.cache
-	for i = 1, #cache do
-		if cache[i].t >= after then
-			return cache[i]
-		end
-	end
-	return nil
+	local lastIndex = GetBufferIndex(self.head, self.count)
+	return self.cache[lastIndex]
 end
 
 local function GetAt<T>(self: Snapshot<T>, at: number): T?
-	local cache = self.cache
-	if #cache == 0 then
+	local count = self.count
+	if count == 0 then
 		return nil
 	end
-	if #cache == 1 then
-		return cache[1].value
+
+	if count == 1 then
+		local index = GetBufferIndex(self.head, 1)
+		return self.cache[index].value
 	end
 
-	local lerp = self.lerp
+	local cache = self.cache
+	local head = self.head
+	local lerpFunction = self.Lerp
 
-	local before = GetBefore(self, at)
-	local after = GetAfter(self, at)
+	local insertionPos = BinarySearchInsertionPoint(self, at)
 
-	if before and after then
-		local alpha = (at - before.t) / (after.t - before.t)
-		return lerp(before.value, after.value, alpha)
-	elseif before then
-		warn("Tried to fetch a time that was ahead of snapshot storage!")
-		return before.value
-	elseif after then
-		warn("Tried to fetch a time that was behind  snapshot storage!")
-		return after.value
+	local beforePos = insertionPos - 1
+	local afterPos = insertionPos
+
+	local beforeData: SnapshotData<T>?
+	local afterData: SnapshotData<T>?
+
+	if beforePos >= 1 and beforePos <= count then
+		local beforeIndex = GetBufferIndex(head, beforePos)
+		beforeData = cache[beforeIndex]
+	end
+
+	if afterPos >= 1 and afterPos <= count then
+		local afterIndex = GetBufferIndex(head, afterPos)
+		afterData = cache[afterIndex]
+	end
+
+	if beforeData and afterData then
+		local alpha = (at - beforeData.t) / (afterData.t - beforeData.t)
+		return lerpFunction(beforeData.value, afterData.value, alpha)
+	elseif beforeData then
+		WarnIfEnabled("Tried to fetch a time that was ahead of snapshot storage!")
+		return beforeData.value
+	elseif afterData then
+		WarnIfEnabled("Tried to fetch a time that was behind snapshot storage!")
+		return afterData.value
 	end
 
 	return nil
 end
 
-local function Clear(self: Snapshot<any>): ()
-	self.cache = {}
+local function Clear<T>(self: Snapshot<T>): ()
+	self.head = 1
+	self.count = 0
 end
 
-local function new<T>(lerp: (T, T, number) -> T): Snapshot<T>
+local function New<T>(lerpFunction: (T, T, number) -> T): Snapshot<T>
+	local cache = {}
+	for i = 1, MAX_LENGTH do
+		cache[i] = { t = 0, value = (nil :: any) :: T }
+	end
+
 	return {
-		cache = {},
-		lerp = lerp,
+		cache = cache,
+		head = 1,
+		count = 0,
+		Lerp = lerpFunction,
 
 		Push = Push,
 		GetLatest = GetLatest,
@@ -125,4 +186,4 @@ local function new<T>(lerp: (T, T, number) -> T): Snapshot<T>
 	}
 end
 
-return new
+return New
