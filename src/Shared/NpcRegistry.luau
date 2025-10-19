@@ -386,9 +386,9 @@ else
 		-- 	end
 		-- 	NpcRegistryRemote:FireClient(player :: Player,"o" ,playerO,ids)
 		-- end
-		-- if not ClientOwners[player] then
-		-- 	return
-		-- end
+		if not ClientOwners[player] then
+			return
+		end
 
 		local npcS = {}
 		for id in ClientOwners[player] do
