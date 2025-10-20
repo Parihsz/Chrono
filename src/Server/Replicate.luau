@@ -97,7 +97,10 @@ local function PackSnapshotData(snapshotBuffer: buffer, offset: number, timestam
 	end
 end
 
-local function UnpackSnapshotData(snapshotBuffer: buffer, offset: number): { timestamp: number, cframe: CFrame, id: number }
+local function UnpackSnapshotData(
+	snapshotBuffer: buffer,
+	offset: number
+): { timestamp: number, cframe: CFrame, id: number }
 	local value = {}
 	value.timestamp = buffer.readf32(snapshotBuffer, offset + 0)
 
@@ -214,6 +217,15 @@ end
 
 local function OnCharacterAdded(player: Player, character: Model, id: number)
 	if Config.DISABLE_DEFAULT_REPLICATION then
+		local humanoid = character:WaitForChild("Humanoid") :: Humanoid
+		if not humanoid then
+			return
+		end
+
+		humanoid.Died:Connect(function()
+			character:PivotTo(replicators[id]:GetPivot())
+		end)
+
 		return
 	end
 	Grid.AddEntity(character, "player")
@@ -511,7 +523,7 @@ RunService.PostSimulation:Connect(function(deltaTime)
 		elseif not data.clientLastTick and data.networkOwner then
 			t = 1
 		end
-		
+
 		if not changed or inInterval then
 			if hasNewPlayers then
 				for _, newPlayer: any in newPlayers do
