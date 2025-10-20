@@ -22,6 +22,7 @@ local outgoingSnapshots = {} :: { { timestamp: number, cframe: CFrame, id: numbe
 
 local ClientReplicateCFrame: UnreliableRemoteEvent = ReplicatedStorage:WaitForChild("ClientReplicateCFrame") :: any
 local ServerReplicateCFrame: UnreliableRemoteEvent = ReplicatedStorage:WaitForChild("ServerReplicateCFrame") :: any
+local DeathEvent: RemoteEvent = ReplicatedStorage:WaitForChild("DeathEvent") :: any
 
 local idMap = {} :: {
 	[number]: {
@@ -234,6 +235,15 @@ local function NewCharacter(idData: typeof(idMap[1]))
 
 		primaryPart:GetPropertyChangedSignal("Anchored"):Connect(function()
 			primaryPart.Anchored = false
+		end)
+
+		local humanoid = initializedCharacter:FindFirstChild("Humanoid") :: Humanoid
+		if not humanoid then
+			return
+		end
+
+		humanoid.Died:Connect(function()
+			DeathEvent:FireServer()
 		end)
 	end)
 

@@ -24,6 +24,10 @@ local ServerReplicateCFrame = Instance.new("UnreliableRemoteEvent")
 ServerReplicateCFrame.Name = "ServerReplicateCFrame"
 ServerReplicateCFrame.Parent = ReplicatedStorage
 
+local DeathEvent = Instance.new("RemoteEvent")
+DeathEvent.Name = "DeathEvent"
+DeathEvent.Parent = ReplicatedStorage
+
 local newPlayers = {}
 local idStack = {} :: { number }
 local playerIdMap = {} :: { [Player]: number }
@@ -223,6 +227,9 @@ local function OnCharacterAdded(player: Player, character: Model, id: number)
 		end
 
 		humanoid.Died:Connect(function()
+			if not humanoid.BreakJointsOnDeath then
+				return
+			end
 			character:PivotTo(replicators[id]:GetPivot())
 		end)
 
@@ -377,6 +384,26 @@ ClientReplicateCFrame.OnServerEvent:Connect(function(player: Player, snapshotBuf
 
 	if Config.DISABLE_DEFAULT_REPLICATION and hrp then
 		hrp.Anchored = true
+	end
+end)
+
+DeathEvent.OnServerEvent:Connect(function(player: Player)
+	local character = player.Character
+	local humanoid = character and character:FindFirstChildOfClass("Humanoid") :: Humanoid?
+
+	if humanoid and humanoid.BreakJointsOnDeath then
+		return
+	end
+
+	if character and character:FindFirstChild("Health") then
+		local healthScript = character:FindFirstChild("Health") :: Script
+		healthScript:Destroy()
+	end
+
+	if humanoid then
+		humanoid.Health = 0
+		humanoid.Health = 10
+		humanoid.Health = 0
 	end
 end)
 
