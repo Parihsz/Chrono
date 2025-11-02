@@ -19,6 +19,8 @@ local Character = Player.Character or Player.CharacterAdded:Wait()
 Character.Archivable = true
 
 local Chrono = require(ReplicatedStorage.Packages.chrono)
+Chrono.Start()
+
 local NpcRegistry = Chrono.NpcRegistry
 local ServerChrono = Chrono.ChronoServer
 
