@@ -184,7 +184,7 @@ end
 local function New<Value, Velocity>(
 	lerpFunction: (Vector3, Vector3, Velocity, Velocity, number, number) -> Vector3
 ): Snapshot<Value, Velocity>
-	local cache = {}
+	local cache = table.create(MAX_LENGTH)
 	for i = 1, MAX_LENGTH do
 		cache[i] = { t = 0, value = (nil :: any) :: Value, velocity = (nil :: any) :: Velocity }
 	end
