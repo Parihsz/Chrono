@@ -4,7 +4,6 @@ local function Hermite(p0: Vector3, p1: Vector3, v0: Vector3, v1: Vector3, t: nu
 	v0 = v0 or Vector3.zero
 	v1 = v1 or Vector3.zero
 	if not dt or dt == 0 then
-		print("fallbacking to linear")
 		return p0:Lerp(p1, t)
 	end
 
