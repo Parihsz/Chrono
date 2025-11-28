@@ -1,18 +1,19 @@
-export type SnapshotData<T> = {
+export type SnapshotData<Value, Velocity> = {
 	t: number,
-	value: T,
+	value: Value,
+	velocity: Velocity,
 }
 
-export type Snapshot<T> = {
-	cache: { SnapshotData<T> },
+export type Snapshot<Value, Velocity> = {
+	cache: { SnapshotData<Value, Velocity> },
 	head: number,
 	count: number,
-	Lerp: (T, T, number) -> T,
+	Lerp: (p0: Vector3, p1: Vector3, v0: Velocity, v1: Velocity, t: number, dt: number) -> Vector3,
 
-	Push: (self: Snapshot<T>, t: number, value: T) -> (),
-	GetLatest: (self: Snapshot<T>) -> SnapshotData<T>?,
-	GetAt: (self: Snapshot<T>, t: number) -> T?,
-	Clear: (self: Snapshot<T>) -> (),
+	Push: (self: Snapshot<Value, Velocity>, t: number, value: Value, velocity: Velocity) -> (),
+	GetLatest: (self: Snapshot<Value, Velocity>) -> SnapshotData<Value, Velocity>?,
+	GetAt: (self: Snapshot<Value, Velocity>, t: number) -> Value?,
+	Clear: (self: Snapshot<Value, Velocity>) -> (),
 }
 
 local Config = require(script.Parent.Parent.Shared.Config)
@@ -30,7 +31,7 @@ local function GetBufferIndex(head: number, relativeIndex: number): number
 	return (head + relativeIndex - 2) % MAX_LENGTH + 1
 end
 
-local function BinarySearchInsertionPoint<T>(self: Snapshot<T>, timeStamp: number): number
+local function BinarySearchInsertionPoint<Value, Velocity>(self: Snapshot<Value, Velocity>, timeStamp: number): number
 	local count = self.count
 	if count == 0 then
 		return 1
@@ -56,7 +57,7 @@ local function BinarySearchInsertionPoint<T>(self: Snapshot<T>, timeStamp: numbe
 	return left
 end
 
-local function ShiftElementsRight<T>(self: Snapshot<T>, startPos: number, endPos: number)
+local function ShiftElementsRight<Value, Velocity>(self: Snapshot<Value, Velocity>, startPos: number, endPos: number)
 	local cache = self.cache
 	local head = self.head
 
@@ -67,8 +68,8 @@ local function ShiftElementsRight<T>(self: Snapshot<T>, startPos: number, endPos
 	end
 end
 
-local function Push<T>(self: Snapshot<T>, timeStamp: number, value: T): ()
-	local newData = { t = timeStamp, value = value }
+local function Push<Value, Velocity>(self: Snapshot<Value, Velocity>, timeStamp: number, value: Value, velocity: Velocity)
+	local newData = { t = timeStamp, value = value, velocity = velocity }
 
 	if self.count == 0 then
 		self.cache[self.head] = newData
@@ -106,7 +107,7 @@ local function Push<T>(self: Snapshot<T>, timeStamp: number, value: T): ()
 	end
 end
 
-local function GetLatest<T>(self: Snapshot<T>): SnapshotData<T>?
+local function GetLatest<Value, Velocity>(self: Snapshot<Value, Velocity>): SnapshotData<Value, Velocity>?
 	if self.count == 0 then
 		return nil
 	end
@@ -115,7 +116,7 @@ local function GetLatest<T>(self: Snapshot<T>): SnapshotData<T>?
 	return self.cache[lastIndex]
 end
 
-local function GetAt<T>(self: Snapshot<T>, at: number): T?
+local function GetAt<Value, Velocity>(self: Snapshot<Value, Velocity>, at: number): Value?
 	local count = self.count
 	if count == 0 then
 		return nil
@@ -135,8 +136,8 @@ local function GetAt<T>(self: Snapshot<T>, at: number): T?
 	local beforePos = insertionPos - 1
 	local afterPos = insertionPos
 
-	local beforeData: SnapshotData<T>?
-	local afterData: SnapshotData<T>?
+	local beforeData: SnapshotData<Value, Velocity>?
+	local afterData: SnapshotData<Value, Velocity>?
 
 	if beforePos >= 1 and beforePos <= count then
 		local beforeIndex = GetBufferIndex(head, beforePos)
@@ -149,8 +150,21 @@ local function GetAt<T>(self: Snapshot<T>, at: number): T?
 	end
 
 	if beforeData and afterData then
-		local alpha = (at - beforeData.t) / (afterData.t - beforeData.t)
-		return lerpFunction(beforeData.value, afterData.value, alpha)
+		local dt = afterData.t - beforeData.t
+		if dt == 0 then
+			return beforeData.value
+		end
+		local alpha = (at - beforeData.t) / dt
+
+		local p0, p1 = (beforeData.value :: any).Position, (afterData.value :: any).Position
+		local v0, v1 = beforeData.velocity, afterData.velocity
+
+		local position = lerpFunction(p0, p1, v0, v1, alpha, dt)
+		local delta = (afterData.value :: any).Rotation * (beforeData.value :: any).Rotation:Inverse()
+		local axis, angle = delta:ToAxisAngle()
+		local rotation = (beforeData.value :: any).Rotation * CFrame.fromAxisAngle(axis, angle * alpha)
+
+		return CFrame.new(position) * rotation
 	elseif beforeData then
 		WarnIfEnabled("Tried to fetch a time that was ahead of snapshot storage!")
 		return beforeData.value
@@ -162,15 +176,17 @@ local function GetAt<T>(self: Snapshot<T>, at: number): T?
 	return nil
 end
 
-local function Clear<T>(self: Snapshot<T>): ()
+local function Clear<Value, Velocity>(self: Snapshot<Value, Velocity>)
 	self.head = 1
 	self.count = 0
 end
 
-local function New<T>(lerpFunction: (T, T, number) -> T): Snapshot<T>
+local function New<Value, Velocity>(
+	lerpFunction: (Vector3, Vector3, Velocity, Velocity, number, number) -> Vector3
+): Snapshot<Value, Velocity>
 	local cache = table.create(MAX_LENGTH)
 	for i = 1, MAX_LENGTH do
-		cache[i] = { t = 0, value = (nil :: any) :: T }
+		cache[i] = { t = 0, value = (nil :: any) :: Value, velocity = (nil :: any) :: Velocity }
 	end
 
 	return {

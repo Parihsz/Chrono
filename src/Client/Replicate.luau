@@ -10,6 +10,7 @@ local Networkables = require(script.Parent.Parent.Shared.MakeNetworkable)
 local RenderCache = require(script.Parent.RenderCache)
 local Rig = require(script.Parent.Parent.Shared.Rigs.CreateCharacter)
 local Character = require(script.Parent.Parent.Shared.Character)
+local InterpolationMath = require(script.Parent.Parent.Shared.InterpolationMath)
 
 local CUSTOM_CHARACTERS = Config.ENABLE_CUSTOM_CHARACTERS
 local MAX_UNRELIABLE_BYTES = 900
@@ -27,7 +28,7 @@ local DeathEvent: RemoteEvent = ReplicatedStorage:WaitForChild("DeathEvent") :: 
 local idMap = {} :: {
 	[number]: {
 		networkOwner: boolean?,
-		snapshot: Snapshots.Snapshot<CFrame>,
+		snapshot: Snapshots.Snapshot<CFrame, Vector3>,
 		character: Model?,
 		lastCFrame: CFrame?,
 		lastSent: number?,
@@ -82,6 +83,9 @@ local function WaitForCharacter(player: Player): Model
 end
 
 local playerNetworkId = 300
+
+local Hermite = InterpolationMath.Hermite
+local VelocityAt = InterpolationMath.VelocityAt
 
 local function UnpackSnapshotData(snapshotBuffer: buffer, offset: number): any
 	local value = {}
@@ -168,7 +172,7 @@ local function RegisterClientNPC(id: number, model: Model, npcType: string?)
 	if not idMap[id] then
 		npcType = npcType or "DEFAULT"
 		idMap[id] = {
-			snapshot = Snapshots(CFrame.identity.Lerp),
+			snapshot = Snapshots(Hermite),
 			character = nil,
 			lastCFrame = nil,
 			isNPC = true,
@@ -178,7 +182,10 @@ local function RegisterClientNPC(id: number, model: Model, npcType: string?)
 	end
 
 	if clientOwnerShip[id] and clientOwnerShip[id] ~= true then
-		idMap[id].snapshot:Push(os.clock(), clientOwnerShip[id])
+		local now = os.clock()
+		local latest = idMap[id].snapshot:GetLatest()
+		local velocity = VelocityAt(latest, now, clientOwnerShip[id])
+		idMap[id].snapshot:Push(now, clientOwnerShip[id], velocity)
 		clientOwnerShip[id] = true
 	end
 
@@ -260,7 +267,7 @@ local function NewCharacter(idData: typeof(idMap[1]))
 end
 
 local function PlayerAdded(player: Player, id: number)
-	local registeredSnapshots = Snapshots(CFrame.identity.Lerp)
+	local registeredSnapshots = Snapshots(Hermite)
 	playerToId[player] = id
 	idMap[id] = {
 		player = player,
@@ -338,7 +345,7 @@ local function HandleReplicatedData(clientLastTicks, cframes)
 			end
 		end
 		--cframes are already decoded when unpacking, so we push directly
-		entry.snapshot:Push(clientLastTicks[id], cframe)
+		entry.snapshot:Push(clientLastTicks[id], cframe, VelocityAt(latest, clientLastTicks[id], cframe))
 	end
 end
 

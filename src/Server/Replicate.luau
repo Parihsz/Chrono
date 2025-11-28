@@ -9,6 +9,7 @@ local Grid = require(script.Parent.Parent.Shared.Grid)
 local Events = require(script.Parent.Parent.Events.Server)
 local Networkables = require(script.Parent.Parent.Shared.MakeNetworkable)
 local Character = require(script.Parent.Parent.Shared.Character)
+local InterpolationMath = require(script.Parent.Parent.Shared.InterpolationMath)
 
 local ClientReplicateCFrame = Instance.new("UnreliableRemoteEvent")
 ClientReplicateCFrame.Name = "ClientReplicateCFrame"
@@ -46,7 +47,7 @@ export type ReplicationRule = {
 local idMap = {} :: {
 	[number]: {
 		player: Player?,
-		snapshot: Snapshots.Snapshot<CFrame>,
+		snapshot: Snapshots.Snapshot<CFrame, Vector3>,
 		clientLastTick: number?,
 
 		serverOwned: boolean?,
@@ -75,6 +76,9 @@ local function GetCharacter(player: Player): Model?
 		return player.Character
 	end
 end
+
+local Hermite = InterpolationMath.Hermite
+local VelocityAt = InterpolationMath.VelocityAt
 
 local function PackSnapshotData(snapshotBuffer: buffer, offset: number, timestamp: number, cframe: CFrame, id: number)
 	buffer.writef32(snapshotBuffer, offset + 0, timestamp)
@@ -273,7 +277,7 @@ Players.PlayerAdded:Connect(function(player: Player)
 
 	idMap[id] = {
 		player = player,
-		snapshot = Snapshots(CFrame.identity.Lerp),
+		snapshot = Snapshots(Hermite),
 		clientLastTick = nil,
 
 		serverOwned = false,
@@ -374,7 +378,11 @@ ClientReplicateCFrame.OnServerEvent:Connect(function(player: Player, snapshotBuf
 			continue
 		end
 		data.clientLastTick = snapshot.timestamp
-		data.snapshot:Push(snapshot.timestamp, snapshot.cframe)
+		data.snapshot:Push(
+			snapshot.timestamp,
+			snapshot.cframe,
+			VelocityAt(data.snapshot:GetLatest(), snapshot.timestamp, snapshot.cframe)
+		)
 
 		lastReplicatedTimes[id] = 0
 	end
@@ -708,7 +716,7 @@ local function RegisterNPC(model: Model?, npcType: string?): number
 
 	idMap[id] = {
 		player = nil,
-		snapshot = Snapshots(CFrame.identity.Lerp),
+		snapshot = Snapshots(Hermite),
 		clientLastTick = os.clock(),
 		serverOwned = true,
 		npcType = npcType or "DEFAULT",
@@ -750,7 +758,7 @@ local function PushNPCTransform(target: number | Model, cframe: CFrame, t: numbe
 
 	if data and data.serverOwned then
 		local timestamp = t or os.clock()
-		data.snapshot:Push(timestamp, cframe, timestamp)
+		data.snapshot:Push(timestamp, cframe, VelocityAt(data.snapshot:GetLatest(), timestamp, cframe))
 		data.clientLastTick = timestamp
 	end
 end
