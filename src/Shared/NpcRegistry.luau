@@ -193,7 +193,7 @@ end
 function Npc.SetPosition(id: number, cframe: CFrame)
 	if IS_CLIENT then
 		local model = Cache[id]
-		if model and model.PrimaryPart then
+		if model and model:IsA("Model") then
 			model:PivotTo(cframe)
 		end
 	else
@@ -206,8 +206,8 @@ function Npc.SetPosition(id: number, cframe: CFrame)
 			return
 		end
 		local model = Cache[id]
-		if AutomaticNpc[id] and model and model.PrimaryPart then
-			model.PrimaryPart.CFrame = cframe
+		if AutomaticNpc[id] and model and model:IsA("Model") then
+			model:PivotTo(cframe)
 		end
 		ServerReplicate.PushNPCTransform(id, cframe, os.clock())
 	end
@@ -344,8 +344,15 @@ if IS_CLIENT then
 				end
 			elseif t == "m" then
 				local model = Cache[id]
-				if model and model.PrimaryPart and typeof(other) == "CFrame" then
-					model.PrimaryPart.CFrame = other
+				if not model then
+					local start = os.clock()
+					repeat
+						task.wait()
+						model = Cache[id]
+					until model or os.clock() - start > 5
+				end
+				if model and model:IsA("Model") and typeof(other) == "CFrame" then
+					model:PivotTo(other)
 				end
 				local idData = ClientReplicate.idMap[id]
 				if not idData then
