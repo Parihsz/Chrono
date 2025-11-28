@@ -168,7 +168,7 @@ local function Clear<T>(self: Snapshot<T>): ()
 end
 
 local function New<T>(lerpFunction: (T, T, number) -> T): Snapshot<T>
-	local cache = {}
+	local cache = table.create(MAX_LENGTH)
 	for i = 1, MAX_LENGTH do
 		cache[i] = { t = 0, value = (nil :: any) :: T }
 	end
