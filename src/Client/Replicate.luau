@@ -411,12 +411,7 @@ RunService.PreRender:Connect(function(deltaTime: number)
 		debug.profilebegin("Prepare CFrame")
 		if targetCFrame then
 			--data.lastCFrame = targetCFrame
-
-			-- make sure it isn't welded to anything else (e.g. being carried)
-
-			if primaryPart.AssemblyRootPart == primaryPart then
-				primaryPart.CFrame = targetCFrame
-			end
+			primaryPart.CFrame = targetCFrame
 		end
 		debug.profileend()
 	end
