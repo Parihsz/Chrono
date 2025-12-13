@@ -69,7 +69,7 @@ function Characters.SetCharacter(player: Player, model: Model | string, data: an
 		clone.Name = tostring(id)
 		clone.Parent = ModelCache
 		if data then
-			ModelCache:SetAttribute("data", HttpService:JSONEncode({ data }))
+			clone:SetAttribute("_chronoInitData", HttpService:JSONEncode({ data }))
 		end
 	end
 
@@ -79,9 +79,9 @@ end
 if IS_CLIENT then
 	local function handleChild(child: Instance)
 		local id = tonumber(child.Name)
-		local data = ModelCache:GetAttribute(child.Name)
+		local data = child:GetAttribute("_chronoInitData")
 		data = data and HttpService:JSONDecode(data)[1]
-		ModelCache:SetAttribute(child.Name, nil)
+		child:SetAttribute("_chronoInitData", nil)
 
 		if not id then
 			child:Destroy()
