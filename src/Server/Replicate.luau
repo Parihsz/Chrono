@@ -712,7 +712,8 @@ local function GetLatestCFrame(input: Player | Model | number): CFrame?
 		return data.latestCFrame
 	end
 
-	local latestSnapshot = data.snapshot and data.snapshot:GetLatest()
+	local snapshot = data.snapshot
+	local latestSnapshot = snapshot and snapshot:GetLatest()
 	if latestSnapshot then
 		return latestSnapshot.value
 	end
@@ -735,8 +736,8 @@ local function GetLatestTime(input: Player | Model | number): number?
 		return data.latestT
 	end
 
-	local snap = data.snapshot
-	local latestSnapshot = snap and snap:GetLatest()
+	local snapshot = data.snapshot
+	local latestSnapshot = snapshot and snapshot:GetLatest()
 	if latestSnapshot then
 		return latestSnapshot.t
 	end
