@@ -1,3 +1,4 @@
+--!native
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -47,7 +48,7 @@ export type ReplicationRule = {
 local idMap = {} :: {
 	[number]: {
 		player: Player?,
-		snapshot: Snapshots.Snapshot<CFrame, Vector3>,
+		snapshot: Snapshots.Snapshot<CFrame, Vector3>?,
 		clientLastTick: number?,
 
 		serverOwned: boolean?,
@@ -55,11 +56,15 @@ local idMap = {} :: {
 		model: Model?,
 		networkOwner: Player?,
 
+		latestCFrame: CFrame?,
+		latestT: number?,
+
 		_characterAdded: RBXScriptConnection?,
 		_characterRemoving: RBXScriptConnection?,
 		replicationRule: ReplicationRule?,
 	},
 }
+
 local pausedPlayers = {} :: { [number]: boolean }
 
 local lastReplicatedTimes = {} :: { [number]: number }
@@ -377,12 +382,21 @@ ClientReplicateCFrame.OnServerEvent:Connect(function(player: Player, snapshotBuf
 		if id ~= playerId and not ownedNpcs[id] then
 			continue
 		end
+
 		data.clientLastTick = snapshot.timestamp
-		data.snapshot:Push(
-			snapshot.timestamp,
-			snapshot.cframe,
-			VelocityAt(data.snapshot:GetLatest(), snapshot.timestamp, snapshot.cframe)
-		)
+
+		if data.serverOwned then
+			data.latestCFrame = snapshot.cframe
+			data.latestT = snapshot.timestamp
+		else
+			if data.snapshot then
+				data.snapshot:Push(
+					snapshot.timestamp,
+					snapshot.cframe,
+					VelocityAt(data.snapshot:GetLatest(), snapshot.timestamp, snapshot.cframe)
+				)
+			end
+		end
 
 		lastReplicatedTimes[id] = 0
 	end
@@ -531,15 +545,27 @@ RunService.PostSimulation:Connect(function(deltaTime)
 			lastReplicatedTimes[id] = now
 		end
 
-		local latestSnapshot = data.snapshot:GetLatest()
 		local cframe = CFrame.identity
 
-		if latestSnapshot then
-			cframe = latestSnapshot.value
-		elseif character and character.PrimaryPart then
-			cframe = (character :: any).PrimaryPart.CFrame
+		if isNPC then
+			local latest = data.latestCFrame
+			if latest then
+				cframe = latest
+			elseif data.model then
+				cframe = data.model:GetPivot()
+			else
+				continue
+			end
 		else
-			continue
+			local latestSnapshot = data.snapshot and data.snapshot:GetLatest()
+
+			if latestSnapshot then
+				cframe = latestSnapshot.value
+			elseif character and character.PrimaryPart then
+				cframe = (character :: any).PrimaryPart.CFrame
+			else
+				continue
+			end
 		end
 
 		local lastSentCFrame = (data :: any).lastCFrame or CFrame.identity
@@ -633,9 +659,9 @@ RunService.PostSimulation:Connect(function(deltaTime)
 				continue
 			end
 
-			local latestSnapshot = data.snapshot:GetLatest()
-			if latestSnapshot then
-				data.model.PrimaryPart.CFrame = latestSnapshot.value
+			local latest = data.latestCFrame
+			if latest then
+				data.model.PrimaryPart.CFrame = latest
 			end
 		end
 	end
@@ -682,7 +708,11 @@ local function GetLatestCFrame(input: Player | Model | number): CFrame?
 		return nil
 	end
 
-	local latestSnapshot = data.snapshot:GetLatest()
+	if data.serverOwned then
+		return data.latestCFrame
+	end
+
+	local latestSnapshot = data.snapshot and data.snapshot:GetLatest()
 	if latestSnapshot then
 		return latestSnapshot.value
 	end
@@ -701,7 +731,12 @@ local function GetLatestTime(input: Player | Model | number): number?
 		return nil
 	end
 
-	local latestSnapshot = data.snapshot:GetLatest()
+	if data.serverOwned then
+		return data.latestT
+	end
+
+	local snap = data.snapshot
+	local latestSnapshot = snap and snap:GetLatest()
 	if latestSnapshot then
 		return latestSnapshot.t
 	end
@@ -714,14 +749,25 @@ local function RegisterNPC(model: Model?, npcType: string?): number
 
 	local npcConfig = GetNpcConfig(npcType)
 
+	local now = os.clock()
+	local initialCFrame = CFrame.identity
+	if model then
+		initialCFrame = model:GetPivot()
+	end
+
 	idMap[id] = {
 		player = nil,
-		snapshot = Snapshots(Hermite),
-		clientLastTick = os.clock(),
+		snapshot = nil,
+		clientLastTick = now,
+
 		serverOwned = true,
 		npcType = npcType or "DEFAULT",
 		model = model,
+
+		latestCFrame = initialCFrame,
+		latestT = now,
 	}
+
 	lastReplicatedTimes[id] = 0
 
 	playerTickRates[id] = npcConfig.TICK_RATE
@@ -758,7 +804,8 @@ local function PushNPCTransform(target: number | Model, cframe: CFrame, t: numbe
 
 	if data and data.serverOwned then
 		local timestamp = t or os.clock()
-		data.snapshot:Push(timestamp, cframe, VelocityAt(data.snapshot:GetLatest(), timestamp, cframe))
+		data.latestCFrame = cframe
+		data.latestT = timestamp
 		data.clientLastTick = timestamp
 	end
 end
