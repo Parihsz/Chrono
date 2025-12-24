@@ -20,6 +20,9 @@ end
 
 local Config = require(script.Parent.Config)
 local Signal = require(script.Parent.Signal)
+local InterpolationMath = require(script.Parent.Parent.Shared.InterpolationMath)
+
+local VelocityAt = InterpolationMath.VelocityAt
 
 local NpcAdded: Signal.Signal<number, Model, any> = Signal.new()
 local NpcRemoved: Signal.Signal<number, Model> = Signal.new()
@@ -203,7 +206,6 @@ function Npc.SetPosition(id: number, cframe: CFrame)
 		end
 		if data.networkOwner then
 			NpcRegistryRemote:FireClient(data.networkOwner, "m", id, cframe)
-			return
 		end
 		local model = Cache[id]
 		if AutomaticNpc[id] and model and model:IsA("Model") then
@@ -234,13 +236,10 @@ function Npc.SetNetworkOwner(id: number, player: Player?)
 	NpcRegistryRemote:FireAllClients("c", id, player)
 	local idMapData = ServerReplicate.idMap[id]
 	if idMapData then
-		idMapData.clientLastTick = nil
-		local latest = idMapData.snapshot:GetLatest()
-		idMapData.snapshot:Clear()
-		if latest then
-			idMapData.snapshot:Push(0, latest.value)
-		end
+		local now = os.clock()
+		idMapData.clientLastTick = idMapData.latestT or now
 	end
+
 	if player then
 		ClientOwners[player] = ClientOwners[player] or {}
 		ClientOwners[player][id] = true
@@ -327,7 +326,8 @@ if IS_CLIENT then
 					local idData = ClientReplicate.idMap[v]
 
 					if idData and typeof(data) == "CFrame" then
-						idData.snapshot:Push(os.clock(), data)
+						local currentT = os.clock()
+						idData.snapshot:Push(currentT, data, VelocityAt(idData.snapshot:GetLatest(), currentT, data))
 					end
 				end
 			elseif t == "c" then
@@ -338,7 +338,7 @@ if IS_CLIENT then
 					local latest = idData.snapshot:GetLatest()
 					idData.snapshot:Clear()
 					if latest then
-						idData.snapshot:Push(0, latest.value)
+						idData.snapshot:Push(0, latest.value, VelocityAt(idData.snapshot:GetLatest(), 0, latest.value))
 					end
 					ClientReplicate.BufferTracker.Clear(id)
 				end
@@ -359,7 +359,8 @@ if IS_CLIENT then
 					ClientOwners[id] = other
 					return
 				end
-				idData.snapshot:Push(os.clock(), other)
+				local currentT = os.clock()
+				idData.snapshot:Push(currentT, other, VelocityAt(idData.snapshot:GetLatest(), currentT, other))
 			end
 		end)
 		NpcRegistryRemote:FireServer()
@@ -404,11 +405,11 @@ else
 			if not data then
 				continue
 			end
-			local latest = data.snapshot:GetLatest()
+			local latest = data.latestCFrame
 			if not latest then
 				continue
 			end
-			npcS[tostring(id)] = latest.value
+			npcS[tostring(id)] = latest
 		end
 
 		NpcRegistryRemote:FireClient(player :: Player, "i", npcS)
