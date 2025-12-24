@@ -18,7 +18,7 @@ export type Snapshot<Value, Velocity> = {
 
 local Config = require(script.Parent.Parent.Shared.Config)
 
-local MAX_LENGTH = Config.MAX_SNAPSHOT_LENGTH
+local MAX_LENGTH = Config.MAX_SNAPSHOT_COUNT
 local SHOW_WARNINGS = Config.SHOW_WARNINGS
 
 local function WarnIfEnabled(...)

@@ -29,7 +29,7 @@ return {
 	--note that warnings are mostly non fatal
 	--this will be set to false to optimize output by default, only enable if you're experiencing bugs with the system
 	SHOW_WARNINGS = false,
-	MAX_SNAPSHOT_LENGTH = 30,
+	MAX_SNAPSHOT_COUNT = 30,
 } :: {
 	MIN_BUFFER: number,
 	MAX_BUFFER: number,
@@ -51,5 +51,5 @@ return {
 	PLAYER_MODELS: { [string]: Model },
 
 	SHOW_WARNINGS: boolean,
-	MAX_SNAPSHOT_LENGTH: number,
+	MAX_SNAPSHOT_COUNT: number,
 }
