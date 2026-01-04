@@ -1,0 +1,176 @@
+--!native
+local Players = game:GetService("Players")
+--[[
+	We just need to track entities with players near them
+
+	Track how far an entity is from a player
+	Fast query to get entities near a player
+	Far away entities could be checked less frequently
+
+	Ideas:
+	   1. give each player their own hashgird that stores other npcs
+	      - expensive so no
+	   2. idk-
+
+	cause when we do like um
+	for i,entity in queryEntitiesNear(location,100) -- this range is constant
+	
+	but for far away entities we have to query again
+
+	maybe have two grids, one for close and one for far? 
+	actually maybe just do
+   player:{
+		closeEntities = {},
+		farEntities = {},
+   }
+	changed to 
+	player:{
+		normalEntities = {},
+		halfTick = {},
+		lowTick = {},
+   }
+]]
+for id, entity in { "ALL_ENTITIES" } do
+	--[[
+	--we could now give entities a proxy of how far they are for removal 
+	--yay me could do 
+		EntityConfig: {
+			Normal: 100,
+			HalfTick: 200,
+			LowTick: 300,
+			--don't need a removal one since we can just not replicate it
+		}
+	--loop thru players and get range
+	--insert into the players close and far table
+
+
+	-- Changed it so the ticker system keeps track of it now 
+	]]
+end
+--[[
+	-- the old has grid had a system where it was 
+	local UPDATE_INTERVAL = 2
+	so there really wasn't a point to query again until it updated
+	but ig we still need to check for when an npc was removed from proxy
+	could create another table to store removed entities
+
+]]
+
+local Shared = script.Parent.Parent.Shared
+local Types = require(Shared.Types)
+local Holder = require(Shared.Holder)
+local Ticker = require(Shared.Ticker)
+
+type Entity = Types.Entity
+
+local UPDATE_INTERVAL = 2
+
+local lastUpdate = 0
+
+type PlayerEntityHolder = {
+	ALL: { Entity },
+	REPLICATED: { [Entity]: true },
+}
+
+local entities = Holder.idMap
+local playerTablePositionPair: { [PlayerEntityHolder]: vector } = {}
+local playerToHolder: { [Player]: PlayerEntityHolder } = {}
+
+local function Check(entity: Entity)
+	local cframe = entity.model and entity.model.PrimaryPart and entity.model.PrimaryPart.CFrame or entity.latestCFrame
+	if not cframe then
+		return
+	end
+	local position: vector = cframe.Position :: any
+	local entityConfig = entity.entityConfig
+	local hasNormalTickers = false
+	local hasHalfTickers = false
+	local halfTickDist = entityConfig.HALF_TICK_DISTANCE or math.huge
+	local normalTickDist = entityConfig.NORMAL_TICK_DISTANCE or math.huge
+	for holder, playerPos in playerTablePositionPair do
+		local dist = vector.magnitude(position - playerPos)
+		print(dist)
+		if dist > halfTickDist then
+			continue
+		end
+		table.insert(holder.ALL, entity)
+		if dist <= normalTickDist then
+			hasNormalTickers = true
+		else
+			hasHalfTickers = true
+		end
+	end
+	local configTicker = entityConfig._TICKERS
+	if not configTicker then
+		return
+	end
+	if not (hasHalfTickers or hasNormalTickers) then
+		if entity._ticker then
+			warn("Moving entity",entity.id,"off tickers")
+			Ticker.remove(entity._ticker, entity)
+		end
+	elseif hasNormalTickers then
+		if entity._ticker ~= configTicker.NORMAL then
+			warn("Moving entity",entity.id,"to normal ticker")
+			Ticker.move(entity, configTicker.NORMAL)
+		end
+	elseif hasHalfTickers then
+		if entity._ticker ~= configTicker.HALF then
+			warn("Moving entity",entity.id,"to half ticker")
+			Ticker.move(entity, configTicker.HALF)
+		end
+	end
+end
+
+-- this might be able to be optimized more later
+local function Update()
+	if os.clock() - lastUpdate < UPDATE_INTERVAL then
+		return
+	end
+	lastUpdate = os.clock()
+	for holder, pos in playerTablePositionPair do
+		table.clear(holder.ALL)
+	end
+	debug.profilebegin("EntityGrid.Update")
+	for id, entity in entities do
+		Check(entity)
+	end
+	debug.profileend()
+end
+
+local function UpdatePlayerPosition(player: Player, position: vector)
+	local holder = playerToHolder[player]
+	if not holder then
+		return
+	end
+	playerTablePositionPair[holder] = position
+end
+
+local function GetEntityHolder(Player: Player): PlayerEntityHolder?
+	return playerToHolder[Player]
+end
+
+local function PlayerAdded(player: Player)
+	local t = {
+		ALL = {},
+		REPLICATED = {},
+	}
+	playerToHolder[player] = t
+	playerTablePositionPair[t] = vector.zero
+end
+
+
+Players.PlayerAdded:Connect(PlayerAdded)
+Shared.Remotes.ClientLoaded.OnServerEvent:Connect(PlayerAdded)
+
+Players.PlayerRemoving:Connect(function(player: Player)
+	local holder = playerToHolder[player]
+	playerTablePositionPair[holder] = nil
+	playerToHolder[player] = nil
+end)
+
+return {
+	Update = Update,
+	UpdatePlayerPosition = UpdatePlayerPosition,
+	GetEntityHolder = GetEntityHolder,
+}

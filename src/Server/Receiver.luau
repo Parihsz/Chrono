@@ -1,0 +1,3 @@
+local Receiver = {}
+
+return Receiver

@@ -1,20 +1,25 @@
---!native
+export type SnapshotData<Value, Velocity> = {
+	t: number,
+	value: Value,
+	velocity: Velocity,
+}
 
-local Types = require(script.Parent.Types)
+export type Snapshot<Value, Velocity> = {
+	cache: { SnapshotData<Value, Velocity> },
+	head: number,
+	count: number,
+	Lerp: (p0: Vector3, p1: Vector3, v0: Velocity, v1: Velocity, t: number, dt: number) -> Vector3,
 
-type SnapshotData<Value, Velocity> = Types.SnapshotData<Value, Velocity>
+	Push: (self: Snapshot<Value, Velocity>, t: number, value: Value, velocity: Velocity) -> (),
+	GetLatest: (self: Snapshot<Value, Velocity>) -> SnapshotData<Value, Velocity>?,
+	GetAt: (self: Snapshot<Value, Velocity>, t: number) -> Value?,
+	Clear: (self: Snapshot<Value, Velocity>) -> (),
+}
 
-type Snapshot<Value, Velocity> = Types.Snapshot<Value, Velocity>
+local Config = require(script.Parent.Parent.Shared.Config)
 
-local Config = require(script.Parent.Config)
-
-local MAX_LENGTH
-local SHOW_WARNINGS
-
-Config._WaitForLock(function()
-	MAX_LENGTH = Config._GetConfig("MAX_SNAPSHOT_COUNT")
-	SHOW_WARNINGS = Config._GetConfig("SHOW_WARNINGS")
-end)
+local MAX_LENGTH = Config.MAX_SNAPSHOT_COUNT
+local SHOW_WARNINGS = Config.SHOW_WARNINGS
 
 local function WarnIfEnabled(...)
 	if SHOW_WARNINGS then

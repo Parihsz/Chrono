@@ -61,7 +61,7 @@ function Grid.UpdateGrid()
 		local position = entity:GetPivot().Position :: any
 		local hash = HashPosition(position)
 		local lastHash = lastPositions[entity]
-
+ 
 		if lastHash ~= hash then
 			if lastHash then
 				RemoveOld(entity, entityType, lastHash)
