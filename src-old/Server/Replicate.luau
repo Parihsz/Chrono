@@ -34,7 +34,7 @@ local newPlayers = {}
 local idStack = {} :: { number }
 local playerIdMap = {} :: { [Player]: number }
 local clientOwners = {}
- 
+
 task.defer(function()
 	local NpcRegistry = (require)(script.Parent.Parent.Shared.NpcRegistry)
 	clientOwners = NpcRegistry._ClientOwners
@@ -44,7 +44,6 @@ export type ReplicationRule = {
 	filterType: "include" | "exclude",
 	filterPlayers: { Player },
 }
-
 
 local idMap = {} :: {
 	[number]: {

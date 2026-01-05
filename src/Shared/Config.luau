@@ -4,7 +4,7 @@ local Ticker = require(script.Parent.Ticker)
 local IS_SERVER = game:GetService("RunService"):IsServer()
 
 export type Configs =
-	"|MIN_BUFFER"
+	"MIN_BUFFER"
 	| "MAX_BUFFER"
 	| "ENABLE_CUSTOM_CHARACTERS"
 	| "DISABLE_DEFAULT_REPLICATION"
@@ -41,7 +41,7 @@ local BASE_CONFIG = {
 
 	--note that warnings are mostly non fatal
 	--this will be set to false to optimize output by default, only enable if you're experiencing bugs with the system
-	SHOW_WARNINGS = false,
+	SHOW_WARNINGS = true,
 	MAX_SNAPSHOT_COUNT = 30,
 }
 local ENTITY_TYPES: { [string]: Types.EntityConfig } = {
@@ -63,9 +63,9 @@ local function registerEntityType(name, config: Types.EntityConfigInput)
 	ENTITY_TYPES[name] = config :: any
 end
 
-local function registerEntityModel(name:string, model: Model)
+local function registerEntityModel(name: string, model: Model)
 	if not model.PrimaryPart then
-		error(name.." must have a PrimaryPart to be registered as an entity model.")
+		error(name .. " must have a PrimaryPart to be registered as an entity model.")
 	end
 	ENTITY_MODELS[name] = model
 end
@@ -88,11 +88,22 @@ local function getConfig(name: Configs)
 end
 
 local waiting = {}
-local function waitForLock(fx:()->())
+local function waitForLock(fx: () -> ())
 	if LOCKED then
 		fx()
 	else
 		table.insert(waiting, fx)
+	end
+end
+
+local function getEntityStorageInstance(): Camera
+	if workspace:FindFirstChild("Chrono_EntityStorage") then
+		return workspace:FindFirstChild("Chrono_EntityStorage") :: Camera
+	else
+		local folder = Instance.new("Camera")
+		folder.Name = "Chrono_EntityStorage"
+		folder.Parent = workspace
+		return folder
 	end
 end
 
@@ -109,10 +120,9 @@ local function lock()
 		cloned.HALF_TICK_DISTANCE = cloned.HALF_TICK_DISTANCE or DEFAULT_HALF_TICK_DISTANCE
 
 		if IS_SERVER then
-			cloned._TICKERS = {
-				NORMAL = Ticker.new(cloned.TICK_RATE,cloned,false),
-				HALF = Ticker.new(cloned.TICK_RATE*2,cloned,true),
-			}
+			cloned.TICKER = Ticker.new(cloned)
+		else
+			cloned.RENDER_CACHE = {} :: any
 		end
 
 		ENTITY_TYPES[i] = table.freeze(cloned)
@@ -127,6 +137,7 @@ return {
 	RegisterEntityType = registerEntityType,
 	RegisterEntityModel = registerEntityModel,
 
+	_GetEntityStorageInstance = getEntityStorageInstance,
 	_EntityConfigs = ENTITY_TYPES,
 	_GetEntityType = getEntityType,
 	_GetEntityModel = getEntityModel,

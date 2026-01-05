@@ -161,6 +161,7 @@ local function GetAt<Value, Velocity>(self: Snapshot<Value, Velocity>, at: numbe
 
 		return CFrame.new(position) * rotation
 	elseif beforeData then
+		print(beforeData.t, at)
 		WarnIfEnabled("Tried to fetch a time that was ahead of snapshot storage!")
 		return beforeData.value
 	elseif afterData then

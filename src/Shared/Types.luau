@@ -4,6 +4,24 @@ export type SnapshotData<Value, Velocity> = {
 	velocity: Velocity,
 }
 
+--// FX is the function template for the events.
+export type Signal<fx,T...> = {
+	Fire: (self: any, T...) -> (),
+	DisconnectAll: (self: any) -> (),
+	Event: Event<fx,T...>,
+}
+
+export type Connection = {
+	Disconnect: (self: any) -> (),
+	Connected: boolean,
+}
+
+export type Event<fx,T...> = {
+	Connect: (self: any, FN: fx) -> Connection,
+	Once: (self: any, FN: fx) -> Connection,
+	Wait: (self: any) -> T...,
+}
+
 export type Snapshot<Value, Velocity> = {
 	cache: { SnapshotData<Value, Velocity> },
 	head: number,
@@ -17,81 +35,123 @@ export type Snapshot<Value, Velocity> = {
 }
 
 export type EntityConfig = {
-    NAME: string,
-    _TICKERS :{
-        NORMAL : Ticker,
-        HALF : Ticker,
-    }?,
+	NAME: string,
+	TICKER: Ticker?,
+	RENDER_CACHE: {
+		NORMAL: RenderCache,
+		HALF: RenderCache?,
+	}?,
 
 	BUFFER: number,
 	TICK_RATE: number,
 	FULL_ROTATION: boolean?, -- defaults to false
-    AUTO_UPDATE_POS: boolean?, -- defaults to true
-    STORE_SNAPSHOTS: boolean?,
-    
-    NORMAL_TICK_DISTANCE: number?, 
-    HALF_TICK_DISTANCE: number?, 
+	AUTO_UPDATE_POS: boolean?, -- defaults to true
+	STORE_SNAPSHOTS: boolean?,
+
+	NORMAL_TICK_DISTANCE: number?,
+	HALF_TICK_DISTANCE: number?,
 }
 
 export type EntityConfigInput = {
 	BUFFER: number,
 	TICK_RATE: number,
 	FULL_ROTATION: boolean?,
-    AUTO_UPDATE_POS: boolean?,
-    STORE_SNAPSHOTS: boolean?,
- 
-    NORMAL_TICK_DISTANCE: number?, 
-    HALF_TICK_DISTANCE: number?,
+	AUTO_UPDATE_POS: boolean?, -- Server as well only
+	STORE_SNAPSHOTS: boolean?,-- For Server Npcs
+
+	NORMAL_TICK_DISTANCE: number?,
+	HALF_TICK_DISTANCE: number?,
+    -- Might consider giving a config level replication rules instead of just entity
 }
 
 export type Ticker = {
-    isHalf : boolean,
-    tickRate: number,
-    lastTicked: number,
-    tickedTime: number,
-    objects: {[Entity]: true},
-    config: EntityConfig,
+	tickedHalf: boolean,
+	tickRate: number,
+	tickHalfRate: number,
+	lastTicked: number,
+	tickedFrame: number,
+	objects: { Entity },
+	config: EntityConfig,
 }
 
+export type InterpolationBuffer = {
+	init: boolean,
+	averageLatency: number,
+	deviation: number,
+	lastLatency: number,
+	renderCache: RenderCache,
+}
 
-export type ReplicationRule = {
+export type RenderCache = {
+	name: string,
+	lastClockAt: number?,
+	lastClockDuration: number,
+	renderAt: number?,
+	tickRate: number,
+	_baseTickRate: number,
+	buffer: InterpolationBuffer?,
+	bufferConst: number?,
 
+	Clear: (self: RenderCache) -> (),
+	GetTargetRenderTime: (self: RenderCache) -> number,
+	GetEstimatedServerTime: (self: RenderCache) -> number,
+	OnSnapShot: (self: RenderCache, currentTime: number) -> (),
+	SetTickRate: (self: RenderCache, tickRate: number) -> (),
+}
+
+export type ReplicationRule = {}
+
+export type EntityReceivePacket = {
+	id: number,
+	plrCharacter: Player?,
+	networkOwner: Player?,
+	time: number,
+	cframe: CFrame,
+	config: string?,
+	modelString: string?,
+	model: Model?,
+	paused: boolean?,
 }
 
 export type Entity = {
-    --Client
+	--Client
+	-- this is for non server owned
+	_renderCache: RenderCache?,
+	--Server
+	autoUpdatePos: boolean,
+	replicationRules: { ReplicationRule }?,
+	_ticker: Ticker?,
+	_tickerIndex: number?,
 
-    --Server
-    autoUpdatePos : boolean,
-    replicationRules : {ReplicationRule}?,
-    _ticker: Ticker?,
-    
-    --NetworkOwner
-    latestTime: number?,
-    isNetworkOwner: boolean,
-    networkOwner: Player?,
-    plrCharacter: Player?,
+	--NetworkOwner
 
-    snapshot: Snapshot<CFrame, Vector3>?,
-    latestCFrame: CFrame?,
-    
+	isContextOwner: boolean,
+	networkOwner: Player?,
+	plrCharacter: Player?,
 
-    id: number,
-    entityConfig : EntityConfig,-- defaults to DEFAULT config
-    modelString: string?,
-    model: Model?,
+	snapshot: Snapshot<CFrame, Vector3>?,
+	latestCFrame: CFrame?,
+	latestTime: number?,
 
-    lastCheckedCFrame: CFrame?,
+	isHalfTicked: boolean?,
+	id: number,
+	entityConfig: EntityConfig, -- defaults to DEFAULT config
+	modelString: string?,
+	model: Model?,
+	paused: boolean,
 
-    lastReplicatedTime: number?, -- This is only for client owned on the server
-    arriveTime: number?, -- This is only for client owned on the server
+	lastCheckedCFrame: CFrame?,
 
-    cframeBuffer: buffer?,
-    destroyed : boolean,
-    
+	lastReplicatedTime: number?, -- This is only for client owned on the server
+	arriveTime: number?, -- This is only for client owned on the server
 
-    _characterAdded: RBXScriptConnection?,
-    _characterRemoving: RBXScriptConnection?,
+	cframeBuffer: buffer?,
+	registered: boolean,
+	destroyed: boolean,
+
+	_lastId: number?,
+	_characterAdded: RBXScriptConnection?,
+	_characterRemoving: RBXScriptConnection?,
 }
 
 return nil

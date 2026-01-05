@@ -28,132 +28,134 @@ local RecieveInstanceCursor = 0
 local Null = newproxy()
 
 type Entry = {
-    value: any,
-    next: Entry?
+	value: any,
+	next: Entry?,
 }
 
 type Queue = {
-    head: Entry?,
-    tail: Entry?
+	head: Entry?,
+	tail: Entry?,
 }
 
 type BufferSave = {
-    Size: number, 
-    Cursor: number, 
-    Buffer: buffer, 
-    Instances: {Instance}
+	Size: number,
+	Cursor: number,
+	Buffer: buffer,
+	Instances: { Instance },
 }
 
 local function Read(Bytes: number)
-    local Offset = RecieveCursor
-    RecieveCursor += Bytes
-    return Offset
+	local Offset = RecieveCursor
+	RecieveCursor += Bytes
+	return Offset
 end
 
 local function Save(): BufferSave
-    return {
-        Size = SendSize,
-        Cursor = SendCursor,
-        Buffer = SendBuffer,
-        Instances = SendInstances
-    }
+	return {
+		Size = SendSize,
+		Cursor = SendCursor,
+		Buffer = SendBuffer,
+		Instances = SendInstances,
+	}
 end
 
 local function Load(Save: BufferSave?)
-    if Save then
-        SendSize = Save.Size
-        SendCursor = Save.Cursor
-        SendOffset = Save.Cursor
-        SendBuffer = Save.Buffer
-        SendInstances = Save.Instances
-        return
-    end
+	if Save then
+		SendSize = Save.Size
+		SendCursor = Save.Cursor
+		SendOffset = Save.Cursor
+		SendBuffer = Save.Buffer
+		SendInstances = Save.Instances
+		return
+	end
 
-    SendSize = 64
-    SendCursor = 0
-    SendOffset = 0
-    SendBuffer = buffer.create(64)
-    SendInstances = {}
+	SendSize = 64
+	SendCursor = 0
+	SendOffset = 0
+	SendBuffer = buffer.create(64)
+	SendInstances = {}
 end
 
 local function Invoke()
-    if Invocations == 255 then
-        Invocations = 0
-    end
+	if Invocations == 255 then
+		Invocations = 0
+	end
 
-    local Invocation = Invocations
-    Invocations += 1
-    return Invocation
+	local Invocation = Invocations
+	Invocations += 1
+	return Invocation
 end
 
 local function Allocate(Bytes: number)
-    local InUse = (SendCursor + Bytes)
-    if InUse > SendSize then
-        --> Avoid resizing the buffer for every write
-        while InUse > SendSize do
-            SendSize *= 1.5
-        end
+	local InUse = (SendCursor + Bytes)
+	if InUse > SendSize then
+		--> Avoid resizing the buffer for every write
+		while InUse > SendSize do
+			SendSize *= 1.5
+		end
 
-        local Buffer = buffer.create(SendSize)
-        buffer.copy(Buffer, 0, SendBuffer, 0, SendCursor)
-        SendBuffer = Buffer
-    end
+		local Buffer = buffer.create(SendSize)
+		buffer.copy(Buffer, 0, SendBuffer, 0, SendCursor)
+		SendBuffer = Buffer
+	end
 
-    SendOffset = SendCursor
-    SendCursor += Bytes
-    
-    return SendOffset
+	SendOffset = SendCursor
+	SendCursor += Bytes
+
+	return SendOffset
 end
 
 local function CreateQueue(): Queue
-    return {
-        head = nil,
-        tail = nil
-    }
+	return {
+		head = nil,
+		tail = nil,
+	}
 end
 
 local function Pop(queue: Queue): any
-    local head = queue.head
-    if head == nil then
-        return
-    end
+	local head = queue.head
+	if head == nil then
+		return
+	end
 
-    queue.head = head.next
-    return head.value
+	queue.head = head.next
+	return head.value
 end
 
 local function Push(queue: Queue, value: any)
-    local entry: Entry = {
-        value = value,
-        next = nil
-    }
+	local entry: Entry = {
+		value = value,
+		next = nil,
+	}
 
-    if queue.tail ~= nil then
-        queue.tail.next = entry
-    end
+	if queue.tail ~= nil then
+		queue.tail.next = entry
+	end
 
-    queue.tail = entry
+	queue.tail = entry
 
-    if queue.head == nil then
-        queue.head = entry
-    end
+	if queue.head == nil then
+		queue.head = entry
+	end
 end
 
 local Calls = table.create(256)
 
 local Events: any = {
-    Reliable = table.create(256),
-    Unreliable = table.create(256)
+	Reliable = table.create(256),
+	Unreliable = table.create(256),
 }
 
 local Queue: any = {
-    Reliable = table.create(256),
-    Unreliable = table.create(256)
+	Reliable = table.create(256),
+	Unreliable = table.create(256),
 }
 
 Queue.Unreliable[0] = table.create(256)
 export type Transform = { Position: Vector3, RotationY: number }
-local function ReadEVENT_ClientReplicateCFrame(): ({ timestamp: number, cframe: { Position: Vector3, RotationY: number } })
+local function ReadEVENT_ClientReplicateCFrame(): (
+	{ timestamp: number, cframe: { Position: Vector3, RotationY: number } }
+)
 	-- Read BLOCK: 18 bytes
 	local BLOCK_START = Read(18)
 	local Value = {} :: any
@@ -165,20 +167,20 @@ local function ReadEVENT_ClientReplicateCFrame(): ({ timestamp: number, cframe: 
 	Value.cframe.Position = Vector3.new(X, Y, Z)
 	local Encoded = buffer.readu16(RecieveBuffer, BLOCK_START + 16)
 	local MantissaExponent = Encoded % 0x8000
-	if MantissaExponent == 0b0_11111_0000000000  then
+	if MantissaExponent == 0b0_11111_0000000000 then
 		if Encoded // 0x8000 == 1 then
 			Value.cframe.RotationY = -math.huge
 		else
 			Value.cframe.RotationY = math.huge
 		end
-	elseif MantissaExponent == 0b1_11111_0000000000   then
+	elseif MantissaExponent == 0b1_11111_0000000000 then
 		Value.cframe.RotationY = 0 / 0
-	elseif MantissaExponent == 0b0_00000_0000000000   then
+	elseif MantissaExponent == 0b0_00000_0000000000 then
 		Value.cframe.RotationY = 0
 	else
 		local Mantissa = MantissaExponent % 0x400
 		local Exponent = MantissaExponent // 0x400
-		local Fraction;
+		local Fraction
 		if Exponent == 0 then
 			Fraction = Mantissa / 0x400
 		else
@@ -190,7 +192,10 @@ local function ReadEVENT_ClientReplicateCFrame(): ({ timestamp: number, cframe: 
 	return Value
 end
 
-local function WriteEVENT_ServerReplicateCFrame(Value: { timestamps: {[number]: number}, cframes: {[number]: { Position: Vector3, RotationY: number }} }): ()
+local function WriteEVENT_ServerReplicateCFrame(Value: {
+	timestamps: { [number]: number },
+	cframes: { [number]: { Position: Vector3, RotationY: number } },
+}): ()
 	-- Allocate BLOCK: 5 bytes
 	local BLOCK_START = Allocate(5)
 	buffer.writeu8(SendBuffer, BLOCK_START + 0, 1)
@@ -231,12 +236,10 @@ local function WriteEVENT_ServerReplicateCFrame(Value: { timestamps: {[number]: 
 			local RoundedValue = (Abosulte // Interval) * Interval
 			local Fraction, Exponent = math.frexp(RoundedValue)
 			Exponent += 14
-			local Mantissa = math.round(if Exponent <= 0
-				then Fraction * 0x400 / math.ldexp(1, math.abs(Exponent))
-				else Fraction * 0x800) % 0x400
-			local Result = Mantissa
-				+ math.max(Exponent, 0) * 0x400
-				+ if float < 0 then 0x8000 else 0
+			local Mantissa = math.round(
+				if Exponent <= 0 then Fraction * 0x400 / math.ldexp(1, math.abs(Exponent)) else Fraction * 0x800
+			) % 0x400
+			local Result = Mantissa + math.max(Exponent, 0) * 0x400 + if float < 0 then 0x8000 else 0
 			buffer.writeu16(SendBuffer, OFFSET_4, Result)
 		end
 	end
@@ -276,7 +279,7 @@ local function WriteEVENT_InitializeExistingPlayers(Value: { { id: number, playe
 	buffer.writeu8(SendBuffer, BLOCK_START + 0, 3)
 	-- START ARRAY
 	buffer.writeu16(SendBuffer, BLOCK_START + 1, #Value)
-		-- Allocate BLOCK: 4 bytes
+	-- Allocate BLOCK: 4 bytes
 	local ARRAY_START_1 = Allocate(4 * #Value)
 	for Index = 1, #Value do
 		local Item_1 = Value[Index]
@@ -298,110 +301,112 @@ end
 if not RunService:IsRunning() then
 	local NOOP = function() end
 	local Returns = table.freeze({
-	ClientReplicateCFrame = {
-		On = NOOP
-	},
-	ServerReplicateCFrame = {
-		Fire = NOOP,
-		FireAll = NOOP,
-		FireList = NOOP,
-		FireExcept = NOOP
-	},
-	TickRateChanged = {
-		Fire = NOOP,
-		FireAll = NOOP,
-		FireList = NOOP,
-		FireExcept = NOOP
-	},
-	TogglePlayerReplication = {
-		Fire = NOOP,
-		FireAll = NOOP,
-		FireList = NOOP,
-		FireExcept = NOOP
-	},
-	InitializePlayer = {
-		Fire = NOOP,
-		FireAll = NOOP,
-		FireList = NOOP,
-		FireExcept = NOOP
-	},
-	InitializeExistingPlayers = {
-		Fire = NOOP,
-		FireAll = NOOP,
-		FireList = NOOP,
-		FireExcept = NOOP
-	},
+		ClientReplicateCFrame = {
+			On = NOOP,
+		},
+		ServerReplicateCFrame = {
+			Fire = NOOP,
+			FireAll = NOOP,
+			FireList = NOOP,
+			FireExcept = NOOP,
+		},
+		TickRateChanged = {
+			Fire = NOOP,
+			FireAll = NOOP,
+			FireList = NOOP,
+			FireExcept = NOOP,
+		},
+		TogglePlayerReplication = {
+			Fire = NOOP,
+			FireAll = NOOP,
+			FireList = NOOP,
+			FireExcept = NOOP,
+		},
+		InitializePlayer = {
+			Fire = NOOP,
+			FireAll = NOOP,
+			FireList = NOOP,
+			FireExcept = NOOP,
+		},
+		InitializeExistingPlayers = {
+			Fire = NOOP,
+			FireAll = NOOP,
+			FireList = NOOP,
+			FireExcept = NOOP,
+		},
 	})
 	return Returns :: BLINK_EVENTS_SYMBOL
 end
 
 if not RunService:IsServer() then
-    error("Server network module can only be required from the server.")
+	error("Server network module can only be required from the server.")
 end
 
 local Reliable: RemoteEvent = ReplicatedStorage:FindFirstChild(BASE_EVENT_NAME .. "_RELIABLE_REMOTE") :: RemoteEvent
 if not Reliable then
-    local RemoteEvent = Instance.new("RemoteEvent")
-    RemoteEvent.Name = BASE_EVENT_NAME .. "_RELIABLE_REMOTE"
-    RemoteEvent.Parent = ReplicatedStorage
-    Reliable = RemoteEvent
+	local RemoteEvent = Instance.new("RemoteEvent")
+	RemoteEvent.Name = BASE_EVENT_NAME .. "_RELIABLE_REMOTE"
+	RemoteEvent.Parent = ReplicatedStorage
+	Reliable = RemoteEvent
 end
 
-local Unreliable: UnreliableRemoteEvent = ReplicatedStorage:FindFirstChild(BASE_EVENT_NAME .. "_UNRELIABLE_REMOTE") :: UnreliableRemoteEvent
+local Unreliable: UnreliableRemoteEvent =
+	ReplicatedStorage:FindFirstChild(BASE_EVENT_NAME .. "_UNRELIABLE_REMOTE") :: UnreliableRemoteEvent
 if not Unreliable then
-    local UnreliableRemoteEvent = Instance.new("UnreliableRemoteEvent")
-    UnreliableRemoteEvent.Name = BASE_EVENT_NAME .. "_UNRELIABLE_REMOTE"
-    UnreliableRemoteEvent.Parent = ReplicatedStorage
-    Unreliable = UnreliableRemoteEvent
+	local UnreliableRemoteEvent = Instance.new("UnreliableRemoteEvent")
+	UnreliableRemoteEvent.Name = BASE_EVENT_NAME .. "_UNRELIABLE_REMOTE"
+	UnreliableRemoteEvent.Parent = ReplicatedStorage
+	Unreliable = UnreliableRemoteEvent
 end
 
-local PlayersMap: {[Player]: BufferSave} = {}
+local PlayersMap: { [Player]: BufferSave } = {}
 
 Players.PlayerRemoving:Connect(function(Player)
-    PlayersMap[Player] = nil
+	PlayersMap[Player] = nil
 end)
 
 local function StepReplication()
-    for Player, Send in PlayersMap do
-        if Send.Cursor <= 0 then
-            continue
-        end
+	for Player, Send in PlayersMap do
+		if Send.Cursor <= 0 then
+			continue
+		end
 
-        local Buffer = buffer.create(Send.Cursor)
-        buffer.copy(Buffer, 0, Send.Buffer, 0, Send.Cursor)
-        Reliable:FireClient(Player, Buffer, Send.Instances)
+		local Buffer = buffer.create(Send.Cursor)
+		buffer.copy(Buffer, 0, Send.Buffer, 0, Send.Cursor)
+		Reliable:FireClient(Player, Buffer, Send.Instances)
 
-        Send.Size = 64
-        Send.Cursor = 0
-        Send.Buffer = buffer.create(64)
-        table.clear(Send.Instances)
-    end
+		Send.Size = 64
+		Send.Cursor = 0
+		Send.Buffer = buffer.create(64)
+		table.clear(Send.Instances)
+	end
 end
 RunService.Heartbeat:Connect(StepReplication)
-Reliable.OnServerEvent:Connect(function(Player: Player, Buffer: buffer, Instances: {Instance})
+Reliable.OnServerEvent:Connect(function(Player: Player, Buffer: buffer, Instances: { Instance })
 	RecieveCursor = 0
 	RecieveBuffer = Buffer
 	RecieveInstances = Instances
 	RecieveInstanceCursor = 0
 	local Size = buffer.len(RecieveBuffer)
-	while (RecieveCursor < Size) do
+	while RecieveCursor < Size do
 		-- Read BLOCK: 1 bytes
 		local BLOCK_START = Read(1)
 		local Index = buffer.readu8(RecieveBuffer, BLOCK_START + 0)
 	end
 end)
-Unreliable.OnServerEvent:Connect(function(Player: Player, Buffer: buffer, Instances: {Instance})
+Unreliable.OnServerEvent:Connect(function(Player: Player, Buffer: buffer, Instances: { Instance })
 	RecieveCursor = 0
 	RecieveBuffer = Buffer
 	RecieveInstances = Instances
 	RecieveInstanceCursor = 0
 	local Size = buffer.len(RecieveBuffer)
-	while (RecieveCursor < Size) do
+	while RecieveCursor < Size do
 		-- Read BLOCK: 1 bytes
 		local BLOCK_START = Read(1)
 		local Index = buffer.readu8(RecieveBuffer, BLOCK_START + 0)
 		if Index == 0 then
-			local Value: { timestamp: number, cframe: { Position: Vector3, RotationY: number } } = ReadEVENT_ClientReplicateCFrame()
+			local Value: { timestamp: number, cframe: { Position: Vector3, RotationY: number } } =
+				ReadEVENT_ClientReplicateCFrame()
 			if Events.Unreliable[0] ~= nil then
 				Events.Unreliable[0](Player, Value)
 			end
@@ -409,36 +414,53 @@ Unreliable.OnServerEvent:Connect(function(Player: Player, Buffer: buffer, Instan
 	end
 end)
 
-
 local Returns = table.freeze({
 	StepReplication = StepReplication,
 
 	ClientReplicateCFrame = {
-		On = function(Listener: (Player: Player, Value: { timestamp: number, cframe: { Position: Vector3, RotationY: number } }) -> ()): () -> ()
+		On = function(Listener: (
+			Player: Player,
+			Value: { timestamp: number, cframe: { Position: Vector3, RotationY: number } }
+		) -> ()): () -> ()
 			Events.Unreliable[0] = Listener
-			return function (): ()
+			return function(): ()
 				if Events.Unreliable[0] == Listener then
 					Events.Unreliable[0] = nil
 				end
 			end
-		end
+		end,
 	},
 	ServerReplicateCFrame = {
-		Fire = function(Player: Player, Value: { timestamps: {[number]: number}, cframes: {[number]: { Position: Vector3, RotationY: number }} }): ()
+		Fire = function(
+			Player: Player,
+			Value: {
+				timestamps: { [number]: number },
+				cframes: { [number]: { Position: Vector3, RotationY: number } },
+			}
+		): ()
 			Load()
 			WriteEVENT_ServerReplicateCFrame(Value)
 			local Buffer = buffer.create(SendCursor)
 			buffer.copy(Buffer, 0, SendBuffer, 0, SendCursor)
 			Unreliable:FireClient(Player, Buffer, SendInstances)
 		end,
-		FireAll = function(Value: { timestamps: {[number]: number}, cframes: {[number]: { Position: Vector3, RotationY: number }} }): ()
+		FireAll = function(Value: {
+			timestamps: { [number]: number },
+			cframes: { [number]: { Position: Vector3, RotationY: number } },
+		}): ()
 			Load()
 			WriteEVENT_ServerReplicateCFrame(Value)
 			local Buffer = buffer.create(SendCursor)
 			buffer.copy(Buffer, 0, SendBuffer, 0, SendCursor)
 			Unreliable:FireAllClients(Buffer, SendInstances)
 		end,
-		FireList = function(List: {Player}, Value: { timestamps: {[number]: number}, cframes: {[number]: { Position: Vector3, RotationY: number }} }): ()
+		FireList = function(
+			List: { Player },
+			Value: {
+				timestamps: { [number]: number },
+				cframes: { [number]: { Position: Vector3, RotationY: number } },
+			}
+		): ()
 			Load()
 			WriteEVENT_ServerReplicateCFrame(Value)
 			local Buffer = buffer.create(SendCursor)
@@ -447,7 +469,13 @@ local Returns = table.freeze({
 				Unreliable:FireClient(Player, Buffer, SendInstances)
 			end
 		end,
-		FireExcept = function(Except: Player, Value: { timestamps: {[number]: number}, cframes: {[number]: { Position: Vector3, RotationY: number }} }): ()
+		FireExcept = function(
+			Except: Player,
+			Value: {
+				timestamps: { [number]: number },
+				cframes: { [number]: { Position: Vector3, RotationY: number } },
+			}
+		): ()
 			Load()
 			WriteEVENT_ServerReplicateCFrame(Value)
 			local Buffer = buffer.create(SendCursor)
@@ -478,7 +506,7 @@ local Returns = table.freeze({
 				PlayersMap[Player] = Save()
 			end
 		end,
-		FireList = function(List: {Player}, Value: { id: number, tickRate: number }): ()
+		FireList = function(List: { Player }, Value: { id: number, tickRate: number }): ()
 			Load()
 			WriteEVENT_TickRateChanged(Value)
 			local Buffer, Size, Instances = SendBuffer, SendCursor, SendInstances
@@ -524,7 +552,7 @@ local Returns = table.freeze({
 				PlayersMap[Player] = Save()
 			end
 		end,
-		FireList = function(List: {Player}, Value: { id: number, on: boolean }): ()
+		FireList = function(List: { Player }, Value: { id: number, on: boolean }): ()
 			Load()
 			WriteEVENT_TogglePlayerReplication(Value)
 			local Buffer, Size, Instances = SendBuffer, SendCursor, SendInstances
@@ -570,7 +598,7 @@ local Returns = table.freeze({
 				PlayersMap[Player] = Save()
 			end
 		end,
-		FireList = function(List: {Player}, Value: { id: number, player: string }): ()
+		FireList = function(List: { Player }, Value: { id: number, player: string }): ()
 			Load()
 			WriteEVENT_InitializePlayer(Value)
 			local Buffer, Size, Instances = SendBuffer, SendCursor, SendInstances
@@ -616,7 +644,7 @@ local Returns = table.freeze({
 				PlayersMap[Player] = Save()
 			end
 		end,
-		FireList = function(List: {Player}, Value: { { id: number, player: string } }): ()
+		FireList = function(List: { Player }, Value: { { id: number, player: string } }): ()
 			Load()
 			WriteEVENT_InitializeExistingPlayers(Value)
 			local Buffer, Size, Instances = SendBuffer, SendCursor, SendInstances

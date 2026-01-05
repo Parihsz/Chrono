@@ -33,7 +33,7 @@ local Players = game:GetService("Players")
 for id, entity in { "ALL_ENTITIES" } do
 	--[[
 	--we could now give entities a proxy of how far they are for removal 
-	--yay me could do 
+	--we could do 
 		EntityConfig: {
 			Normal: 100,
 			HalfTick: 200,
@@ -63,7 +63,7 @@ local Ticker = require(Shared.Ticker)
 
 type Entity = Types.Entity
 
-local UPDATE_INTERVAL = 2
+local UPDATE_INTERVAL = 1
 
 local lastUpdate = 0
 
@@ -79,6 +79,10 @@ local playerToHolder: { [Player]: PlayerEntityHolder } = {}
 local function Check(entity: Entity)
 	local cframe = entity.model and entity.model.PrimaryPart and entity.model.PrimaryPart.CFrame or entity.latestCFrame
 	if not cframe then
+		return
+	end
+	if entity.id < 1 then
+		warn(entity, " has invalid id, cannot check for proximity")
 		return
 	end
 	local position: vector = cframe.Position :: any
@@ -100,25 +104,28 @@ local function Check(entity: Entity)
 			hasHalfTickers = true
 		end
 	end
-	local configTicker = entityConfig._TICKERS
+	local configTicker = entityConfig.TICKER
 	if not configTicker then
 		return
 	end
-	if not (hasHalfTickers or hasNormalTickers) then
-		if entity._ticker then
-			warn("Moving entity",entity.id,"off tickers")
-			Ticker.remove(entity._ticker, entity)
+	local currentTicker = entity._ticker
+	if hasHalfTickers then
+		if not entity.isHalfTicked then
+			warn("Entity is now half ticked", entity)
 		end
-	elseif hasNormalTickers then
-		if entity._ticker ~= configTicker.NORMAL then
-			warn("Moving entity",entity.id,"to normal ticker")
-			Ticker.move(entity, configTicker.NORMAL)
+		entity.isHalfTicked = true
+	else
+		if entity.isHalfTicked then
+			warn("Entity is normal ticked", entity)
 		end
-	elseif hasHalfTickers then
-		if entity._ticker ~= configTicker.HALF then
-			warn("Moving entity",entity.id,"to half ticker")
-			Ticker.move(entity, configTicker.HALF)
-		end
+		entity.isHalfTicked = nil
+	end
+	if (hasNormalTickers or hasHalfTickers) and entity._ticker ~= configTicker then
+		Ticker.move(entity, configTicker)
+		warn("Adding entity to ticker", entity)
+	elseif not (hasNormalTickers or hasHalfTickers) and currentTicker then
+		warn("Removing entity from ticker", entity)
+		Ticker.remove(currentTicker, entity)
 	end
 end
 
@@ -151,6 +158,9 @@ local function GetEntityHolder(Player: Player): PlayerEntityHolder?
 end
 
 local function PlayerAdded(player: Player)
+	if playerToHolder[player] then
+		return
+	end
 	local t = {
 		ALL = {},
 		REPLICATED = {},
@@ -159,8 +169,7 @@ local function PlayerAdded(player: Player)
 	playerTablePositionPair[t] = vector.zero
 end
 
-
-Players.PlayerAdded:Connect(PlayerAdded)
+-- Players.PlayerAdded:Connect(PlayerAdded)
 Shared.Remotes.ClientLoaded.OnServerEvent:Connect(PlayerAdded)
 
 Players.PlayerRemoving:Connect(function(player: Player)

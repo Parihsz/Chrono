@@ -13,13 +13,13 @@ type BufferHolder = { [Types.Ticker]: { buffer } }
 local UnreliableEvent = Shared.Remotes.Replicate
 local ReliableEvent = Shared.Remotes.ReplicateFull
 
-local function writeTickerHeader(b: buffer, index: number, ticker: Types.Ticker): number
-	local tickRate = ticker.tickRate
-	local isHalfTick = ticker.isHalf
+local function writeTickerHeader(b: buffer, index: number, ticker: Types.Ticker, isHalf: boolean?): number
+	local lastTicked = ticker.lastTicked
+	print("Server", lastTicked)
 	local sendFull = ticker.config.FULL_ROTATION
-	buffer.writef32(b, index, tickRate)
+	buffer.writef32(b, index, lastTicked)
 	index += 4
-	local packed = if isHalfTick then 1 else 0
+	local packed = if isHalf then 1 else 0
 	if sendFull then
 		packed += 2
 	end
@@ -29,39 +29,39 @@ local function writeTickerHeader(b: buffer, index: number, ticker: Types.Ticker)
 end
 
 local BUFFER = buffer.create(MAX_BUFFER_SIZE + 51)
-local function flush(player, index: number,id)
+local function flush(player, index: number, id)
 	local copy = buffer.create(index)
 	buffer.copy(copy, 0, BUFFER, 0, index)
-    print("Flushing",id,"to",player.Name,"size",index)
-	--UnreliableEvent:FireClient(player,id,copy)
+	print("Flushing", id, "to", player.Name, "size", index)
+	UnreliableEvent:FireClient(player, id, copy)
 end
 
-local function flushClientOwned(player,buffers:{buffer})
-    local index = 0
-    for _,buf in buffers do
-        local length = buffer.len(buf)
-        if index + length > MAX_BUFFER_SIZE then
-            flush(player, index,'O')
-            index = 0
-        end
-        buffer.copy(BUFFER, index, buf, 0, length)
-        index += length
-    end
-    if index > 0 then
-        flush(player, index,'O')
-    end
+local function flushClientOwned(player, buffers: { buffer })
+	local index = 0
+	for _, buf in buffers do
+		local length = buffer.len(buf)
+		if index + length > MAX_BUFFER_SIZE then
+			flush(player, index, "O")
+			index = 0
+		end
+		buffer.copy(BUFFER, index, buf, 0, length)
+		index += length
+	end
+	if index > 0 then
+		flush(player, index, "O")
+	end
 end
 
-local function flushEntities(player, buffers: BufferHolder)
+local function flushEntities(player, buffers: BufferHolder, isHalf: boolean?)
 	local index = 0
 	local BUFFER = BUFFER
 	for ticker, bufferT in buffers do
 		local sizeOffset = ticker.config.FULL_ROTATION and FULL_BYTES or YAW_BYTES
-		index = writeTickerHeader(BUFFER, index, ticker)
+		index = writeTickerHeader(BUFFER, index, ticker, isHalf)
 		for _, buf in bufferT do
 			if index + sizeOffset > MAX_BUFFER_SIZE then
-				flush(player, index,'X')
-				index = writeTickerHeader(BUFFER, 0, ticker)
+				flush(player, index, "X")
+				index = writeTickerHeader(BUFFER, 0, ticker, isHalf)
 			end
 			buffer.copy(BUFFER, index, buf, 0, sizeOffset)
 			index += sizeOffset
@@ -70,14 +70,14 @@ local function flushEntities(player, buffers: BufferHolder)
 		index += 1
 	end
 	if index > 0 then
-		flush(player, index,'X')
+		flush(player, index, "X")
 	end
 end
 
 --//honestly tables should beeeee fine for nowww, could buffer it later if reallllly needed
-local function GetEntityFullData(player: Player, entity: Types.Entity): {}?
+local function GetEntityFullData(player: Player, entity: Types.Entity): Types.EntityReceivePacket?
 	if entity.destroyed then
-		return
+		return nil
 	end
 	local PlayerGui = player.PlayerGui
 	local ModelReplicator = PlayerGui:FindFirstChild("_ChronoModels") :: Instance
@@ -98,6 +98,9 @@ local function GetEntityFullData(player: Player, entity: Types.Entity): {}?
 			(modelClone :: any).PrimaryPart = part
 		end
 		modelClone.Parent = ModelReplicator
+		task.delay(1, function()
+			modelClone:Destroy()
+		end)
 	end
 
 	local configName: string? = entity.entityConfig.NAME
@@ -109,10 +112,12 @@ local function GetEntityFullData(player: Player, entity: Types.Entity): {}?
 		id = entity.id,
 		plrCharacter = entity.plrCharacter,
 		networkOwner = entity.networkOwner,
-		cframe = entity.latestCFrame,
+		cframe = entity.latestCFrame or CFrame.new(),
+		time = entity.latestTime or 0,
 		config = configName,
 		modelString = entity.modelString,
 		model = modelClone,
+		paused = entity.paused,
 	}
 end
 
@@ -123,21 +128,22 @@ local function ReplicatePlayer(player: Player)
 	end
 	local replicatedOLD = holder.REPLICATED -- Leftovers will be removed
 	local replicated = table.clone(replicatedOLD)
-    holder.REPLICATED = replicated
+	holder.REPLICATED = replicated
 	local all = holder.ALL
 
 	local toSendFull = {}
 	local toRemove = {}
 	local clientOwned = {}
 
-	local buffers: BufferHolder = {}
-    local frameTimeNow = time()
+	local normalBuffers: BufferHolder = {}
+	local halfBuffers: BufferHolder = {}
+	local frameTimeNow = time()
 
 	local function handleClientEntities(entity: Types.Entity)
 		if entity.arriveTime ~= frameTimeNow then -- (time will be the same during the same frame)
-			return 
+			return
 		end
-        table.insert(clientOwned, entity.cframeBuffer::buffer)
+		table.insert(clientOwned, entity.cframeBuffer :: buffer)
 	end
 
 	local function handle(entity: Types.Entity)
@@ -145,22 +151,29 @@ local function ReplicatePlayer(player: Player)
 			return
 		end
 
-        replicated[entity] = true
+		replicated[entity] = true
 		if not replicatedOLD[entity] then
 			table.insert(toSendFull, GetEntityFullData(player, entity))
 			return
 		end
-        replicatedOLD[entity] = nil
-		local isServerOwned = entity.isNetworkOwner
-		if not isServerOwned and not entity.isNetworkOwner then
+		replicatedOLD[entity] = nil
+		local isServerOwned = entity.isContextOwner
+		if not isServerOwned and not entity.isContextOwner then
 			handleClientEntities(entity)
 			return
 		end
 		local ticker = entity._ticker
-		if not (ticker and ticker.tickedTime == frameTimeNow and entity.cframeBuffer) then
+		if not (ticker and ticker.tickedFrame == frameTimeNow and entity.cframeBuffer) then
 			return
 		end
 
+		local isHalf = entity.isHalfTicked
+
+		if entity.isHalfTicked and not ticker.tickedHalf then
+			return
+		end
+
+		local buffers = if isHalf then halfBuffers else normalBuffers
 		local bufferTable = buffers[ticker]
 		if not bufferTable then
 			bufferTable = {}
@@ -174,18 +187,19 @@ local function ReplicatePlayer(player: Player)
 	end
 
 	for entity, _ in replicatedOLD do
-        replicated[entity] = nil
-		table.insert(toRemove, entity.id)
+		replicated[entity] = nil
+		table.insert(toRemove, entity._lastId or entity.id)
 	end
 
-    flushClientOwned(player, clientOwned)
-	flushEntities(player, buffers)
-    if #toRemove > 0 or #toSendFull > 0 then
-        print("Sending full data to",player.Name,#toSendFull,"entities, removing",#toRemove)
-        --ReliableEvent:FireClient(player, toSendFull, toRemove)
-    end
+	flushClientOwned(player, clientOwned)
+	flushEntities(player, normalBuffers)
+	flushEntities(player, halfBuffers, true)
+	if #toRemove > 0 or #toSendFull > 0 then
+		print("Sending full data to", player.Name, #toSendFull, "entities, removing", #toRemove)
+		ReliableEvent:FireClient(player, toSendFull, toRemove)
+	end
 end
 
 return {
-    ReplicatePlayer = ReplicatePlayer,
+	ReplicatePlayer = ReplicatePlayer,
 }

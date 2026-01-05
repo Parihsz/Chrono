@@ -36,6 +36,38 @@ local function GetBuffer(id: number): number
 	end
 end
 
+function RenderCache.Update1Snapshot(id, currentSendTime: number)
+	local now = os.clock()
+
+	local info = clientClockInfo[id]
+
+	if not info then
+		info = {
+			lastClockAt = currentSendTime,
+			lastClockDuration = now,
+			renderAt = nil,
+		}
+		clientClockInfo[id] = info
+	end
+
+	if not id:find("Server") then
+		print(
+			`RenderCache: Updating clock info for network ID {id} at {currentSendTime}`,
+			currentSendTime > info.lastClockAt
+		)
+	end
+
+	if currentSendTime > info.lastClockAt then
+		info.lastClockAt = currentSendTime
+		info.lastClockDuration = now
+
+		if not info.renderAt then
+			local delay = BufferTracker.GetBuffer(id, Config.TICK_RATE)
+			info.renderAt = currentSendTime - delay
+		end
+	end
+end
+
 local function OnSnapshotUpdate(snapshot: { [number]: number })
 	local now = os.clock()
 
