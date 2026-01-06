@@ -3,9 +3,7 @@
 local function MapRotation(x: number): number
 	return math.round((x + math.pi) / (2 * math.pi / 65535))
 end
-local function UnmapRotation(x: number): number
-	return (x / 65535) * (2 * math.pi) - math.pi
-end
+
 --//copy and paste these function so they get inlined
 local FULL_BYTES = 4 * 3 + 2 * 3
 local YAW_BYTES = 4 * 3 + 2
@@ -41,6 +39,9 @@ local function SerializeYaw(b: buffer, cf: CFrame, index: number)
 	return index
 end
 
+local function UnmapRotation(x: number): number
+	return (x / 65535) * (2 * math.pi) - math.pi
+end
 local function DeserializeFull(b: buffer, index: number): CFrame
 	local x = buffer.readf32(b, index)
 	index += 4

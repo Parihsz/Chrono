@@ -5,6 +5,7 @@ local Entity = require(Shared.Entity)
 local Holder = require(Shared.Holder)
 local Config = require(Shared.Config)
 local Types = require(Shared.Types)
+local Sender = require(script.Parent.Sender)
 require(script.Parent.Receiver)
 
 local idMap = Holder.idMap
@@ -43,6 +44,7 @@ Config._WaitForLock(function()
 			Interpolate(entity)
 		end
 	end)
+	RunService.Heartbeat:Connect(Sender.Update)
 	Shared.Remotes.ClientLoaded:FireServer()
 end)
 

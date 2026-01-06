@@ -36,16 +36,24 @@ local function flush(player, index: number, id)
 	UnreliableEvent:FireClient(player, id, copy)
 end
 
-local function flushClientOwned(player, buffers: { buffer })
+local function flushClientOwned(player, buffersT: { [number]: { buffer } })
 	local index = 0
-	for _, buf in buffers do
-		local length = buffer.len(buf)
-		if index + length > MAX_BUFFER_SIZE then
-			flush(player, index, "O")
-			index = 0
+	for time, buffers in buffersT do
+		buffer.writef32(BUFFER, index, time)
+		index += 4
+		for _, buf in buffers do
+			local sizeOffset = buffer.len(buf)
+			if index + sizeOffset > MAX_BUFFER_SIZE then
+				flush(player, index, "O")
+				index = 0
+				buffer.writef32(BUFFER, index, time)
+				index += 4
+			end
+			buffer.copy(BUFFER, index, buf, 0, sizeOffset)
+			index += sizeOffset
 		end
-		buffer.copy(BUFFER, index, buf, 0, length)
-		index += length
+		buffer.writeu8(BUFFER, index, 0) -- NULL TERMINATOR, times always start at 1 so this is safe
+		index += 1
 	end
 	if index > 0 then
 		flush(player, index, "O")
@@ -98,7 +106,7 @@ local function GetEntityFullData(player: Player, entity: Types.Entity): Types.En
 			(modelClone :: any).PrimaryPart = part
 		end
 		modelClone.Parent = ModelReplicator
-		task.delay(1, function()
+		task.delay(5, function()
 			modelClone:Destroy()
 		end)
 	end
@@ -118,6 +126,7 @@ local function GetEntityFullData(player: Player, entity: Types.Entity): Types.En
 		modelString = entity.modelString,
 		model = modelClone,
 		paused = entity.paused,
+		isHalfTicked = entity.isHalfTicked,
 	}
 end
 
@@ -129,7 +138,8 @@ local function ReplicatePlayer(player: Player)
 	local replicatedOLD = holder.REPLICATED -- Leftovers will be removed
 	local replicated = table.clone(replicatedOLD)
 	holder.REPLICATED = replicated
-	local all = holder.ALL
+	local normal = holder.NORMAL
+	local half = holder.HALF
 
 	local toSendFull = {}
 	local toRemove = {}
@@ -140,13 +150,21 @@ local function ReplicatePlayer(player: Player)
 	local frameTimeNow = time()
 
 	local function handleClientEntities(entity: Types.Entity)
-		if entity.arriveTime ~= frameTimeNow then -- (time will be the same during the same frame)
+		if entity.arriveFrame ~= frameTimeNow then -- (time will be the same during the same frame)
 			return
 		end
-		table.insert(clientOwned, entity.cframeBuffer :: buffer)
+		if entity.networkOwner == player then
+			return
+		end
+		local latestTime = entity.latestTime or 0
+		if not clientOwned[latestTime] then
+			clientOwned[latestTime] = {}
+		end
+		warn("Adding client owned entity", entity.id, "to replicate buffer")
+		table.insert(clientOwned[latestTime], entity.cframeBuffer :: buffer)
 	end
 
-	local function handle(entity: Types.Entity)
+	local function handle(entity: Types.Entity, isNormal: boolean)
 		if entity.destroyed then
 			return
 		end
@@ -158,7 +176,7 @@ local function ReplicatePlayer(player: Player)
 		end
 		replicatedOLD[entity] = nil
 		local isServerOwned = entity.isContextOwner
-		if not isServerOwned and not entity.isContextOwner then
+		if not isServerOwned  then
 			handleClientEntities(entity)
 			return
 		end
@@ -167,9 +185,9 @@ local function ReplicatePlayer(player: Player)
 			return
 		end
 
-		local isHalf = entity.isHalfTicked
+		local isHalf = entity.isHalfTicked or not isNormal
 
-		if entity.isHalfTicked and not ticker.tickedHalf then
+		if isHalf and not ticker.tickedHalf then
 			return
 		end
 
@@ -182,8 +200,11 @@ local function ReplicatePlayer(player: Player)
 		table.insert(bufferTable, entity.cframeBuffer)
 	end
 
-	for _, entity in all do
-		handle(entity)
+	for _, entity in normal do
+		handle(entity, true)
+	end
+	for _, entity in half do
+		handle(entity, false)
 	end
 
 	for entity, _ in replicatedOLD do

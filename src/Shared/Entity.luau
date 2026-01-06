@@ -6,6 +6,7 @@ local Types = require(script.Parent.Types)
 local Config = require(script.Parent.Config)
 local Snapshot = require(script.Parent.Snapshots)
 local InterpolationMath = require(script.Parent.InterpolationMath)
+local RenderCache = require(script.Parent.Parent.Client.RenderCache)
 local Holder = require(script.Parent.Holder)
 local VelocityAt = InterpolationMath.VelocityAt
 
@@ -20,6 +21,15 @@ local function CheckNetworkOwner(self: Types.Entity, prev: Player?)
 			self.snapshot = nil
 		else
 			self.snapshot = Snapshot(InterpolationMath.Hermite)
+		end
+	elseif self.networkOwner ~= prev then
+		if self._renderCache then
+			self._renderCache:Destroy()
+			self._renderCache = nil
+		end
+		if self.networkOwner then
+			self._renderCache =
+				RenderCache.new(self.entityConfig.TICK_RATE, `Entity id: {self.id} plr: {self.networkOwner.Name}`)
 		end
 	end
 	if self.networkOwner == prev then
@@ -46,7 +56,7 @@ end
 
     @param entityConfig string The name of the entity config to use
     @param model Model | string? The model or model string to use for the entity. The model will be cloned and stored internally. If a string is provided, the model will be looked up from Config.
-    @param player Player? The player who will be the network owner of the entity. Only valid on the server.
+    @param player Player? Only provide this if this is going to be the players character entity. If you just want to set the network owner, use :SetNetworkOwner after creation.
     @return Entity The created entity
 ]=]
 function Entity.new(entityConfig: string?, model: Model | string?, player: Player?): Types.Entity
@@ -116,7 +126,7 @@ function Entity.Clear(self: Types.Entity)
 	end
 end
 
-function Entity.Push(self: Types.Entity, time: number, value: CFrame)
+function Entity.Push(self: Types.Entity, time: number, value: CFrame): boolean
 	local snapshot = self.snapshot
 	local newer = not self.latestTime or time > self.latestTime
 	if newer then
@@ -129,11 +139,14 @@ function Entity.Push(self: Types.Entity, time: number, value: CFrame)
 			local targetTime = Entity.GetTargetRenderTime(self)
 			if math.abs(targetTime - latest.t) > 5 then
 				snapshot:Clear()
-				warn(`Clearing Snapshot due to large time difference`)
+				if Config._GetConfig("SHOW_WARNINGS") then
+					warn(`Clearing Snapshot due to large time difference`)
+				end
 			end
 		end
 		snapshot:Push(time, value, VelocityAt(snapshot:GetLatest(), time, value))
 	end
+	return newer
 end
 
 function Entity.GetAt(self: Types.Entity, time: number): CFrame?
@@ -164,12 +177,23 @@ end
 function Entity.Destroy(self: Types.Entity)
 	self.destroyed = true
 	Holder._UnregisterEntity(self)
+
+	if self._renderCache then
+		self._renderCache:Destroy()
+	end
+	if self.model then
+		self.model:Destroy()
+	end
 	--//TODO: add more
 end
 
 Players.PlayerAdded:Connect(function(player)
 	clientOwned[player] = {}
 end)
+
+if Players.LocalPlayer then
+	clientOwned[Players.LocalPlayer] = {}
+end
 
 Players.PlayerRemoving:Connect(function(player)
 	clientOwned[player] = nil

@@ -97,6 +97,7 @@ export type RenderCache = {
 	GetEstimatedServerTime: (self: RenderCache) -> number,
 	OnSnapShot: (self: RenderCache, currentTime: number) -> (),
 	SetTickRate: (self: RenderCache, tickRate: number) -> (),
+	Destroy: (self: RenderCache) -> (),
 }
 
 export type ReplicationRule = {}
@@ -111,6 +112,7 @@ export type EntityReceivePacket = {
 	modelString: string?,
 	model: Model?,
 	paused: boolean?,
+	isHalfTicked: boolean?,
 }
 
 export type Entity = {
@@ -142,8 +144,8 @@ export type Entity = {
 
 	lastCheckedCFrame: CFrame?,
 
-	lastReplicatedTime: number?, -- This is only for client owned on the server
-	arriveTime: number?, -- This is only for client owned on the server
+	lastReplicatedTime: number?, 
+	arriveFrame: number?, -- This is only for client owned on the server
 
 	cframeBuffer: buffer?,
 	registered: boolean,

@@ -102,7 +102,7 @@ local function Update(renderCache: Types.RenderCache, dt: number)
 	renderCache.renderAt = renderAt
 end
 
-local function new(tickRate: number, name: string, bufferNumber: number): Types.RenderCache
+local function new(tickRate: number, name: string, bufferNumber: number?): Types.RenderCache
 	local self = {
 		name = name,
 		lastClockAt = nil,

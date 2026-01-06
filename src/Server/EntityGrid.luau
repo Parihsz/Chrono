@@ -68,7 +68,9 @@ local UPDATE_INTERVAL = 1
 local lastUpdate = 0
 
 type PlayerEntityHolder = {
-	ALL: { Entity },
+	PLAYER: Player,
+	HALF: { Entity },
+	NORMAL: { Entity },
 	REPLICATED: { [Entity]: true },
 }
 
@@ -91,17 +93,24 @@ local function Check(entity: Entity)
 	local hasHalfTickers = false
 	local halfTickDist = entityConfig.HALF_TICK_DISTANCE or math.huge
 	local normalTickDist = entityConfig.NORMAL_TICK_DISTANCE or math.huge
+	local networkOwner = entity.networkOwner
+	local ownedHolder = networkOwner and playerToHolder[networkOwner]
 	for holder, playerPos in playerTablePositionPair do
 		local dist = vector.magnitude(position - playerPos)
-		print(dist)
+		
 		if dist > halfTickDist then
+			if holder == ownedHolder then
+				table.insert(holder.NORMAL, entity)
+			end
 			continue
 		end
-		table.insert(holder.ALL, entity)
+		
 		if dist <= normalTickDist then
 			hasNormalTickers = true
+			table.insert(holder.NORMAL, entity)
 		else
 			hasHalfTickers = true
+			table.insert(holder.HALF, entity)
 		end
 	end
 	local configTicker = entityConfig.TICKER
@@ -110,7 +119,7 @@ local function Check(entity: Entity)
 	end
 	local currentTicker = entity._ticker
 	if hasHalfTickers then
-		if not entity.isHalfTicked then
+		if entity.isHalfTicked ~= false then
 			warn("Entity is now half ticked", entity)
 		end
 		entity.isHalfTicked = true
@@ -118,7 +127,7 @@ local function Check(entity: Entity)
 		if entity.isHalfTicked then
 			warn("Entity is normal ticked", entity)
 		end
-		entity.isHalfTicked = nil
+		entity.isHalfTicked = false
 	end
 	if (hasNormalTickers or hasHalfTickers) and entity._ticker ~= configTicker then
 		Ticker.move(entity, configTicker)
@@ -126,6 +135,7 @@ local function Check(entity: Entity)
 	elseif not (hasNormalTickers or hasHalfTickers) and currentTicker then
 		warn("Removing entity from ticker", entity)
 		Ticker.remove(currentTicker, entity)
+		entity.isHalfTicked = nil
 	end
 end
 
@@ -136,7 +146,8 @@ local function Update()
 	end
 	lastUpdate = os.clock()
 	for holder, pos in playerTablePositionPair do
-		table.clear(holder.ALL)
+		table.clear(holder.HALF)
+		table.clear(holder.NORMAL)
 	end
 	debug.profilebegin("EntityGrid.Update")
 	for id, entity in entities do
@@ -162,7 +173,9 @@ local function PlayerAdded(player: Player)
 		return
 	end
 	local t = {
-		ALL = {},
+		PLAYER = player,
+		HALF = {},
+		NORMAL = {},
 		REPLICATED = {},
 	}
 	playerToHolder[player] = t

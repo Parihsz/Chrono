@@ -5,7 +5,7 @@ local Entity = require(Shared.Entity)
 local Types = require(Shared.Types)
 
 local UnreliableEvent = Shared.Remotes.Replicate
-local ReliableEvent = Shared.Remotes.ReplicateFull
+local ReliableEvent = Shared.Remotes.ReplicateFull 
 
 local TickerHeaderBytes = 4 + 1
 local FULL_BYTES = 4 * 3 + 2 * 3
@@ -64,6 +64,8 @@ local function HandleNewEntity(data: Types.EntityReceivePacket)
 	entity.plrCharacter = data.plrCharacter
 	entity.paused = data.paused or false
 	Entity.Push(entity, data.time, data.cframe)
+	entity.isHalfTicked = data.isHalfTicked
+	Entity.SetNetworkOwner(entity, data.networkOwner) 
 	Holder._RegisterEntity(entity)
 end
 
@@ -98,7 +100,33 @@ local function PushCFrameFor(id: number, clientOwned: boolean, cframe: CFrame, t
 end
 
 local function HandleClientOwned(b: buffer)
-	--// Implement after implementing client -> Server replication
+	local bLen = buffer.len(b)
+	local index = 0
+	while index < bLen do
+		local time = buffer.readf32(b, index)
+		index += 4
+		while index < bLen do
+			if buffer.readu8(b, index) == 0 then
+				index += 1
+				break
+			end
+			local id = buffer.readu16(b, index)
+			index += 2
+			local packed = buffer.readu8(b, index)
+			index +=1
+			local isFull = bit32.band(packed, 1) == 1
+			local isHalfTickRate = bit32.band(packed, 2) == 2
+			local cf:CFrame
+			if isFull then
+				cf = DeserializeFull(b, index)
+				index += FULL_BYTES
+			else
+				cf = DeserializeYaw(b, index)
+				index += YAW_BYTES
+			end
+			PushCFrameFor(id, true, cf, time, isHalfTickRate)
+		end
+	end
 end
 
 local function HandleServerOwned(b: buffer)
@@ -108,7 +136,7 @@ local function HandleServerOwned(b: buffer)
 		local lastTicked, isFull, isHalfTickRate = ReadTickerHeader(b, index)
 		index += TickerHeaderBytes
 
-		while true do
+		while index < bLen do
 			--// Check for null terminator
 			if buffer.readu8(b, index) == 0 then
 				index += 1

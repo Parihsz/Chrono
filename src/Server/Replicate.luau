@@ -10,7 +10,7 @@ local Types = require(Shared.Types)
 local Entity = require(Shared.Entity)
 local EntityGrid = require(script.Parent.EntityGrid)
 local Sender = require(script.Parent.Sender)
--- local Receiver = require(script.Parent.Receiver)
+local Receiver = require(script.Parent.Receiver)
 
 local tickers: { Types.Ticker } = {}
 
@@ -76,6 +76,7 @@ local function PushLatest(entity: Types.Entity, time: number)
 	if entity.autoUpdatePos and entity.isContextOwner and entity.model then
 		local primaryPart = entity.model.PrimaryPart
 		if not primaryPart then
+			warn("Entity", entity, "has no primary part")
 			return
 		end
 
@@ -95,6 +96,36 @@ local function CheckForChanges(entity: Types.Entity): CFrame?
 	return nil
 end
 
+local function CheckEntity(entity: Types.Entity,ticker:Types.Ticker, useFull: boolean, isHalfTick: boolean)
+	if not entity.isContextOwner then
+		return
+	end
+	
+	if entity.isHalfTicked and not isHalfTick then
+		entity.cframeBuffer = nil
+		return
+	end
+
+	PushLatest(entity, ticker.lastTicked)
+	local changes = CheckForChanges(entity)
+
+	if changes then
+		if useFull then
+			local b = buffer.create(FULL_BYTES)
+			buffer.writeu16(b, 0, entity.id)
+			SerializeFull(b, changes, 2)
+			entity.cframeBuffer = b
+		else
+			local b = buffer.create(YAW_BYTES)
+			buffer.writeu16(b, 0, entity.id)
+			SerializeYaw(b, changes, 2)
+			entity.cframeBuffer = b
+		end
+	else
+		entity.cframeBuffer = nil
+	end
+end
+
 local function UpdateTickers()
 	for _, ticker in tickers do
 		if not next(ticker.objects) then
@@ -108,29 +139,7 @@ local function UpdateTickers()
 			local useFull = ticker.config.FULL_ROTATION == true
 			local isHalfTick = ticker.tickedHalf
 			for _, object in ticker.objects do
-				if object.isHalfTicked and not isHalfTick then
-					object.cframeBuffer = nil
-					continue
-				end
-
-				PushLatest(object, ticker.lastTicked)
-				local changes = CheckForChanges(object)
-
-				if changes then
-					if useFull then
-						local b = buffer.create(FULL_BYTES)
-						buffer.writeu16(b, 0, object.id)
-						SerializeFull(b, changes, 2)
-						object.cframeBuffer = b
-					else
-						local b = buffer.create(YAW_BYTES)
-						buffer.writeu16(b, 0, object.id)
-						SerializeYaw(b, changes, 2)
-						object.cframeBuffer = b
-					end
-				else
-					object.cframeBuffer = nil
-				end
+				CheckEntity(object, ticker, useFull, isHalfTick)
 			end
 		end
 	end
