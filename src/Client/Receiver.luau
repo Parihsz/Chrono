@@ -5,7 +5,7 @@ local Entity = require(Shared.Entity)
 local Types = require(Shared.Types)
 
 local UnreliableEvent = Shared.Remotes.Replicate
-local ReliableEvent = Shared.Remotes.ReplicateFull 
+local ReliableEvent = Shared.Remotes.ReplicateFull
 
 local TickerHeaderBytes = 4 + 1
 local FULL_BYTES = 4 * 3 + 2 * 3
@@ -65,7 +65,7 @@ local function HandleNewEntity(data: Types.EntityReceivePacket)
 	entity.paused = data.paused or false
 	Entity.Push(entity, data.time, data.cframe)
 	entity.isHalfTicked = data.isHalfTicked
-	Entity.SetNetworkOwner(entity, data.networkOwner) 
+	Entity.SetNetworkOwner(entity, data.networkOwner)
 	Holder._RegisterEntity(entity)
 end
 
@@ -113,10 +113,10 @@ local function HandleClientOwned(b: buffer)
 			local id = buffer.readu16(b, index)
 			index += 2
 			local packed = buffer.readu8(b, index)
-			index +=1
+			index += 1
 			local isFull = bit32.band(packed, 1) == 1
 			local isHalfTickRate = bit32.band(packed, 2) == 2
-			local cf:CFrame
+			local cf: CFrame
 			if isFull then
 				cf = DeserializeFull(b, index)
 				index += FULL_BYTES

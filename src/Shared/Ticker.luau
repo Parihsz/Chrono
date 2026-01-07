@@ -54,7 +54,7 @@ end
 function Ticker.checkUpdate(ticker: Ticker): boolean
 	if os.clock() - ticker.lastTicked >= ticker.tickRate then
 		ticker.lastTicked = os.clock()
-		ticker.tickedFrame = time() 
+		ticker.tickedFrame = time()
 		ticker.tickedHalf = not ticker.tickedHalf
 		return true
 	end

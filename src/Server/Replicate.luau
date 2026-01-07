@@ -96,11 +96,11 @@ local function CheckForChanges(entity: Types.Entity): CFrame?
 	return nil
 end
 
-local function CheckEntity(entity: Types.Entity,ticker:Types.Ticker, useFull: boolean, isHalfTick: boolean)
+local function CheckEntity(entity: Types.Entity, ticker: Types.Ticker, useFull: boolean, isHalfTick: boolean)
 	if not entity.isContextOwner then
 		return
 	end
-	
+
 	if entity.isHalfTicked and not isHalfTick then
 		entity.cframeBuffer = nil
 		return

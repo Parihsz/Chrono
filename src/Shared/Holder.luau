@@ -5,7 +5,7 @@ local currentId = 0 -- First Id will start at 1
 local idStack = {}
 local playerChars = {}
 local idMap: { [number]: Types.Entity } = {}
-local clientOwned:{[Player]:{[Types.Entity]:true}} = {}
+local clientOwned: { [Player]: { [Types.Entity]: true } } = {}
 
 local MAX_ID = 2 ^ 16 - 1
 

@@ -176,7 +176,7 @@ local function ReplicatePlayer(player: Player)
 		end
 		replicatedOLD[entity] = nil
 		local isServerOwned = entity.isContextOwner
-		if not isServerOwned  then
+		if not isServerOwned then
 			handleClientEntities(entity)
 			return
 		end

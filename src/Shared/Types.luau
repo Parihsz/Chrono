@@ -5,10 +5,10 @@ export type SnapshotData<Value, Velocity> = {
 }
 
 --// FX is the function template for the events.
-export type Signal<fx,T...> = {
+export type Signal<fx, T...> = {
 	Fire: (self: any, T...) -> (),
 	DisconnectAll: (self: any) -> (),
-	Event: Event<fx,T...>,
+	Event: Event<fx, T...>,
 }
 
 export type Connection = {
@@ -16,7 +16,7 @@ export type Connection = {
 	Connected: boolean,
 }
 
-export type Event<fx,T...> = {
+export type Event<fx, T...> = {
 	Connect: (self: any, FN: fx) -> Connection,
 	Once: (self: any, FN: fx) -> Connection,
 	Wait: (self: any) -> T...,
@@ -57,11 +57,11 @@ export type EntityConfigInput = {
 	TICK_RATE: number,
 	FULL_ROTATION: boolean?,
 	AUTO_UPDATE_POS: boolean?, -- Server as well only
-	STORE_SNAPSHOTS: boolean?,-- For Server Npcs
+	STORE_SNAPSHOTS: boolean?, -- For Server Npcs
 
 	NORMAL_TICK_DISTANCE: number?,
 	HALF_TICK_DISTANCE: number?,
-    -- Might consider giving a config level replication rules instead of just entity
+	-- Might consider giving a config level replication rules instead of just entity
 }
 
 export type Ticker = {
@@ -144,7 +144,7 @@ export type Entity = {
 
 	lastCheckedCFrame: CFrame?,
 
-	lastReplicatedTime: number?, 
+	lastReplicatedTime: number?,
 	arriveFrame: number?, -- This is only for client owned on the server
 
 	cframeBuffer: buffer?,

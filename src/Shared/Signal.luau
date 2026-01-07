@@ -24,10 +24,10 @@
 --   stravant - July 31st, 2021 - Created the file.                           --
 --------------------------------------------------------------------------------
 
-export type Signal<fx,T...> = {
+export type Signal<fx, T...> = {
 	Fire: (self: any, T...) -> (),
 	DisconnectAll: (self: any) -> (),
-	Event: Event<fx,T...>,
+	Event: Event<fx, T...>,
 }
 
 export type Connection = {
@@ -35,13 +35,11 @@ export type Connection = {
 	Connected: boolean,
 }
 
-export type Event<fx,T...> = {
+export type Event<fx, T...> = {
 	Connect: (self: any, FN: fx) -> Connection,
 	Once: (self: any, FN: fx) -> Connection,
 	Wait: (self: any) -> T...,
 }
-
-
 
 -- The currently idle thread to run the next handler on
 local freeRunnerThread = nil

@@ -33,7 +33,7 @@ local BASE_CONFIG = {
 
 	DEFAULT_NORMAL_TICK_DISTANCE = 50,
 	DEFAULT_HALF_TICK_DISTANCE = 100, -- Anything beyond this distance will not be replicated
-	
+
 	ENABLE_CUSTOM_CHARACTERS = false, -- this will disable default roblox replication as well.
 	DISABLE_DEFAULT_REPLICATION = false, -- this is if you want to disable the default roblox replication, but still use their controller
 

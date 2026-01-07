@@ -59,46 +59,38 @@ local BUFFER = buffer.create(MAX_BUFFER_SIZE + 50)
 local INDEX = 0
 local clock = 0
 
-
 local function flush()
-    if INDEX == 0 then
-        return
-    end
-	local copy = buffer.create(INDEX+4)
-    buffer.writef32(copy,0, clock)
+	if INDEX == 0 then
+		return
+	end
+	local copy = buffer.create(INDEX + 4)
+	buffer.writef32(copy, 0, clock)
 	buffer.copy(copy, 4, BUFFER, 0, INDEX)
 	UnreliableEvent:FireServer(copy)
 	INDEX = 0
 end
 
+local function WriteEntity(id: number, cf: CFrame, fullCFrame: boolean?, halfTicked: boolean?)
+	local length = if fullCFrame then FULL_BYTES else YAW_BYTES
 
-local function WriteEntity(
-	id: number,
-	cf: CFrame,
-	fullCFrame: boolean?,
-	halfTicked: boolean?
-)
-
-    local length = if fullCFrame then FULL_BYTES else YAW_BYTES
-
-    if INDEX + length > MAX_BUFFER_SIZE then
-        flush()
-    end
+	if INDEX + length > MAX_BUFFER_SIZE then
+		flush()
+	end
 
 	buffer.writeu16(BUFFER, INDEX, id)
 	INDEX += 2
-    local packed = if fullCFrame then 1 else 0
-    if halfTicked then
-        packed += 2
-    end
-    buffer.writeu8(BUFFER, INDEX, packed)
-    INDEX +=1
+	local packed = if fullCFrame then 1 else 0
+	if halfTicked then
+		packed += 2
+	end
+	buffer.writeu8(BUFFER, INDEX, packed)
+	INDEX += 1
 	if fullCFrame then
 		INDEX = SerializeFull(BUFFER, cf, INDEX)
 	else
 		INDEX = SerializeYaw(BUFFER, cf, INDEX)
 	end
-    print("Written entity", id, "fullCFrame:", fullCFrame, "halfTicked:", halfTicked)
+	print("Written entity", id, "fullCFrame:", fullCFrame, "halfTicked:", halfTicked)
 end
 
 local function CFrameChanged(cf1: CFrame?, cf2: CFrame?): boolean
@@ -111,7 +103,6 @@ local function CFrameChanged(cf1: CFrame?, cf2: CFrame?): boolean
 	return cf1:FuzzyEq(cf2, 0.0001) == false
 end
 
-
 local function CheckEntity(entity: Types.Entity)
 	if entity.destroyed then
 		return
@@ -119,7 +110,6 @@ local function CheckEntity(entity: Types.Entity)
 	local config = entity.entityConfig
 	local tickRate = config.TICK_RATE
 
-   
 	if entity.isHalfTicked then
 		tickRate = tickRate * 2
 	elseif entity.isHalfTicked == nil then
@@ -142,23 +132,18 @@ local function CheckEntity(entity: Types.Entity)
 	if currentCFrame and CFrameChanged(lastCFrame, currentCFrame) then
 		local fullCFrame = config.FULL_ROTATION
 		entity.lastCheckedCFrame = currentCFrame
-         WriteEntity(
-            entity.id,
-            currentCFrame,
-            fullCFrame,
-            entity.isHalfTicked
-        )
+		WriteEntity(entity.id, currentCFrame, fullCFrame, entity.isHalfTicked)
 	end
 end
 
 local function Update()
-    clock = os.clock()
+	clock = os.clock()
 	for entity in PlayerEntities do
 		CheckEntity(entity)
 	end
-    flush()
+	flush()
 end
 
 return {
-    Update = Update,
+	Update = Update,
 }

@@ -97,14 +97,14 @@ local function Check(entity: Entity)
 	local ownedHolder = networkOwner and playerToHolder[networkOwner]
 	for holder, playerPos in playerTablePositionPair do
 		local dist = vector.magnitude(position - playerPos)
-		
+
 		if dist > halfTickDist then
 			if holder == ownedHolder then
 				table.insert(holder.NORMAL, entity)
 			end
 			continue
 		end
-		
+
 		if dist <= normalTickDist then
 			hasNormalTickers = true
 			table.insert(holder.NORMAL, entity)

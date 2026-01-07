@@ -158,12 +158,10 @@ Queue.Reliable[2] = table.create(256)
 Events.Reliable[3] = {}
 Queue.Reliable[3] = table.create(256)
 export type Transform = { Position: Vector3, RotationY: number }
-local function WriteEVENT_ClientReplicateCFrame(
-	Value: {
-		timestamp: number,
-		cframe: { Position: Vector3, RotationY: number },
-	}
-): ()
+local function WriteEVENT_ClientReplicateCFrame(Value: {
+	timestamp: number,
+	cframe: { Position: Vector3, RotationY: number },
+}): ()
 	-- Allocate BLOCK: 19 bytes
 	local BLOCK_START = Allocate(19)
 	buffer.writeu8(SendBuffer, BLOCK_START + 0, 0)
