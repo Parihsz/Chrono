@@ -41,10 +41,14 @@ Config._WaitForLock(function()
 	RunService.PreRender:Connect(function(deltaTime: number)
 		RenderCache.UpdateAll(deltaTime)
 		for _, entity in idMap do
+			if entity.destroyed then
+				continue
+			end
 			Interpolate(entity)
 		end
 	end)
 	RunService.Heartbeat:Connect(Sender.Update)
+
 	Shared.Remotes.ClientLoaded:FireServer()
 end)
 

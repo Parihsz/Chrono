@@ -1,8 +1,9 @@
 local Shared = script.Parent.Parent.Shared
-local RenderCache = require(script.Parent.RenderCache)
 local Holder = require(Shared.Holder)
 local Entity = require(Shared.Entity)
+local Config = require(Shared.Config)
 local Types = require(Shared.Types)
+local SetTickMode = Entity._SetTickMode
 
 local UnreliableEvent = Shared.Remotes.Replicate
 local ReliableEvent = Shared.Remotes.ReplicateFull
@@ -58,14 +59,113 @@ local function HandleRemoved(id: number)
 	end
 end
 
+local function CreateTempModel(): Model
+	local model = Instance.new("Model")
+	model.Name = "TempModel"
+	local part = Instance.new("Part")
+	part.Size = Vector3.new(3, 5, 3)
+	part.Anchored = true
+	part.Parent = model
+	part.Name = "Failed To Get Model"
+	model.PrimaryPart = part
+	model.Parent = workspace
+	return model, "CUSTOM"
+end
+
+local function HandleModel(model: Model | string?): (Model?, string?)
+	if not model then
+		return
+	end
+	if type(model) == "string" then
+		local clone = Config._GetEntityModel(model)
+		if clone then
+			local modelClone = clone:Clone()
+			if not modelClone then
+				return CreateTempModel()
+			end
+			clone.Parent = Holder.GetEntityStorageInstance()
+		end
+		return CreateTempModel()
+	end
+
+	if model.Parent == script.Parent.Parent.Shared._MIRRORED_MODELS then
+		model.Parent = Holder.GetEntityStorageInstance()
+		return model, "MIRRORED"
+	elseif
+		model.Parent == script.Parent.Parent.Shared._CUSTOM_MODEL_REP
+		or (
+			model.Parent
+			and model.Parent.Name == "_ChronoClientModels"
+			and model.Parent.Parent
+			and model.Parent.Parent:IsA("PlayerGui")
+		)
+	then
+		local modelClone = model:Clone()
+		if not modelClone then
+			return CreateTempModel()
+		end
+		modelClone.Parent = Holder.GetEntityStorageInstance()
+		return modelClone, "CUSTOM"
+	else
+		return model, "NATIVE"
+	end
+end
+
+local ValueChanges = {
+	networkOwner = Entity._SetNetworkOwner,
+	isHalfTicked = SetTickMode,
+	_data = Entity.SetData,
+	entityConfig = Entity.SetConfig,
+	latestCFrame = Entity.SetCFrame,
+	autoUpdatePos = Entity.SetAutoUpdatePos,
+}
+
+local function HandleChanges(changes: { id: number, data: { { any } } })
+	local id = changes.id
+	local data = changes.data
+	local entity = Holder.GetEntityFromId(id)
+	if not entity then
+		return
+	end
+	for _, pair in data do
+		local key = pair[1]
+		local value = pair[2]
+		print("Handling change for entity", id, "key", key, "value", value)
+		local handler = ValueChanges[key]
+		if handler then
+			handler(entity, value)
+		elseif key == "plrCharacter" then
+			if value then
+				Holder.SetAsCharacter(value, entity)
+			else
+				Holder.RemovePlayerCharacter(entity)
+			end
+		elseif key == "paused" then
+			if value then
+				Entity.PauseReplication(entity)
+			else
+				Entity.ResumeReplication(entity)
+			end
+		else
+			warn("Unhandled entity change key:", key)
+		end
+	end
+end
+
 local function HandleNewEntity(data: Types.EntityReceivePacket)
-	local entity = Entity.new(data.config, data.model or data.modelString, data.plrCharacter)
+	local model, type = HandleModel(data.model)
+
+	local entity = Entity.new(data.config, model)
 	entity.id = data.id
-	entity.plrCharacter = data.plrCharacter
+	entity._plrCharacter = data._plrCharacter
 	entity.paused = data.paused or false
-	Entity.Push(entity, data.time, data.cframe)
 	entity.isHalfTicked = data.isHalfTicked
-	Entity.SetNetworkOwner(entity, data.networkOwner)
+	entity._data = data._data
+	entity.modelRepMode = type :: any
+	Entity.Push(entity, data.time, data.cframe)
+	Entity._SetNetworkOwner(entity, data.networkOwner)
+	SetTickMode(entity, data.isHalfTicked)
+
 	Holder._RegisterEntity(entity)
 end
 
@@ -95,6 +195,9 @@ local function PushCFrameFor(id: number, clientOwned: boolean, cframe: CFrame, t
 		end
 	end
 
+	if entity.isHalfTicked ~= isHalfTick then
+		SetTickMode(entity, isHalfTick)
+	end
 	entity.isHalfTicked = isHalfTick
 	Entity.Push(entity, time, cframe)
 end
@@ -167,7 +270,7 @@ local function HandleUnreliable(id: string, data: buffer)
 	end
 end
 
-local function HandleReliable(newEntities: {}, removedEntities: { number })
+local function HandleReliable(newEntities: {}, removedEntities: { number }, entityChanges: { any })
 	if removedEntities then
 		for _, id in removedEntities do
 			HandleRemoved(id)
@@ -176,6 +279,11 @@ local function HandleReliable(newEntities: {}, removedEntities: { number })
 	if newEntities then
 		for _, data: any in newEntities do
 			HandleNewEntity(data)
+		end
+	end
+	if entityChanges then
+		for _, changeData in entityChanges do
+			HandleChanges(changeData)
 		end
 	end
 end

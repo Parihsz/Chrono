@@ -5,8 +5,7 @@ local SHOW_WARNINGS
 local MIN_BUFFER
 local MAX_BUFFER
 local ALPHA = 0.1
-local FIX = 0.2
-local RECOVERY = 0.5
+
 Config._WaitForLock(function()
 	MIN_BUFFER = Config._GetConfig("MIN_BUFFER")
 	MAX_BUFFER = Config._GetConfig("MAX_BUFFER")

@@ -47,7 +47,7 @@ export type EntityConfig = {
 	FULL_ROTATION: boolean?, -- defaults to false
 	AUTO_UPDATE_POS: boolean?, -- defaults to true
 	STORE_SNAPSHOTS: boolean?,
-
+	MODEL_REPLICATION_MODE: "NATIVE" | "MIRRORED" | "CUSTOM"?,
 	NORMAL_TICK_DISTANCE: number?,
 	HALF_TICK_DISTANCE: number?,
 }
@@ -58,6 +58,7 @@ export type EntityConfigInput = {
 	FULL_ROTATION: boolean?,
 	AUTO_UPDATE_POS: boolean?, -- Server as well only
 	STORE_SNAPSHOTS: boolean?, -- For Server Npcs
+	MODEL_REPLICATION_MODE: "NATIVE" | "MIRRORED" | "CUSTOM"?,
 
 	NORMAL_TICK_DISTANCE: number?,
 	HALF_TICK_DISTANCE: number?,
@@ -104,15 +105,15 @@ export type ReplicationRule = {}
 
 export type EntityReceivePacket = {
 	id: number,
-	plrCharacter: Player?,
+	_plrCharacter: Player?,
 	networkOwner: Player?,
 	time: number,
 	cframe: CFrame,
 	config: string?,
-	modelString: string?,
-	model: Model?,
+	model: string | Model?,
 	paused: boolean?,
 	isHalfTicked: boolean?,
+	_data: any,
 }
 
 export type Entity = {
@@ -126,10 +127,10 @@ export type Entity = {
 	_tickerIndex: number?,
 
 	--NetworkOwner
-
+	motor6d: Motor6D?,
 	isContextOwner: boolean,
 	networkOwner: Player?,
-	plrCharacter: Player?,
+	_plrCharacter: Player?,
 
 	snapshot: Snapshot<CFrame, Vector3>?,
 	latestCFrame: CFrame?,
@@ -140,7 +141,9 @@ export type Entity = {
 	entityConfig: EntityConfig, -- defaults to DEFAULT config
 	modelString: string?,
 	model: Model?,
+	actualModel: Model?, -- For mirrored models
 	paused: boolean,
+	modelRepMode: "NATIVE" | "MIRRORED" | "CUSTOM"?,
 
 	lastCheckedCFrame: CFrame?,
 
@@ -151,9 +154,10 @@ export type Entity = {
 	registered: boolean,
 	destroyed: boolean,
 
+	_data: any,
+	_changes: { { string | any } }?,
+	_events: { [string]: Signal<any, any> }?,
 	_lastId: number?,
-	_characterAdded: RBXScriptConnection?,
-	_characterRemoving: RBXScriptConnection?,
 }
 
 return nil

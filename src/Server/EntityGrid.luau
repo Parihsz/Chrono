@@ -60,6 +60,9 @@ local Shared = script.Parent.Parent.Shared
 local Types = require(Shared.Types)
 local Holder = require(Shared.Holder)
 local Ticker = require(Shared.Ticker)
+local Entity = require(Shared.Entity)
+
+local SetTickMode = Entity._SetTickMode
 
 type Entity = Types.Entity
 
@@ -80,7 +83,7 @@ local playerToHolder: { [Player]: PlayerEntityHolder } = {}
 
 local function Check(entity: Entity)
 	local cframe = entity.model and entity.model.PrimaryPart and entity.model.PrimaryPart.CFrame or entity.latestCFrame
-	if not cframe then
+	if not cframe or entity.destroyed then
 		return
 	end
 	if entity.id < 1 then
@@ -122,17 +125,18 @@ local function Check(entity: Entity)
 		if entity.isHalfTicked ~= false then
 			warn("Entity is now half ticked", entity)
 		end
-		entity.isHalfTicked = true
+		SetTickMode(entity, true)
 	else
 		if entity.isHalfTicked then
 			warn("Entity is normal ticked", entity)
 		end
-		entity.isHalfTicked = false
+		SetTickMode(entity, false)
 	end
 	if (hasNormalTickers or hasHalfTickers) and entity._ticker ~= configTicker then
 		Ticker.move(entity, configTicker)
 		warn("Adding entity to ticker", entity)
 	elseif not (hasNormalTickers or hasHalfTickers) and currentTicker then
+		SetTickMode(entity, nil)
 		warn("Removing entity from ticker", entity)
 		Ticker.remove(currentTicker, entity)
 		entity.isHalfTicked = nil
@@ -187,6 +191,9 @@ Shared.Remotes.ClientLoaded.OnServerEvent:Connect(PlayerAdded)
 
 Players.PlayerRemoving:Connect(function(player: Player)
 	local holder = playerToHolder[player]
+	if not holder then
+		return
+	end
 	playerTablePositionPair[holder] = nil
 	playerToHolder[player] = nil
 end)

@@ -6,13 +6,14 @@ local IS_SERVER = game:GetService("RunService"):IsServer()
 export type Configs =
 	"MIN_BUFFER"
 	| "MAX_BUFFER"
-	| "ENABLE_CUSTOM_CHARACTERS"
-	| "DISABLE_DEFAULT_REPLICATION"
 	| "SHOW_WARNINGS"
 	| "MAX_SNAPSHOT_COUNT"
+	| "CHECK_NEW_VERSION"
 	| "QUERY_RADIUS"
 	| "DEFAULT_NORMAL_TICK_DISTANCE"
 	| "DEFAULT_HALF_TICK_DISTANCE"
+	| "DEFAULT_MODEL_REPLICATION_MODE"
+	| "__VERSION"
 
 export type SetConfig =
 	("MIN_BUFFER", number) -> ()
@@ -20,13 +21,16 @@ export type SetConfig =
 	& ("QUERY_RADIUS", number) -> ()
 	& ("DEFAULT_NORMAL_TICK_DISTANCE", number) -> ()
 	& ("DEFAULT_HALF_TICK_DISTANCE", number) -> ()
-	& ("ENABLE_CUSTOM_CHARACTERS", boolean) -> ()
-	& ("DISABLE_DEFAULT_REPLICATION", boolean) -> ()
 	& ("SHOW_WARNINGS", boolean) -> ()
 	& ("MAX_SNAPSHOT_COUNT", number) -> ()
+	& ("CHECK_NEW_VERSION", boolean) -> ()
+	& ("DEFAULT_MODEL_REPLICATION_MODE", "NATIVE" | "MIRRORED" | "CUSTOM") -> ()
 
 local LOCKED = false
 local BASE_CONFIG = {
+	__VERSION = "2.0.0",
+	CHECK_NEW_VERSION = true,
+
 	MIN_BUFFER = 0.09,
 	MAX_BUFFER = 0.5,
 	QUERY_RADIUS = 100,
@@ -34,9 +38,19 @@ local BASE_CONFIG = {
 	DEFAULT_NORMAL_TICK_DISTANCE = 50,
 	DEFAULT_HALF_TICK_DISTANCE = 100, -- Anything beyond this distance will not be replicated
 
-	ENABLE_CUSTOM_CHARACTERS = false, -- this will disable default roblox replication as well.
-	DISABLE_DEFAULT_REPLICATION = false, -- this is if you want to disable the default roblox replication, but still use their controller
-
+	DEFAULT_MODEL_REPLICATION_MODE = "NATIVE",
+	--[[
+		-NATIVE = Use Roblox's built in model replication.
+			+ Easy to use
+			- More bandwidth
+		-MIRRORED = Mirror the model. Actual Model in ReplicatedStorage on the server that client move to workspace. Changes done to it replicates. Which also means default replication gets disabled.
+			+ Less bandwidth
+			- More memory
+			- Have to modify actual model to replicate changes
+		-CUSTOM = Client and Server have separate cloned models.
+			+ Less bandwidth
+			- Have to write custom code to replicate stuff like animations
+	]]
 	SEND_FULL_ROTATION = false,
 
 	--note that warnings are mostly non fatal
@@ -49,6 +63,12 @@ local ENTITY_TYPES: { [string]: Types.EntityConfig } = {
 		NAME = "DEFAULT",
 		TICK_RATE = 1 / 30,
 		BUFFER = 0.1,
+	},
+	WITH_ROT = {
+		NAME = "WITH_ROT",
+		TICK_RATE = 1 / 60,
+		BUFFER = 0.1,
+		FULL_ROTATION = true,
 	},
 	PLAYER = {
 		NAME = "PLAYER",
@@ -63,6 +83,7 @@ local function registerEntityType(name, config: Types.EntityConfigInput)
 	ENTITY_TYPES[name] = config :: any
 end
 
+--Model can be registered after LOCKED FYI
 local function registerEntityModel(name: string, model: Model)
 	if not model.PrimaryPart then
 		error(name .. " must have a PrimaryPart to be registered as an entity model.")
@@ -80,6 +101,10 @@ local function getEntityType(name: string): Types.EntityConfig
 end
 
 local function getEntityModel(name: string): Model?
+	if not ENTITY_MODELS[name] then
+		warn(`Entity model {name} not found in Config.`)
+		return nil
+	end
 	return ENTITY_MODELS[name]
 end
 
@@ -96,18 +121,10 @@ local function waitForLock(fx: () -> ())
 	end
 end
 
-local function getEntityStorageInstance(): Camera
-	if workspace:FindFirstChild("Chrono_EntityStorage") then
-		return workspace:FindFirstChild("Chrono_EntityStorage") :: Camera
-	else
-		local folder = Instance.new("Camera")
-		folder.Name = "Chrono_EntityStorage"
-		folder.Parent = workspace
-		return folder
-	end
-end
-
 local function lock()
+	if BASE_CONFIG.SHOW_WARNINGS then
+		warn("Config is now locked")
+	end
 	LOCKED = true
 	local DEFAULT_NORMAL_TICK_DISTANCE = BASE_CONFIG.DEFAULT_NORMAL_TICK_DISTANCE
 	local DEFAULT_HALF_TICK_DISTANCE = BASE_CONFIG.DEFAULT_HALF_TICK_DISTANCE
@@ -118,7 +135,8 @@ local function lock()
 		cloned.FULL_ROTATION = cloned.FULL_ROTATION or false
 		cloned.NORMAL_TICK_DISTANCE = cloned.NORMAL_TICK_DISTANCE or DEFAULT_NORMAL_TICK_DISTANCE
 		cloned.HALF_TICK_DISTANCE = cloned.HALF_TICK_DISTANCE or DEFAULT_HALF_TICK_DISTANCE
-
+		cloned.MODEL_REPLICATION_MODE = cloned.MODEL_REPLICATION_MODE
+			or BASE_CONFIG.DEFAULT_MODEL_REPLICATION_MODE :: any
 		if IS_SERVER then
 			cloned.TICKER = Ticker.new(cloned)
 		else
@@ -137,7 +155,6 @@ return {
 	RegisterEntityType = registerEntityType,
 	RegisterEntityModel = registerEntityModel,
 
-	_GetEntityStorageInstance = getEntityStorageInstance,
 	_EntityConfigs = ENTITY_TYPES,
 	_GetEntityType = getEntityType,
 	_GetEntityModel = getEntityModel,

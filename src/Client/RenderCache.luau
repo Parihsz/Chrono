@@ -1,3 +1,4 @@
+local RunService = game:GetService("RunService")
 local Config = require(script.Parent.Parent.Shared.Config)
 local Types = require(script.Parent.Parent.Shared.Types)
 local BufferTracker = require(script.Parent.InterpolationBuffer)
@@ -133,6 +134,9 @@ local function UpdateAll(dt: number)
 end
 
 Config._WaitForLock(function()
+	if RunService:IsServer() then
+		return
+	end
 	for name, config in Config._EntityConfigs do
 		local renderCaches = config.RENDER_CACHE
 		if not renderCaches then

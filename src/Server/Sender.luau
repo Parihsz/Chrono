@@ -82,34 +82,57 @@ local function flushEntities(player, buffers: BufferHolder, isHalf: boolean?)
 	end
 end
 
+local function ReadyModelFromRep(entity: Types.Entity, playerSpecific: Player): Model | string?
+	local model = entity.model
+	local actualModel = entity.actualModel
+	local modelString = entity.modelString
+	local modelRepType: "NATIVE" | "CUSTOM" | "MIRRORED" = (entity.modelRepMode or "NATIVE") :: any
+	print(modelRepType)
+	if modelRepType == "NATIVE" then
+		return model
+	elseif modelRepType == "MIRRORED" then
+		return actualModel
+	elseif modelRepType == "CUSTOM" then
+		if modelString then
+			return modelString
+		end
+		local ModelReplicator = script.Parent.Parent.Shared._CUSTOM_MODEL_REP
+		if playerSpecific then
+			local PlayerGui = playerSpecific.PlayerGui
+			ModelReplicator = PlayerGui:FindFirstChild("_ChronoClientModels") :: Instance
+			if not PlayerGui:FindFirstChild("_ChronoClientModels") then
+				ModelReplicator = Instance.new("Folder")
+				ModelReplicator.Name = "_ChronoClientModels"
+				ModelReplicator.Parent = PlayerGui
+			end
+		end
+		if model then
+			local modelClone = model:Clone()
+			if not modelClone then
+				warn(`Cloned model for {model:GetFullName()} is not Archivable. Failed to replicate model.`)
+				modelClone = Instance.new("Model")
+				local part = Instance.new("Part")
+				part.Size = Vector3.new(1, 1, 1);
+				(modelClone :: any).PrimaryPart = part
+			end
+			modelClone.Parent = ModelReplicator
+			task.delay(5, function()
+				modelClone:Destroy()
+			end)
+			return modelClone
+		end
+	else
+		warn(`{modelString} is not a valid model string for entity {entity.id}`)
+	end
+	return nil
+end
+
 --//honestly tables should beeeee fine for nowww, could buffer it later if reallllly needed
 local function GetEntityFullData(player: Player, entity: Types.Entity): Types.EntityReceivePacket?
 	if entity.destroyed then
 		return nil
 	end
-	local PlayerGui = player.PlayerGui
-	local ModelReplicator = PlayerGui:FindFirstChild("_ChronoModels") :: Instance
-	if not PlayerGui:FindFirstChild("_ChronoModels") then
-		ModelReplicator = Instance.new("Folder")
-		ModelReplicator.Name = "_ChronoModels"
-		ModelReplicator.Parent = PlayerGui
-	end
-
-	local modelClone
-	if entity.model and not entity.modelString then
-		modelClone = entity.model:Clone()
-		if not modelClone then
-			warn(`Cloned model for {entity.model:GetFullName()} is not Archivable. Failed to replicate model.`)
-			modelClone = Instance.new("Model")
-			local part = Instance.new("Part")
-			part.Size = Vector3.new(1, 1, 1);
-			(modelClone :: any).PrimaryPart = part
-		end
-		modelClone.Parent = ModelReplicator
-		task.delay(5, function()
-			modelClone:Destroy()
-		end)
-	end
+	local modelData = ReadyModelFromRep(entity, player)
 
 	local configName: string? = entity.entityConfig.NAME
 	if configName == "DEFAULT" then
@@ -118,15 +141,16 @@ local function GetEntityFullData(player: Player, entity: Types.Entity): Types.En
 
 	return {
 		id = entity.id,
-		plrCharacter = entity.plrCharacter,
+		plrCharacter = entity._plrCharacter,
 		networkOwner = entity.networkOwner,
 		cframe = entity.latestCFrame or CFrame.new(),
 		time = entity.latestTime or 0,
 		config = configName,
-		modelString = entity.modelString,
-		model = modelClone,
+
+		model = modelData,
 		paused = entity.paused,
 		isHalfTicked = entity.isHalfTicked,
+		_data = entity._data,
 	}
 end
 
@@ -144,6 +168,7 @@ local function ReplicatePlayer(player: Player)
 	local toSendFull = {}
 	local toRemove = {}
 	local clientOwned = {}
+	local entityChanges = {}
 
 	local normalBuffers: BufferHolder = {}
 	local halfBuffers: BufferHolder = {}
@@ -165,7 +190,7 @@ local function ReplicatePlayer(player: Player)
 	end
 
 	local function handle(entity: Types.Entity, isNormal: boolean)
-		if entity.destroyed then
+		if entity.destroyed or entity.paused then
 			return
 		end
 
@@ -173,6 +198,9 @@ local function ReplicatePlayer(player: Player)
 		if not replicatedOLD[entity] then
 			table.insert(toSendFull, GetEntityFullData(player, entity))
 			return
+		end
+		if entity._changes then
+			table.insert(entityChanges, entity._changes)
 		end
 		replicatedOLD[entity] = nil
 		local isServerOwned = entity.isContextOwner
@@ -215,9 +243,18 @@ local function ReplicatePlayer(player: Player)
 	flushClientOwned(player, clientOwned)
 	flushEntities(player, normalBuffers)
 	flushEntities(player, halfBuffers, true)
-	if #toRemove > 0 or #toSendFull > 0 then
-		print("Sending full data to", player.Name, #toSendFull, "entities, removing", #toRemove)
-		ReliableEvent:FireClient(player, toSendFull, toRemove)
+	if #toRemove > 0 or #toSendFull > 0 or #entityChanges > 0 then
+		print(
+			"Sending reliable packet to",
+			player.Name,
+			"toSendFull:",
+			#toSendFull,
+			"toRemove:",
+			#toRemove,
+			"entityChanges:",
+			#entityChanges
+		)
+		ReliableEvent:FireClient(player, toSendFull, toRemove, entityChanges)
 	end
 end
 

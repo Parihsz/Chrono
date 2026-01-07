@@ -101,7 +101,7 @@ local function CheckEntity(entity: Types.Entity, ticker: Types.Ticker, useFull: 
 		return
 	end
 
-	if entity.isHalfTicked and not isHalfTick then
+	if (entity.isHalfTicked and not isHalfTick) or entity.paused then
 		entity.cframeBuffer = nil
 		return
 	end
@@ -123,6 +123,22 @@ local function CheckEntity(entity: Types.Entity, ticker: Types.Ticker, useFull: 
 		end
 	else
 		entity.cframeBuffer = nil
+	end
+end
+
+local Changes: { Types.Entity } = {}
+--In the future we can optimize this so it uses buffers if really needed
+local function CheckEntityChanges()
+	for entity, changes in Entity._Changes do
+		local newChanges = { id = entity.id, data = {} }
+
+		for key, data in changes do
+			data = data or entity[key]
+			table.insert(newChanges.data, { key, data })
+		end
+		Entity._Changes[entity] = nil
+		entity._changes = newChanges
+		table.insert(Changes, entity)
 	end
 end
 
@@ -148,9 +164,14 @@ end
 local function Update()
 	EntityGrid.Update()
 	UpdateTickers()
+	CheckEntityChanges()
 	for _, player in Players:GetPlayers() do
 		Sender.ReplicatePlayer(player)
 	end
+	for _, entity in Changes do
+		entity._changes = nil
+	end
+	table.clear(Changes)
 end
 
 Config._WaitForLock(function()

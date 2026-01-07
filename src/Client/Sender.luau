@@ -104,7 +104,7 @@ local function CFrameChanged(cf1: CFrame?, cf2: CFrame?): boolean
 end
 
 local function CheckEntity(entity: Types.Entity)
-	if entity.destroyed then
+	if entity.destroyed or entity.paused then
 		return
 	end
 	local config = entity.entityConfig
