@@ -13,6 +13,7 @@ export type Configs =
 	| "DEFAULT_NORMAL_TICK_DISTANCE"
 	| "DEFAULT_HALF_TICK_DISTANCE"
 	| "DEFAULT_MODEL_REPLICATION_MODE"
+	| "PLAYER_REPLICATION"
 	| "__VERSION"
 
 export type SetConfig =
@@ -25,6 +26,7 @@ export type SetConfig =
 	& ("MAX_SNAPSHOT_COUNT", number) -> ()
 	& ("CHECK_NEW_VERSION", boolean) -> ()
 	& ("DEFAULT_MODEL_REPLICATION_MODE", "NATIVE" | "MIRRORED" | "CUSTOM") -> ()
+	& ("PLAYER_REPLICATION", "AUTOMATIC" | "CUSTOM") -> ()	
 
 local LOCKED = false
 local BASE_CONFIG = {
@@ -38,6 +40,16 @@ local BASE_CONFIG = {
 	DEFAULT_NORMAL_TICK_DISTANCE = 50,
 	DEFAULT_HALF_TICK_DISTANCE = 100, -- Anything beyond this distance will not be replicated
 
+	PLAYER_REPLICATION = "AUTOMATIC",
+	--[[
+		- Custom
+			+ More control over how replication is handled
+			- More work to set up
+		- Automatic Will automatically register player models as entities
+			+ Easy to use
+			- Less control over replication
+
+	]]
 	DEFAULT_MODEL_REPLICATION_MODE = "NATIVE",
 	--[[
 		-NATIVE = Use Roblox's built in model replication.
@@ -54,7 +66,7 @@ local BASE_CONFIG = {
 	SEND_FULL_ROTATION = false,
 	--note that warnings are mostly non fatal
 	--this will be set to false to optimize output by default, only enable if you're experiencing bugs with the system
-	SHOW_WARNINGS = true,
+	SHOW_WARNINGS = false,
 	MAX_SNAPSHOT_COUNT = 30,
 }
 local ENTITY_TYPES: { [string]: Types.EntityConfig } = {

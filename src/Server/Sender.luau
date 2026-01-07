@@ -15,7 +15,7 @@ local ReliableEvent = Shared.Remotes.ReplicateFull
 
 local function writeTickerHeader(b: buffer, index: number, ticker: Types.Ticker, isHalf: boolean?): number
 	local lastTicked = ticker.lastTicked
-	print("Server", lastTicked)
+	--print("Server", lastTicked)
 	local sendFull = ticker.config.FULL_ROTATION
 	buffer.writef32(b, index, lastTicked)
 	index += 4
@@ -32,7 +32,7 @@ local BUFFER = buffer.create(MAX_BUFFER_SIZE + 51)
 local function flush(player, index: number, id)
 	local copy = buffer.create(index)
 	buffer.copy(copy, 0, BUFFER, 0, index)
-	print("Flushing", id, "to", player.Name, "size", index)
+	--print("Flushing", id, "to", player.Name, "size", index)
 	UnreliableEvent:FireClient(player, id, copy)
 end
 
@@ -87,7 +87,7 @@ local function ReadyModelFromRep(entity: Types.Entity, playerSpecific: Player): 
 	local actualModel = entity.actualModel
 	local modelString = entity.modelString
 	local modelRepType: "NATIVE" | "CUSTOM" | "MIRRORED" = (entity.modelRepMode or "NATIVE") :: any
-	print(modelRepType)
+	--print(modelRepType)
 	if modelRepType == "NATIVE" then
 		return model
 	elseif modelRepType == "MIRRORED" then

@@ -124,21 +124,21 @@ local function Check(entity: Entity)
 	local currentTicker = entity._ticker
 	if hasHalfTickers then
 		if entity.isHalfTicked ~= false then
-			warn("Entity is now half ticked", entity)
+			--warn("Entity is now half ticked", entity)
 		end
 		SetTickMode(entity, true)
 	else
 		if entity.isHalfTicked then
-			warn("Entity is normal ticked", entity)
+			--warn("Entity is normal ticked", entity)
 		end
 		SetTickMode(entity, false)
 	end
 	if (hasNormalTickers or hasHalfTickers) and entity._ticker ~= configTicker then
 		Ticker.move(entity, configTicker)
-		warn("Adding entity to ticker", entity)
+		--warn("Adding entity to ticker", entity)
 	elseif not (hasNormalTickers or hasHalfTickers) and currentTicker then
 		SetTickMode(entity, nil)
-		warn("Removing entity from ticker", entity)
+		--warn("Removing entity from ticker", entity)
 		Ticker.remove(currentTicker, entity)
 		entity.isHalfTicked = nil
 	end

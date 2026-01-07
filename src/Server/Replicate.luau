@@ -24,6 +24,17 @@ Config._WaitForLock(function()
 	end
 end)
 
+local function FireEvent(entity: Types.Entity, eventName: string, ...: any)
+	local events = entity._events
+	if not events then
+		return
+	end
+	local signal = events[eventName]
+	if signal then
+		signal:Fire(entity, ...)
+	end
+end
+
 local FULL_BYTES = 4 * 3 + 2 * 3 + 2
 local YAW_BYTES = 4 * 3 + 2 + 2
 local function MapRotation(x: number): number
@@ -79,7 +90,6 @@ local function PushLatest(entity: Types.Entity, time: number)
 			warn("Entity", entity, "has no primary part")
 			return
 		end
-
 		local cf = primaryPart.CFrame
 		Entity.Push(entity, time, cf)
 	end
@@ -101,14 +111,20 @@ local function CheckEntity(entity: Types.Entity, ticker: Types.Ticker, useFull: 
 		return
 	end
 
-	if (entity.isHalfTicked and not isHalfTick) or entity.paused then
+	local entityIsHalf = entity.isHalfTicked
+	if (entityIsHalf and not isHalfTick) or entity.paused then
 		entity.cframeBuffer = nil
 		return
 	end
-
+	if entityIsHalf then
+		FireEvent(entity, "Ticked", ticker.halfdt)
+	else
+		FireEvent(entity, "Ticked", ticker.dt)
+	end
+	
 	PushLatest(entity, ticker.lastTicked)
 	local changes = CheckForChanges(entity)
-
+	
 	if changes then
 		if useFull then
 			local b = buffer.create(FULL_BYTES)
@@ -143,10 +159,12 @@ local function CheckEntityChanges()
 end
 
 local function UpdateTickers()
+	debug.profilebegin("UpdateTickers")
 	for _, ticker in tickers do
 		if not next(ticker.objects) then
 			continue
 		end
+		debug.profilebegin(`{ticker.config.NAME}`)
 		if Ticker.checkUpdate(ticker) then
 			--[[ Using the ticker's config instead can help protect if entity configs change mid-game since that
                 could potentially create a desync between the buffer serialization and deserialization    
@@ -158,7 +176,9 @@ local function UpdateTickers()
 				CheckEntity(object, ticker, useFull, isHalfTick)
 			end
 		end
+		debug.profileend()
 	end
+	debug.profileend()
 end
 
 local function Update()

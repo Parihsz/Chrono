@@ -200,7 +200,7 @@ function Entity.new(
 		destroyed = false,
 	}
 	local modelRepMode: "NATIVE" | "MIRRORED" | "CUSTOM" = CheckModelReplicationMode(self, modelReplicationMode)
-	print(modelRepMode, modelReplicationMode)
+	
 	if IS_SERVER then
 		self.modelRepMode = modelRepMode
 		if modelRepMode == "MIRRORED" and _model then
@@ -248,6 +248,7 @@ end
 
 function Entity.SetData(self: Entity, data: any)
 	SetValue(self, "_data", data, true)
+	FireEvent(self, "DataChanged", data)
 end
 
 function Entity._SetTickMode(self: Entity, isHalfTicked: boolean?)
@@ -364,7 +365,7 @@ end
 
 function Entity.Destroy(self: Entity)
 	self.destroyed = true
-	Holder._UnregisterEntity(self)
+	Holder.UnregisterEntity(self)
 
 	if self._renderCache then
 		self._renderCache:Destroy()
@@ -391,28 +392,32 @@ function Entity.Destroy(self: Entity)
 	--//TODO: add more
 end
 
-Entity.GetEvent = (GetEvent :: any) :: (
+Entity.GetEvent = (GetEvent :: any) :: ((
 	self: Entity,
 	eventName: "Destroying"
-) -> Types.Event<(entity: Entity) -> (), Entity>
-	& (
-		self: Entity,
-		eventName: "NetworkOwnerChanged"
-	) -> Types.Event<(entity: Entity, newOwner: Player?, prevOwner: Player?) -> (), Entity, Player?, Player?>
-		& (
-			self: Entity,
-			eventName: "PushedSnapShot"
-		) -> Types.Event<
-			(entity: Entity, time: number, value: CFrame, isNewest: boolean) -> (),
-			Entity,
-			number,
-			CFrame,
-			boolean
-		>
-			& (
-				self: Entity,
-				eventName: "TickChanged"
-			) -> Types.Event<(entity: Entity, newTickType: "NONE" | "HALF" | "NORMAL") -> (), Entity, string>
+) -> Types.Event<(entity: Entity) -> (), Entity>) & ((
+	self: Entity,
+	eventName: "NetworkOwnerChanged"
+) -> Types.Event<(entity: Entity, newOwner: Player?, prevOwner: Player?) -> (), Entity, Player?, Player?>) & ((
+	self: Entity,
+	eventName: "PushedSnapShot"
+) -> Types.Event<
+	(entity: Entity, time: number, value: CFrame, isNewest: boolean) -> (),
+	Entity,
+	number,
+	CFrame,
+	boolean
+>) & ((
+	self: Entity,
+	eventName: "TickChanged"
+) -> Types.Event<(entity: Entity, newTickType: "NONE" | "HALF" | "NORMAL") -> (), Entity, string>) & ((
+	self: Entity,
+	eventName: "DataChanged"
+) -> Types.Event<(entity: Entity, data: any) -> (), Entity, any>) & ((
+	self: Entity,
+	eventName: "Ticked"
+) -> Types.Event<(entity: Entity, dt: number) -> (), Entity, number>)
+
 Players.PlayerAdded:Connect(function(player)
 	clientOwned[player] = {}
 end)

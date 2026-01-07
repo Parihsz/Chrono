@@ -21,9 +21,23 @@ function Ticker.new(config: Types.EntityConfig): Ticker
 		lastTicked = 0,
 		tickedFrame = 0,
 		objects = {},
+		callbacks = {},
 		config = config,
+		dt = 0,
+		halfdt = 0,
 	}
 	return ticker
+end
+
+function Ticker.addCallback(ticker: Ticker, callback: (ticker: Ticker,dt:number) -> ())
+	table.insert(ticker.callbacks, callback)
+end
+
+function Ticker.removeCallback(ticker: Ticker, callback: (ticker: Ticker,dt:number) -> ())
+	local index = table.find(ticker.callbacks, callback)
+	if index then
+		table.remove(ticker.callbacks, index)
+	end
 end
 
 function Ticker.add(ticker: Ticker, object: Entity)
@@ -52,10 +66,23 @@ function Ticker.move(object: Entity, newTicker: Ticker)
 end
 
 function Ticker.checkUpdate(ticker: Ticker): boolean
-	if os.clock() - ticker.lastTicked >= ticker.tickRate then
+	local diff = os.clock() - ticker.lastTicked
+	if diff >= ticker.tickRate then
+		
 		ticker.lastTicked = os.clock()
 		ticker.tickedFrame = time()
 		ticker.tickedHalf = not ticker.tickedHalf
+		if  ticker.tickedHalf then
+			ticker.halfdt = diff + ticker.dt
+		else
+			ticker.halfdt = diff
+		end
+		ticker.dt = diff
+		if #ticker.callbacks > 0 then
+			for _, callback in ticker.callbacks do
+				callback(ticker, diff)
+			end
+		end
 		return true
 	end
 	return false

@@ -72,7 +72,10 @@ export type Ticker = {
 	lastTicked: number,
 	tickedFrame: number,
 	objects: { Entity },
+	callbacks: { (ticker: Ticker,dt:number) -> () },
 	config: EntityConfig,
+	dt: number,
+	halfdt: number,
 }
 
 export type InterpolationBuffer = {

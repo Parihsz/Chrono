@@ -23,6 +23,17 @@ local function MapRotation(x: number): number
 	return math.round((x + math.pi) / (2 * math.pi / 65535))
 end
 
+local function FireEvent(entity: Types.Entity, eventName: string, ...: any)
+	local events = entity._events
+	if not events then
+		return
+	end
+	local signal = events[eventName]
+	if signal then
+		signal:Fire(entity, ...)
+	end
+end
+
 local function SerializeFull(b: buffer, cf: CFrame, index: number)
 	local x, y, z = cf.X, cf.Y, cf.Z
 	local rx, ry, rz = cf:ToOrientation()
@@ -118,11 +129,12 @@ local function CheckEntity(entity: Types.Entity)
 
 	local now = clock
 	local lastTime = entity.lastReplicatedTime or 0
-	if now - lastTime < tickRate then
+	local diff = now - lastTime
+	if diff < tickRate then
 		return
 	end
 	entity.lastReplicatedTime = now
-
+	FireEvent(entity, 'Ticked', diff)
 	local model = entity.model
 	if entity.autoUpdatePos and model and model.PrimaryPart then
 		entity.latestCFrame = model.PrimaryPart.CFrame

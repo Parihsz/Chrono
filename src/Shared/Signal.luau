@@ -191,6 +191,7 @@ end
 -- over by Roblox scheduling, meaning we have to make a new coroutine runner.
 function Signal:Fire(...)
 	local item = self.Event._handlerListHead
+	debug.profilebegin("Signal.Fire")
 	while item do
 		if item.Connected then
 			if item._defer then
@@ -206,6 +207,7 @@ function Signal:Fire(...)
 		end
 		item = item._next
 	end
+	debug.profileend()
 end
 
 -- Make signal strict

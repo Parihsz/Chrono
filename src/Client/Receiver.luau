@@ -166,7 +166,7 @@ local function HandleNewEntity(data: Types.EntityReceivePacket)
 	Entity._SetNetworkOwner(entity, data.networkOwner)
 	SetTickMode(entity, data.isHalfTicked)
 
-	Holder._RegisterEntity(entity)
+	Holder.RegisterEntity(entity)
 end
 
 local function PushCFrameFor(id: number, clientOwned: boolean, cframe: CFrame, time: number, isHalfTick: boolean)
