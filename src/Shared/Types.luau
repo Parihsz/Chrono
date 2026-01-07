@@ -46,9 +46,9 @@ export type EntityConfig = {
 	TICK_RATE: number,
 	FULL_ROTATION: boolean?, -- defaults to false
 	AUTO_UPDATE_POS: boolean?, -- defaults to true
-	STORE_SNAPSHOTS: boolean?,
+	STORE_SNAPSHOTS: boolean?, -- defaults to false
 	MODEL_REPLICATION_MODE: "NATIVE" | "MIRRORED" | "CUSTOM"?,
-	NORMAL_TICK_DISTANCE: number?,
+	NORMAL_TICK_DISTANCE: number?, 
 	HALF_TICK_DISTANCE: number?,
 }
 
@@ -56,8 +56,8 @@ export type EntityConfigInput = {
 	BUFFER: number,
 	TICK_RATE: number,
 	FULL_ROTATION: boolean?,
-	AUTO_UPDATE_POS: boolean?, -- Server as well only
-	STORE_SNAPSHOTS: boolean?, -- For Server Npcs
+	AUTO_UPDATE_POS: boolean?, -- If false have to manually call Entity.push
+	STORE_SNAPSHOTS: boolean?, -- Should snapshots be stored on the server. Excludes client owned
 	MODEL_REPLICATION_MODE: "NATIVE" | "MIRRORED" | "CUSTOM"?,
 
 	NORMAL_TICK_DISTANCE: number?,

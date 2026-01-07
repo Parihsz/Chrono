@@ -98,10 +98,11 @@ local function Check(entity: Entity)
 	local normalTickDist = entityConfig.NORMAL_TICK_DISTANCE or math.huge
 	local networkOwner = entity.networkOwner
 	local ownedHolder = networkOwner and playerToHolder[networkOwner]
+	local isNotNative = entity.modelRepMode ~= "NATIVE"
 	for holder, playerPos in playerTablePositionPair do
 		local dist = vector.magnitude(position - playerPos)
 
-		if dist > halfTickDist then
+		if dist > halfTickDist and isNotNative  then
 			if holder == ownedHolder then
 				table.insert(holder.NORMAL, entity)
 			end
