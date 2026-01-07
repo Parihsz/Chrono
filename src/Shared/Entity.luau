@@ -182,7 +182,9 @@ function Entity.Destroy(self: Types.Entity)
 		self._renderCache:Destroy()
 	end
 	if self.model then
-		self.model:Destroy()
+		pcall(function()
+			self.model:Destroy()
+		end)
 	end
 	--//TODO: add more
 end
