@@ -10,6 +10,8 @@ require(script.Parent.Receiver)
 
 local idMap = Holder.idMap
 
+local parts = {}
+local cframes = {}
 local function Interpolate(entity: Types.Entity)
 	local model = entity.model
 	if not model or not model.PrimaryPart then
@@ -31,7 +33,8 @@ local function Interpolate(entity: Types.Entity)
 	local targetCFrame = snapshot:GetAt(targetTime)
 
 	if targetCFrame then
-		primaryPart.CFrame = targetCFrame
+		table.insert(parts, primaryPart)
+		table.insert(cframes, targetCFrame)
 	end
 
 	debug.profileend()
@@ -46,6 +49,9 @@ Config._WaitForLock(function()
 			end
 			Interpolate(entity)
 		end
+		workspace:BulkMoveTo(parts, cframes)
+		parts = {}
+		cframes = {}
 	end)
 	RunService.Heartbeat:Connect(Sender.Update)
 

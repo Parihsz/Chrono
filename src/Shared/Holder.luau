@@ -44,6 +44,9 @@ local function RemovePlayerCharacter(entity: Types.Entity)
 end
 
 local function SetAsCharacter(player: Player, entity: Types.Entity): Types.Entity
+	if not idMap[entity.id] or entity.id < 1 then
+		error("Entity must be registered before being set as a player character")
+	end
 	local old: Types.Entity? = playerChars[player]
 	if old then
 		RemovePlayerCharacter(old)

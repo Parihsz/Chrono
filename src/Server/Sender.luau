@@ -41,19 +41,26 @@ local function flushClientOwned(player, buffersT: { [number]: { buffer } })
 	for time, buffers in buffersT do
 		buffer.writef32(BUFFER, index, time)
 		index += 4
+		local indexToWriteLength = index
+		index += 1
+		local length = 0
 		for _, buf in buffers do
 			local sizeOffset = buffer.len(buf)
 			if index + sizeOffset > MAX_BUFFER_SIZE then
+				buffer.writeu8(BUFFER, indexToWriteLength, length)
 				flush(player, index, "O")
 				index = 0
 				buffer.writef32(BUFFER, index, time)
 				index += 4
+				indexToWriteLength = index
+				index += 1
+				length = 0
 			end
 			buffer.copy(BUFFER, index, buf, 0, sizeOffset)
+			length += 1
 			index += sizeOffset
 		end
-		buffer.writeu8(BUFFER, index, 0) -- NULL TERMINATOR, times always start at 1 so this is safe
-		index += 1
+		buffer.writeu8(BUFFER, indexToWriteLength, length)
 	end
 	if index > 0 then
 		flush(player, index, "O")
@@ -66,16 +73,23 @@ local function flushEntities(player, buffers: BufferHolder, isHalf: boolean?)
 	for ticker, bufferT in buffers do
 		local sizeOffset = ticker.config.FULL_ROTATION and FULL_BYTES or YAW_BYTES
 		index = writeTickerHeader(BUFFER, index, ticker, isHalf)
+		local indexToWriteLength = index
+		index += 1
+		local length = 0
 		for _, buf in bufferT do
 			if index + sizeOffset > MAX_BUFFER_SIZE then
+				buffer.writeu8(BUFFER, indexToWriteLength, length)
 				flush(player, index, "X")
 				index = writeTickerHeader(BUFFER, 0, ticker, isHalf)
+				indexToWriteLength = index
+				index += 1
+				length = 0
 			end
+			length += 1
 			buffer.copy(BUFFER, index, buf, 0, sizeOffset)
 			index += sizeOffset
 		end
-		buffer.writeu8(BUFFER, index, 0) -- NULL TERMINATOR, ids always start at 1 so this is safe
-		index += 1
+		buffer.writeu8(BUFFER, indexToWriteLength, length)
 	end
 	if index > 0 then
 		flush(player, index, "X")

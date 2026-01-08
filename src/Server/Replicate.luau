@@ -126,6 +126,9 @@ local function CheckEntity(entity: Types.Entity, ticker: Types.Ticker, useFull: 
 	local changes = CheckForChanges(entity)
 	
 	if changes then
+		if entity.id == 0 then
+			error("Entity Should not have and id of 0")
+		end
 		if useFull then
 			local b = buffer.create(FULL_BYTES)
 			buffer.writeu16(b, 0, entity.id)
