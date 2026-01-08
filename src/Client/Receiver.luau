@@ -117,7 +117,7 @@ end
 
 local function HandleNewEntity(data: Types.EntityReceivePacket)
 	local model, modelType = ModelHelper.CreateModelFromData(data.model)
-
+	print("new entity", modelType)
 	local entity = Entity.new(data.config, model,nil, data.cframe)
 	entity.id = data.id
 	entity._player = data._player

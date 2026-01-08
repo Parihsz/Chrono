@@ -23,17 +23,17 @@ local function RegisterPlayer(
 
 	local config = configuration.config or "PLAYER"
 	local modelRepMode = configuration.modelRepMode
-	modelRepMode = "CUSTOM"
+	modelRepMode = "MIRRORED"
 	local newEntity = Entity.new(config, character, modelRepMode :: "NATIVE" | "MIRRORED" | "CUSTOM")
 	Holder.RegisterEntity(newEntity)
 	Holder.SetAsCharacter(player, newEntity)
 	Entity.SetNetworkOwner(newEntity, player)
 
-	task.delay(7, function()
-		Entity.SetModel(newEntity, character,"NATIVE", true)
-		task.wait(5)
-		Entity.SetModel(newEntity, character, "MIRRORED", true)
-	end)
+	-- task.delay(7, function()
+	-- 	Entity.SetModel(newEntity, character, "NATIVE", true)
+	-- 	task.wait(5)
+	-- 	Entity.SetModel(newEntity, character, "MIRRORED", true)
+	-- end)
 
 	return newEntity
 end
@@ -69,6 +69,37 @@ Config._WaitForLock(function()
 		end
 		return
 	end
+	local deathRemote = script.Parent.Parent.Shared.Remotes.Death
+	deathRemote.OnServerEvent:Connect(function(plr, id)
+		local entity = Holder.GetEntityFromId(id)
+		if not entity then
+			return
+		end
+		if entity.networkOwner ~= plr or entity.modelReplicationMode == "NATIVE" then
+			return
+		end
+		
+		local model = entity.actualModel or entity.model
+		if entity.actualModel then
+			local camera = entity.actualModel:FindFirstChildWhichIsA("Camera")
+			if camera then
+				camera:Destroy()
+			end
+			entity.actualModel:PivotTo(entity.latestCFrame or CFrame.new())
+			if entity.model then
+				entity.model.Parent = nil
+			end	
+		end
+		if model then
+			local humanoid = model:FindFirstChildWhichIsA("Humanoid")
+			if humanoid then
+				humanoid.Health = 0
+				humanoid.Health = 10
+				humanoid.Health = 0
+			end
+		end
+		deathRemote:FireAllClients(id)
+	end)
 	Players.PlayerAdded:Connect(OnPlayerAdded)
 	Players.PlayerRemoving:Connect(UnregisterPlayer)
 

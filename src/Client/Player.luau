@@ -1,5 +1,6 @@
 local Events = require(script.Parent.Parent.Shared.Events)
 local Entity = require(script.Parent.Parent.Shared.Entity)
+local Holder = require(script.Parent.Parent.Shared.Holder)
 local Types = require(script.Parent.Parent.Shared.Types)
 local Config = require(script.Parent.Parent.Shared.Config)
 
@@ -38,11 +39,63 @@ Events.PlayerCharacterRegistered:Connect(function(player: Player, entity: Types.
 		newModel(entity, entity.model)
 	end
 end)
-
+local DeathRemote = script.Parent.Parent.Shared.Remotes.Death
 Config._WaitForLock(function()
 	if Config._GetConfig("PLAYER_REPLICATION") ~= "AUTOMATIC" then
 		return
 	end
+	Events.PlayerOwnedAdded:Connect(function(player: Player, entity: Types.Entity)  
+		local prevConnection:RBXScriptConnection?
+		local function newModel(_, model: Model?)
+			if prevConnection then
+				prevConnection:Disconnect()
+				prevConnection = nil
+			end
+		
+			if not model or not entity.isContextOwner then
+				return
+			end
+			local humanoid = model:FindFirstChildWhichIsA("Humanoid")
+		
+			if humanoid then
+				
+				prevConnection = humanoid.Died:Connect(function()
+					if not entity.isContextOwner then
+						return
+					end
+					print('dead')
+					DeathRemote:FireServer(entity.id)
+				end)
+			end
+		end
+		Entity.GetEvent(entity, "ModelChanged"):Connect(newModel)
+		newModel(entity, entity.model)
+		Entity.GetEvent(entity, "Destroying"):Connect(function()
+			if prevConnection then
+				prevConnection:Disconnect()
+				prevConnection = nil
+			end
+		end)
+	end)
 end)
 
+DeathRemote.OnClientEvent:Connect(function(id)
+	local entity = Holder.GetEntityFromId(id)
+	if not entity then
+		return
+	end
+	if entity.isContextOwner then
+		return
+	end
+
+	local model = entity.model
+	if model then
+		local humanoid = model:FindFirstChildWhichIsA("Humanoid")
+		if humanoid then
+			humanoid.Health = 0
+			humanoid.Health = 10
+			humanoid.Health = 0
+		end
+	end
+end)
 return nil

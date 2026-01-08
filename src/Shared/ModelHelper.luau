@@ -18,11 +18,13 @@ local function ReadyModelFromRep(entity: Types.Entity, playerSpecific: Player?):
 			return modelString
 		end
 		local ModelReplicator = script.Parent.Parent.Shared._CUSTOM_MODEL_REP
+		print(playerSpecific)
 		if playerSpecific then
 			local PlayerGui = playerSpecific.PlayerGui
 			ModelReplicator = PlayerGui:FindFirstChild("_ChronoClientModels") :: Instance
 			if not PlayerGui:FindFirstChild("_ChronoClientModels") then
-				ModelReplicator = Instance.new("Folder")
+				ModelReplicator = Instance.new("ScreenGui")
+				ModelReplicator.ResetOnSpawn = false
 				ModelReplicator.Name = "_ChronoClientModels"
 				ModelReplicator.Parent = PlayerGui
 			end
@@ -33,12 +35,11 @@ local function ReadyModelFromRep(entity: Types.Entity, playerSpecific: Player?):
 				warn(`Cloned model for {model:GetFullName()} is not Archivable. Failed to replicate model.`)
 				modelClone = Instance.new("Model")
 				local part = Instance.new("Part")
-				part.Size = Vector3.one;
-				(modelClone :: any).PrimaryPart = part
+				part.Size = Vector3.one;(modelClone :: any).PrimaryPart = part
 			end
 			modelClone.Parent = ModelReplicator
 
-			task.delay(5, function()
+			task.delay(2, function()
 				modelClone:Destroy()
 			end)
 			return modelClone
@@ -82,10 +83,10 @@ local function CreateModelFromData(model: Model | string?): (Model?, string?)
 		return CreateTempModel()
 	end
 
-	if model.Parent == Shared._MIRRORED_MODELS then
-		model.Parent = Holder.GetEntityStorageInstance()
-		return model, "MIRRORED"
-	end
+	-- if model.Parent == Shared._MIRRORED_MODELS then
+	-- 	model.Parent = Holder.GetEntityStorageInstance()
+	-- 	return model, "MIRRORED" -- MIRRORED NO LONGER IS DETECTED ON THE CLIENT 
+	-- end
 
 	if
 		model.Parent == Shared._CUSTOM_MODEL_REP
