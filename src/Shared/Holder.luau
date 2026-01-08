@@ -1,6 +1,5 @@
 local Types = require(script.Parent.Types)
 local Signals = require(script.Parent.Events)._Signals
-local Config = require(script.Parent.Config)
 local IS_SERVER = game:GetService("RunService"):IsServer()
 
 local currentId = 0 -- First Id will start at 1
@@ -31,13 +30,13 @@ local function ReleaseId(id: number)
 end
 
 local function RemovePlayerCharacter(entity: Types.Entity)
-	local player: Player? = entity._plrCharacter
-	entity._plrCharacter = nil
+	local player: Player? = entity._player
+	entity._player = nil
 	if player and playerChars[player] == entity then
 		playerChars[player] = nil
-		Signals._DO_NOT_USE_INTERNAL_SET_VALUE_PLEASE_THANKS_HI_THIS_IS_A_BIT_LONG_YEAH_OKAY_BYE_NVM_THIS_IS_USED_CAUSE_RECURSIVE_ERROR_AND_I_AM_TO_LAZY_TO_SOLVE_THAT_SO_THIS_IS_A_BAND_AID_FIX_THAT_WORKS_OKAY:Fire(
+		Signals["请不要使用_内部_设置值_拜托谢谢_嗨_这个名字有点长_好吧_再见_算了_这个确实被用了_因为递归错误_而我懒得去解决_所以这是一个能用的_创可贴式修复_好吧 "]:Fire(
 			entity,
-			"_plrCharacter",
+			"_playerObject",
 			nil
 		)
 		Signals.PlayerCharacterUnregistered:Fire(player, entity)
@@ -53,13 +52,11 @@ local function SetAsCharacter(player: Player, entity: Types.Entity): Types.Entit
 		RemovePlayerCharacter(old)
 	end
 	playerChars[player] = entity
-	Signals._DO_NOT_USE_INTERNAL_SET_VALUE_PLEASE_THANKS_HI_THIS_IS_A_BIT_LONG_YEAH_OKAY_BYE_NVM_THIS_IS_USED_CAUSE_RECURSIVE_ERROR_AND_I_AM_TO_LAZY_TO_SOLVE_THAT_SO_THIS_IS_A_BAND_AID_FIX_THAT_WORKS_OKAY:Fire(
+	Signals["请不要使用_内部_设置值_拜托谢谢_嗨_这个名字有点长_好吧_再见_算了_这个确实被用了_因为递归错误_而我懒得去解决_所以这是一个能用的_创可贴式修复_好吧"]:Fire(
 		entity,
-		"_plrCharacter",
+		"_playerObject",
 		player
 	)
-
-
 
 	Signals.PlayerCharacterRegistered:Fire(player, entity)
 	return entity
@@ -82,11 +79,11 @@ local function RegisterEntity(entity: Types.Entity)
 	end
 	entity.registered = true
 
-	if entity._plrCharacter then
-		if playerChars[entity._plrCharacter] then
+	if entity._player then
+		if playerChars[entity._player] then
 			warn("Player already has an entity registered", entity, "overwriting")
 		end
-		SetAsCharacter(entity._plrCharacter, entity)
+		SetAsCharacter(entity._player, entity)
 	end
 	Signals.EntityAdded:Fire(entity)
 end
@@ -96,9 +93,9 @@ local function UnregisterEntity(entity: Types.Entity)
 		return
 	end
 	Signals.EntityRemoved:Fire(entity)
-	local plrCharacter = entity._plrCharacter
-	if plrCharacter then
-		if playerChars[plrCharacter] == entity then
+	local playerObject = entity._player
+	if playerObject then
+		if playerChars[playerObject] == entity then
 			RemovePlayerCharacter(entity)
 		else
 			warn("Entity being unregistered does not match player mapping", entity, "ignoring")
@@ -150,6 +147,7 @@ return {
 	idMap = idMap,
 	_clientOwned = clientOwned,
 	_playerChars = playerChars,
+
 	RegisterEntity = RegisterEntity,
 	UnregisterEntity = UnregisterEntity,
 	GetEntityStorageInstance = getEntityStorageInstance,

@@ -94,23 +94,23 @@ local function Check(entity: Entity)
 	local entityConfig = entity.entityConfig
 	local hasNormalTickers = false
 	local hasHalfTickers = false
-	local halfTickDist = entityConfig.HALF_TICK_DISTANCE or math.huge
-	local normalTickDist = entityConfig.NORMAL_TICK_DISTANCE or math.huge
+	local halfTickDistance = entityConfig.HALF_TICK_DISTANCE or math.huge
+	local normalTickDistance = entityConfig.NORMAL_TICK_DISTANCE or math.huge
 	local networkOwner = entity.networkOwner
 	local ownedHolder = networkOwner and playerToHolder[networkOwner]
 
-	local isNotNative = entity.modelRepMode ~= "NATIVE"
+	local isNotNative = entity.modelReplicationMode ~= "NATIVE"
 	for holder, playerPos in playerTablePositionPair do
-		local dist = vector.magnitude(position - playerPos)
+		local distance = vector.magnitude(position - playerPos)
 
-		if dist > halfTickDist and isNotNative  then
+		if distance > halfTickDistance and isNotNative then
 			if holder == ownedHolder then
 				table.insert(holder.NORMAL, entity)
 			end
 			continue
 		end
 
-		if dist <= normalTickDist then
+		if distance <= normalTickDistance then
 			hasNormalTickers = true
 			table.insert(holder.NORMAL, entity)
 		else
@@ -118,10 +118,12 @@ local function Check(entity: Entity)
 			table.insert(holder.HALF, entity)
 		end
 	end
+
 	local configTicker = entityConfig.TICKER
 	if not configTicker then
 		return
 	end
+
 	local currentTicker = entity._ticker
 	if hasHalfTickers then
 		if entity.isHalfTicked ~= false then
@@ -140,7 +142,7 @@ local function Check(entity: Entity)
 	elseif not (hasNormalTickers or hasHalfTickers) and currentTicker then
 		SetTickMode(entity, nil)
 		--warn("Removing entity from ticker", entity)
-		Ticker.remove(currentTicker, entity)
+		Ticker.Remove(currentTicker, entity)
 		entity.isHalfTicked = nil
 	end
 end
@@ -151,12 +153,14 @@ local function Update()
 		return
 	end
 	lastUpdate = os.clock()
-	for holder, pos in playerTablePositionPair do
+
+	for holder, _ in playerTablePositionPair do
 		table.clear(holder.HALF)
 		table.clear(holder.NORMAL)
 	end
 	debug.profilebegin("EntityGrid.Update")
-	for id, entity in entities do
+
+	for _, entity in entities do
 		Check(entity)
 	end
 	debug.profileend()

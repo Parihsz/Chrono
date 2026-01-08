@@ -1,6 +1,6 @@
 local Shared = script.Parent.Parent.Shared
 local RunService = game:GetService("RunService")
-local RenderCache = require(script.Parent.RenderCache)
+local RenderCache = require(script.Parent.ClientClock)
 local Entity = require(Shared.Entity)
 local Holder = require(Shared.Holder)
 local Config = require(Shared.Config)

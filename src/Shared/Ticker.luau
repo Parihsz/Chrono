@@ -13,6 +13,7 @@ end
 local Types = require(script.Parent.Types)
 type Entity = Types.Entity
 type Ticker = Types.Ticker
+
 function Ticker.new(config: Types.EntityConfig): Ticker
 	local ticker = {
 		tickedHalf = false,
@@ -29,30 +30,32 @@ function Ticker.new(config: Types.EntityConfig): Ticker
 	return ticker
 end
 
-function Ticker.addCallback(ticker: Ticker, callback: (ticker: Ticker,dt:number) -> ())
+function Ticker.AddCallback(ticker: Ticker, callback: (ticker: Ticker, dt: number) -> ())
 	table.insert(ticker.callbacks, callback)
 end
 
-function Ticker.removeCallback(ticker: Ticker, callback: (ticker: Ticker,dt:number) -> ())
+function Ticker.RemoveCallback(ticker: Ticker, callback: (ticker: Ticker, dt: number) -> ())
 	local index = table.find(ticker.callbacks, callback)
 	if index then
 		table.remove(ticker.callbacks, index)
 	end
 end
 
-function Ticker.add(ticker: Ticker, object: Entity)
+function Ticker.Add(ticker: Ticker, object: Entity)
 	table.insert(ticker.objects, object)
 	object._ticker = ticker
 	object._tickerIndex = #ticker.objects
 end
 
-function Ticker.remove(ticker: Ticker, object: Entity)
+function Ticker.Remove(ticker: Ticker, object: Entity)
 	local index = object._tickerIndex
 	if not index then
 		warn("Ticker.remove called on object not in ticker", object.id)
 		return
 	end
+
 	popSwap(ticker.objects, object, index)
+
 	object._ticker = nil
 	object._tickerIndex = nil
 end
@@ -60,31 +63,35 @@ end
 function Ticker.move(object: Entity, newTicker: Ticker)
 	local oldTicker = object._ticker
 	if oldTicker then
-		Ticker.remove(oldTicker, object)
+		Ticker.Remove(oldTicker, object)
 	end
-	Ticker.add(newTicker, object)
+	Ticker.Add(newTicker, object)
 end
 
-function Ticker.checkUpdate(ticker: Ticker): boolean
-	local diff = os.clock() - ticker.lastTicked
-	if diff >= ticker.tickRate then
-		
+function Ticker.CheckUpdate(ticker: Ticker): boolean
+	local difference = os.clock() - ticker.lastTicked
+
+	if difference >= ticker.tickRate then
 		ticker.lastTicked = os.clock()
 		ticker.tickedFrame = time()
 		ticker.tickedHalf = not ticker.tickedHalf
-		if  ticker.tickedHalf then
-			ticker.halfdt = diff + ticker.dt
+
+		if ticker.tickedHalf then
+			ticker.halfdt = difference + ticker.dt
 		else
-			ticker.halfdt = diff
+			ticker.halfdt = difference
 		end
-		ticker.dt = diff
+
+		ticker.dt = difference
 		if #ticker.callbacks > 0 then
 			for _, callback in ticker.callbacks do
-				callback(ticker, diff)
+				callback(ticker, difference)
 			end
 		end
+
 		return true
 	end
+
 	return false
 end
 

@@ -87,7 +87,7 @@ local function CFrameChanged(cf1: CFrame?, cf2: CFrame?): boolean
 end
 
 local function PushLatest(entity: Types.Entity, time: number)
-	if entity.autoUpdatePos and entity.isContextOwner and entity.model then
+	if entity.autoUpdatePosition and entity.isContextOwner and entity.model then
 		local primaryPart = entity.model.PrimaryPart
 		if not primaryPart then
 			warn("Entity", entity, "has no primary part")
@@ -171,7 +171,7 @@ local function UpdateTickers()
 			continue
 		end
 		debug.profilebegin(`{ticker.config.NAME}`)
-		if Ticker.checkUpdate(ticker) then
+		if Ticker.CheckUpdate(ticker) then
 			--[[ Using the ticker's config instead can help protect if entity configs change mid-game since that
                 could potentially create a desync between the buffer serialization and deserialization    
             ]]

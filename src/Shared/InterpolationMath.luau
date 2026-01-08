@@ -1,4 +1,3 @@
-local Snapshots = require(script.Parent.Snapshots)
 local Types = require(script.Parent.Types)
 
 local function Hermite(p0: Vector3, p1: Vector3, v0: Vector3, v1: Vector3, t: number, dt: number): Vector3

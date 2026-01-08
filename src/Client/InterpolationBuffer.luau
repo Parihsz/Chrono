@@ -13,26 +13,29 @@ Config._WaitForLock(function()
 end)
 local Buffer = {}
 
-function Buffer.new(renderCache: Types.RenderCache)
+function Buffer.new(clientClock: Types.ClientClock)
 	return {
 		init = false,
 		averageLatency = 0,
 		deviation = 0,
 		lastLatency = 0,
-		renderCache = renderCache,
+
+		clientClock = clientClock,
 	}
 end
 
 function Buffer.Register(data: Types.InterpolationBuffer, time: number)
-	local renderCache = data.renderCache
-	local clientNow = renderCache:GetEstimatedServerTime()
+	local clientClock = data.clientClock
+	local clientNow = clientClock:GetEstimatedServerTime()
 	local latency = clientNow - time
+
 	if math.abs(latency) > 1 then
-		renderCache:Clear()
+		clientClock:Clear()
 		if SHOW_WARNINGS then
-			warn(data.renderCache.name, ` latency too high, cleared cache to repredict in case of error:! {latency}`)
+			warn(data.clientClock.name, ` latency too high, cleared cache to repredict in case of error:! {latency}`)
 		end
 	end
+
 	if not data.init then
 		--using the difference between current and last latency, i could smooth out the deviation (the variation in latency, which correlates to packet loss)
 		--this is using statistics https://en.wikipedia.org/wiki/Moving_average
@@ -65,7 +68,7 @@ function Buffer.GetBuffer(data: Types.InterpolationBuffer, tickRate: number)
 	local buffer = if rawBuffer < MIN_BUFFER then MIN_BUFFER + (MIN_BUFFER - rawBuffer) * 0.2 else rawBuffer
 	if buffer > MAX_BUFFER then
 		if SHOW_WARNINGS then
-			warn(`Interpolation buffer exceeded max! Was {buffer}, clamped to {MAX_BUFFER} for`, data.renderCache.name)
+			warn(`Interpolation buffer exceeded max! Was {buffer}, clamped to {MAX_BUFFER} for`, data.clientClock.name)
 		end
 		buffer = MAX_BUFFER
 	end
