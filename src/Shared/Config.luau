@@ -26,7 +26,7 @@ export type SetConfig =
 	& ("MAX_SNAPSHOT_COUNT", number) -> ()
 	& ("CHECK_NEW_VERSION", boolean) -> ()
 	& ("DEFAULT_MODEL_REPLICATION_MODE", "NATIVE" | "MIRRORED" | "CUSTOM") -> ()
-	& ("PLAYER_REPLICATION", "AUTOMATIC" | "CUSTOM") -> ()	
+	& ("PLAYER_REPLICATION", "AUTOMATIC" | "CUSTOM") -> ()
 
 local LOCKED = false
 local BASE_CONFIG = {

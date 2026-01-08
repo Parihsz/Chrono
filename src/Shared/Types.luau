@@ -48,7 +48,7 @@ export type EntityConfig = {
 	AUTO_UPDATE_POS: boolean?, -- defaults to true
 	STORE_SNAPSHOTS: boolean?, -- defaults to false
 	MODEL_REPLICATION_MODE: "NATIVE" | "MIRRORED" | "CUSTOM"?,
-	NORMAL_TICK_DISTANCE: number?, 
+	NORMAL_TICK_DISTANCE: number?,
 	HALF_TICK_DISTANCE: number?,
 }
 
@@ -72,7 +72,7 @@ export type Ticker = {
 	lastTicked: number,
 	tickedFrame: number,
 	objects: { Entity },
-	callbacks: { (ticker: Ticker,dt:number) -> () },
+	callbacks: { (ticker: Ticker, dt: number) -> () },
 	config: EntityConfig,
 	dt: number,
 	halfdt: number,

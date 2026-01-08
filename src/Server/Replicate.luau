@@ -1,16 +1,19 @@
 --!native
 local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local Shared = script.Parent.Parent.Shared
 
+local Holder = require(ReplicatedStorage.Packages.chrono.Shared.Holder)
 local Ticker = require(Shared.Ticker)
 local Config = require(Shared.Config)
 local Types = require(Shared.Types)
 local Entity = require(Shared.Entity)
 local EntityGrid = require(script.Parent.EntityGrid)
+local _Player = require(script.Parent.Player)
 local Sender = require(script.Parent.Sender)
-local Receiver = require(script.Parent.Receiver)
+local _Receiver = require(script.Parent.Receiver)
 
 local tickers: { Types.Ticker } = {}
 
@@ -121,10 +124,10 @@ local function CheckEntity(entity: Types.Entity, ticker: Types.Ticker, useFull: 
 	else
 		FireEvent(entity, "Ticked", ticker.dt)
 	end
-	
+
 	PushLatest(entity, ticker.lastTicked)
 	local changes = CheckForChanges(entity)
-	
+
 	if changes then
 		if useFull then
 			local b = buffer.create(FULL_BYTES)
@@ -181,8 +184,20 @@ local function UpdateTickers()
 	debug.profileend()
 end
 
+local function UpdatePlayerPositions()
+	for _, entity: any in Holder._playerChars do
+		local player = entity.networkOwner
+		local character = entity.model
+
+		if player and character then
+			EntityGrid.UpdatePlayerPosition(player, character:GetPivot().Position)
+		end
+	end
+end
+
 local function Update()
 	EntityGrid.Update()
+	UpdatePlayerPositions()
 	UpdateTickers()
 	CheckEntityChanges()
 	for _, player in Players:GetPlayers() do
