@@ -6,7 +6,7 @@ local Types = require(script.Parent.Types)
 local Config = require(script.Parent.Config)
 local Snapshot = require(script.Parent.Snapshots)
 local InterpolationMath = require(script.Parent.InterpolationMath)
-local RenderCache = require(script.Parent.Parent.Client.RenderCache)
+local ClientClock = require(script.Parent.Parent.Client.ClientClock)
 local Holder = require(script.Parent.Holder)
 local Signal = require(script.Parent.Signal)
 local Events = require(script.Parent.Events)
@@ -83,13 +83,13 @@ local function CheckNetworkOwner(self: Entity, prev: Player?)
 			self.snapshot = Snapshot(InterpolationMath.Hermite)
 		end
 	elseif not isSameOwner then
-		if self._renderCache then
-			self._renderCache:Destroy()
-			self._renderCache = nil
+		if self._clientClock then
+			self._clientClock:Destroy()
+			self._clientClock = nil
 		end
 		if self.networkOwner then
-			self._renderCache =
-				RenderCache.new(self.entityConfig.TICK_RATE, `Entity id: {self.id} plr: {self.networkOwner.Name}`)
+			self._clientClock =
+				ClientClock.new(self.entityConfig.TICK_RATE, `Entity id: {self.id} plr: {self.networkOwner.Name}`)
 		end
 	end
 	if isSameOwner then
@@ -163,7 +163,7 @@ function Entity.new(
 		id = -1,
 
 		registered = false,
-		autoUpdatePos = config.AUTO_UPDATE_POS ~= false,
+		autoUpdatePosition = config.AUTO_UPDATE_POSITION ~= false,
 		isContextOwner = false,
 		networkOwner = nil,
 
@@ -174,11 +174,12 @@ function Entity.new(
 		modelString = modelString,
 		destroyed = false,
 	}
-	local modelRepMode: "NATIVE" | "MIRRORED" | "CUSTOM" = CheckModelReplicationMode(self, modelReplicationMode)
+	local replicationMode: "NATIVE" | "MIRRORED" | "CUSTOM" = CheckModelReplicationMode(self, modelReplicationMode)
 
 	if IS_SERVER then
-		self.modelRepMode = modelRepMode
-		if modelRepMode == "MIRRORED" and _model then
+		self.modelReplicationMode = replicationMode
+
+		if replicationMode == "MIRRORED" and _model then
 			local fakeModel = _model:Clone()
 			_model.Parent = workspace -- ensure it's in workspace to set network ownership
 			if _model.PrimaryPart then
@@ -187,10 +188,11 @@ function Entity.new(
 				end)
 			end
 			_model.Parent = script.Parent._MIRRORED_MODELS
+
 			self.actualModel = _model
 			self.model = fakeModel
 			fakeModel.Parent = Holder.GetEntityStorageInstance()
-		elseif modelRepMode == "CUSTOM" and _model then
+		elseif replicationMode == "CUSTOM" and _model then
 			_model.Parent = Holder.GetEntityStorageInstance()
 		end
 	end
@@ -245,7 +247,7 @@ function Entity._SetTickMode(self: Entity, isHalfTicked: boolean?)
 	FireEvent(self, "TickChanged", isHalfTicked == nil and "NONE" or if isHalfTicked then "HALF" else "NORMAL")
 end
 
-function Entity._SetNetworkOwner(self: Entity, player: Player?)
+Entity["设置网络主控玩家"] = function(self: Entity, player: Player?)
 	if player ~= self.networkOwner then
 		local prev = self.networkOwner
 		SetValue(self, "networkOwner", player)
@@ -258,7 +260,7 @@ end
 
 function Entity.SetNetworkOwner(self: Entity, player: Player?)
 	if IS_SERVER and player ~= self.networkOwner then
-		Entity._SetNetworkOwner(self, player)
+		Entity["设置网络主控玩家"](self, player)
 	elseif not IS_SERVER then
 		warn("SetNetworkOwner can only be called on the server")
 	end
@@ -315,10 +317,10 @@ function Entity.GetAt(self: Entity, time: number): CFrame?
 end
 
 function Entity.GetTargetRenderTime(self: Entity): number
-	local renderCache = self._renderCache
+	local renderCache = self._clientClock
 
 	if not renderCache then
-		local RenderCaches = self.entityConfig.RENDER_CACHE
+		local RenderCaches = self.entityConfig.CLIENT_CLOCK
 		if not RenderCaches then
 			return 0
 		end
@@ -346,12 +348,12 @@ function Entity.Destroy(self: Entity)
 	self.destroyed = true
 	Holder.UnregisterEntity(self)
 
-	if self._renderCache then
-		self._renderCache:Destroy()
+	if self._clientClock then
+		self._clientClock:Destroy()
 	end
 	FireEvent(self, "Destroying")
 	if not IS_SERVER then
-		local modeType = self.modelRepMode
+		local modeType = self.modelReplicationMode
 		if modeType == "MIRRORED" then
 			if self.model then
 				self.model.Parent = script.Parent._MIRRORED_MODELS
@@ -408,7 +410,7 @@ Players.PlayerRemoving:Connect(function(player)
 	clientOwned[player] = nil
 end)
 
-Events._Signals._DO_NOT_USE_INTERNAL_SET_VALUE_PLEASE_THANKS_HI_THIS_IS_A_BIT_LONG_YEAH_OKAY_BYE_NVM_THIS_IS_USED_CAUSE_RECURSIVE_ERROR_AND_I_AM_TO_LAZY_TO_SOLVE_THAT_SO_THIS_IS_A_BAND_AID_FIX_THAT_WORKS_OKAY.Event:Connect(
+Events._Signals["请不要使用_内部_设置值_拜托谢谢_嗨_这个名字有点长_好吧_再见_算了_这个确实被用了_因为递归错误_而我懒得去解决_所以这是一个能用的_创可贴式修复_好吧"].Event:Connect(
 	SetValue
 )
 Entity._Changes = Changes

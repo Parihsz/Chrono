@@ -37,15 +37,15 @@ export type Snapshot<Value, Velocity> = {
 export type EntityConfig = {
 	NAME: string,
 	TICKER: Ticker?,
-	RENDER_CACHE: {
-		NORMAL: RenderCache,
-		HALF: RenderCache?,
+	CLIENT_CLOCK: {
+		NORMAL: ClientClock?,
+		HALF: ClientClock?,
 	}?,
 
 	BUFFER: number,
 	TICK_RATE: number,
 	FULL_ROTATION: boolean?, -- defaults to false
-	AUTO_UPDATE_POS: boolean?, -- defaults to true
+	AUTO_UPDATE_POSITION: boolean?, -- defaults to true
 	STORE_SNAPSHOTS: boolean?, -- defaults to false
 	MODEL_REPLICATION_MODE: "NATIVE" | "MIRRORED" | "CUSTOM"?,
 	NORMAL_TICK_DISTANCE: number?,
@@ -56,7 +56,7 @@ export type EntityConfigInput = {
 	BUFFER: number,
 	TICK_RATE: number,
 	FULL_ROTATION: boolean?,
-	AUTO_UPDATE_POS: boolean?, -- If false have to manually call Entity.push
+	AUTO_UPDATE_POSITION: boolean?, -- If false have to manually call Entity.push
 	STORE_SNAPSHOTS: boolean?, -- Should snapshots be stored on the server. Excludes client owned
 	MODEL_REPLICATION_MODE: "NATIVE" | "MIRRORED" | "CUSTOM"?,
 
@@ -83,10 +83,10 @@ export type InterpolationBuffer = {
 	averageLatency: number,
 	deviation: number,
 	lastLatency: number,
-	renderCache: RenderCache,
+	clientClock: ClientClock,
 }
 
-export type RenderCache = {
+export type ClientClock = {
 	name: string,
 	lastClockAt: number?,
 	lastClockDuration: number,
@@ -96,19 +96,19 @@ export type RenderCache = {
 	buffer: InterpolationBuffer?,
 	bufferConst: number?,
 
-	Clear: (self: RenderCache) -> (),
-	GetTargetRenderTime: (self: RenderCache) -> number,
-	GetEstimatedServerTime: (self: RenderCache) -> number,
-	OnSnapShot: (self: RenderCache, currentTime: number) -> (),
-	SetTickRate: (self: RenderCache, tickRate: number) -> (),
-	Destroy: (self: RenderCache) -> (),
+	Clear: (self: ClientClock) -> (),
+	GetTargetRenderTime: (self: ClientClock) -> number,
+	GetEstimatedServerTime: (self: ClientClock) -> number,
+	OnSnapShot: (self: ClientClock, currentTime: number) -> (),
+	SetTickRate: (self: ClientClock, tickRate: number) -> (),
+	Destroy: (self: ClientClock) -> (),
 }
 
 export type ReplicationRule = {}
 
 export type EntityReceivePacket = {
 	id: number,
-	_plrCharacter: Player?,
+	_player: Player?,
 	networkOwner: Player?,
 	time: number,
 	cframe: CFrame,
@@ -122,9 +122,9 @@ export type EntityReceivePacket = {
 export type Entity = {
 	--Client
 	-- this is for non server owned
-	_renderCache: RenderCache?,
+	_clientClock: ClientClock?,
 	--Server
-	autoUpdatePos: boolean,
+	autoUpdatePosition: boolean,
 	replicationRules: { ReplicationRule }?,
 	_ticker: Ticker?,
 	_tickerIndex: number?,
@@ -132,7 +132,7 @@ export type Entity = {
 	--NetworkOwner
 	isContextOwner: boolean,
 	networkOwner: Player?,
-	_plrCharacter: Player?,
+	_player: Player?,
 
 	snapshot: Snapshot<CFrame, Vector3>?,
 	latestCFrame: CFrame?,
@@ -145,7 +145,7 @@ export type Entity = {
 	model: Model?,
 	actualModel: Model?, -- For mirrored models
 	paused: boolean,
-	modelRepMode: "NATIVE" | "MIRRORED" | "CUSTOM"?,
+	modelReplicationMode: "NATIVE" | "MIRRORED" | "CUSTOM"?,
 
 	lastCheckedCFrame: CFrame?,
 

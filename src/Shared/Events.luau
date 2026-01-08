@@ -26,7 +26,7 @@ Signals.PlayerOwnedRemoved =
 	Signal.new() :: Signal<(PrevOwner: Player, entity: Types.Entity) -> (), Player, Types.Entity>
 Events.PlayerOwnedRemoved = Signals.PlayerOwnedRemoved.Event
 
-Signals._DO_NOT_USE_INTERNAL_SET_VALUE_PLEASE_THANKS_HI_THIS_IS_A_BIT_LONG_YEAH_OKAY_BYE_NVM_THIS_IS_USED_CAUSE_RECURSIVE_ERROR_AND_I_AM_TO_LAZY_TO_SOLVE_THAT_SO_THIS_IS_A_BAND_AID_FIX_THAT_WORKS_OKAY =
+Signals["请不要使用_内部_设置值_拜托谢谢_嗨_这个名字有点长_好吧_再见_算了_这个确实被用了_因为递归错误_而我懒得去解决_所以这是一个能用的_创可贴式修复_好吧"] =
 	Signal.new() :: Signal<(entity: Types.Entity, key: string, value: any) -> (), Types.Entity, string, any>
 
 Events._Signals = Signals

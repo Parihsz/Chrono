@@ -69,7 +69,7 @@ local function HandleEntity(player: Player, id: number, clock: number, cf: CFram
 			entity.arriveFrame = time()
 		end)
 		entity.cframeBuffer = copyB
-		if entity.modelRepMode == "NATIVE" then
+		if entity.modelReplicationMode == "NATIVE" then
 			return
 		end
 		local primaryPart = entity.model and entity.model.PrimaryPart

@@ -1,6 +1,4 @@
-local Holder = require(script.Parent.Parent.Shared.Holder)
 local Events = require(script.Parent.Parent.Shared.Events)
-local Entity = require(script.Parent.Parent.Shared.Entity)
 local Types = require(script.Parent.Parent.Shared.Types)
 local Config = require(script.Parent.Parent.Shared.Config)
 
@@ -21,6 +19,8 @@ end)
 Config._WaitForLock(function()
 	if Config._GetConfig("PLAYER_REPLICATION") ~= "AUTOMATIC" then
 		return
+
+
 	end
 end)
 

@@ -89,29 +89,29 @@ local ENTITY_TYPES: { [string]: Types.EntityConfig } = {
 }
 local ENTITY_MODELS = {}
 
-local function registerEntityType(name, config: Types.EntityConfigInput)
+local function RegisterEntityType(name, config: Types.EntityConfigInput)
 	assert(not LOCKED, "Config is locked and cannot be modified after startup.")
 	ENTITY_TYPES[name] = config :: any
 end
 
 --Model can be registered after LOCKED FYI
-local function registerEntityModel(name: string, model: Model)
+local function RegisterEntityModel(name: string, model: Model)
 	if not model.PrimaryPart then
 		error(name .. " must have a PrimaryPart to be registered as an entity model.")
 	end
 	ENTITY_MODELS[name] = model
 end
 
-local setConfig = function(name, value)
+local SetConfig = function(name, value)
 	assert(not LOCKED, "Config is locked and cannot be modified after startup.")
 	BASE_CONFIG[name] = value
 end :: SetConfig
 
-local function getEntityType(name: string): Types.EntityConfig
+local function GetEntityType(name: string): Types.EntityConfig
 	return ENTITY_TYPES[name] or ENTITY_TYPES["DEFAULT"]
 end
 
-local function getEntityModel(name: string): Model?
+local function GetEntityModel(name: string): Model?
 	if not ENTITY_MODELS[name] then
 		warn(`Entity model {name} not found in Config.`)
 		return nil
@@ -119,12 +119,12 @@ local function getEntityModel(name: string): Model?
 	return ENTITY_MODELS[name]
 end
 
-local function getConfig(name: Configs)
+local function GetConfig(name: Configs)
 	return BASE_CONFIG[name]
 end
 
 local waiting = {}
-local function waitForLock(fx: () -> ())
+local function WaitForLock(fx: () -> ())
 	if LOCKED then
 		fx()
 	else
@@ -132,7 +132,7 @@ local function waitForLock(fx: () -> ())
 	end
 end
 
-local function lock()
+local function Lock()
 	if BASE_CONFIG.SHOW_WARNINGS then
 		warn("Config is now locked")
 	end
@@ -142,7 +142,7 @@ local function lock()
 	for i, v in ENTITY_TYPES do
 		local cloned = table.clone(v)
 		cloned.NAME = i
-		cloned.AUTO_UPDATE_POS = cloned.AUTO_UPDATE_POS ~= false
+		cloned.AUTO_UPDATE_POSITION = cloned.AUTO_UPDATE_POSITION ~= false
 		cloned.FULL_ROTATION = cloned.FULL_ROTATION or false
 		cloned.NORMAL_TICK_DISTANCE = cloned.NORMAL_TICK_DISTANCE or DEFAULT_NORMAL_TICK_DISTANCE
 		cloned.HALF_TICK_DISTANCE = cloned.HALF_TICK_DISTANCE or DEFAULT_HALF_TICK_DISTANCE
@@ -151,7 +151,7 @@ local function lock()
 		if IS_SERVER then
 			cloned.TICKER = Ticker.new(cloned)
 		else
-			cloned.RENDER_CACHE = {} :: any
+			cloned.CLIENT_CLOCK = {} :: any
 		end
 
 		ENTITY_TYPES[i] = table.freeze(cloned)
@@ -162,14 +162,14 @@ local function lock()
 end
 
 return {
-	SetConfig = setConfig,
-	RegisterEntityType = registerEntityType,
-	RegisterEntityModel = registerEntityModel,
+	SetConfig = SetConfig,
+	RegisterEntityType = RegisterEntityType,
+	RegisterEntityModel = RegisterEntityModel,
 
 	_EntityConfigs = ENTITY_TYPES,
-	_GetEntityType = getEntityType,
-	_GetEntityModel = getEntityModel,
-	_GetConfig = getConfig,
-	_Lock = lock,
-	_WaitForLock = waitForLock,
+	_GetEntityType = GetEntityType,
+	_GetEntityModel = GetEntityModel,
+	_GetConfig = GetConfig,
+	_Lock = Lock,
+	_WaitForLock = WaitForLock,
 }
