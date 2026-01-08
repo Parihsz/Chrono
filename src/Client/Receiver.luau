@@ -169,11 +169,17 @@ local function HandleNewEntity(data: Types.EntityReceivePacket)
 	Holder.RegisterEntity(entity)
 end
 
-local function PushCFrameFor(id: number, clientOwned: boolean, cframe: CFrame, time: number, isHalfTick: boolean)
+local function PushCFrameFor(
+	id: number,
+	clientOwned: boolean,
+	cframe: CFrame,
+	time: number,
+	isHalfTick: boolean
+): boolean
 	local entity = Holder.GetEntityFromId(id)
 	if not entity then
 		warn("Received update for non existent entity with id", id)
-		return
+		return false
 	end
 	if clientOwned then
 		local renderCache = entity._renderCache
@@ -200,6 +206,7 @@ local function PushCFrameFor(id: number, clientOwned: boolean, cframe: CFrame, t
 	end
 	entity.isHalfTicked = isHalfTick
 	Entity.Push(entity, time, cframe)
+	return true
 end
 
 local function HandleClientOwned(b: buffer)
@@ -208,11 +215,9 @@ local function HandleClientOwned(b: buffer)
 	while index < bLen do
 		local time = buffer.readf32(b, index)
 		index += 4
-		while index < bLen do
-			if buffer.readu8(b, index) == 0 then
-				index += 1
-				break
-			end
+		local length = buffer.readu8(b, index)
+		index += 1
+		for i = 1, length do
 			local id = buffer.readu16(b, index)
 			index += 2
 			local packed = buffer.readu8(b, index)
@@ -238,13 +243,9 @@ local function HandleServerOwned(b: buffer)
 	while index < bLen do
 		local lastTicked, isFull, isHalfTickRate = ReadTickerHeader(b, index)
 		index += TickerHeaderBytes
-
-		while index < bLen do
-			--// Check for null terminator
-			if buffer.readu8(b, index) == 0 then
-				index += 1
-				break
-			end
+		local length = buffer.readu8(b, index)
+		index += 1
+		for i = 1, length do
 			local id = buffer.readu16(b, index)
 			index += 2
 			local cframe
