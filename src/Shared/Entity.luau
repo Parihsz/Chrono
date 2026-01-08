@@ -180,6 +180,12 @@ function Entity.new(
 		self.modelRepMode = modelRepMode
 		if modelRepMode == "MIRRORED" and _model then
 			local fakeModel = _model:Clone()
+			_model.Parent = workspace -- ensure it's in workspace to set network ownership
+			if _model.PrimaryPart then
+				pcall(function()
+					_model.PrimaryPart:SetNetworkOwnershipAuto()
+				end)
+			end
 			_model.Parent = script.Parent._MIRRORED_MODELS
 			self.actualModel = _model
 			self.model = fakeModel
@@ -334,9 +340,6 @@ function Entity.SetCFrame(self: Entity, cframe: CFrame)
 	if self.model and self.model.PrimaryPart then
 		self.model.PrimaryPart.CFrame = cframe
 	end
-	if self.motor6d then
-		self.motor6d.Transform = cframe
-	end
 end
 
 function Entity.Destroy(self: Entity)
@@ -361,7 +364,6 @@ function Entity.Destroy(self: Entity)
 	else
 		SafeDestroy(self.model)
 	end
-	SafeDestroy(self.motor6d)
 
 	SafeDestroy(self.actualModel)
 

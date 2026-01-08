@@ -130,7 +130,6 @@ export type Entity = {
 	_tickerIndex: number?,
 
 	--NetworkOwner
-	motor6d: Motor6D?,
 	isContextOwner: boolean,
 	networkOwner: Player?,
 	_plrCharacter: Player?,

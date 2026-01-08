@@ -31,7 +31,7 @@ local function FireEvent(entity: Types.Entity, eventName: string, ...: any)
 	local events = entity._events
 	if not events then
 		return
-	end
+	end 
 	local signal = events[eventName]
 	if signal then
 		signal:Fire(entity, ...)

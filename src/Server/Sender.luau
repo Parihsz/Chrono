@@ -152,7 +152,7 @@ local function GetEntityFullData(player: Player, entity: Types.Entity): Types.En
 		configName = nil
 	end
 
-	return {
+	return { 
 		id = entity.id,
 		_plrCharacter = entity._plrCharacter,
 		networkOwner = entity.networkOwner,

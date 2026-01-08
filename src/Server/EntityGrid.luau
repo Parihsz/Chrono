@@ -109,7 +109,7 @@ local function Check(entity: Entity)
 			end
 			continue
 		end
-
+ 
 		if dist <= normalTickDist then
 			hasNormalTickers = true
 			table.insert(holder.NORMAL, entity)
