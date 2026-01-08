@@ -111,7 +111,7 @@ local function GetLatest<Value, Velocity>(self: Snapshot<Value, Velocity>): Snap
 	return self.cache[lastIndex]
 end
 
-local function GetAt<Value, Velocity>(self: Snapshot<Value, Velocity>, at: number): Value?
+local function GetAt<Value, Velocity>(self: Snapshot<Value, Velocity>, at: number, bypassLock: boolean?): Value?
 	local count = self.count
 	if count == 0 then
 		return nil
@@ -125,6 +125,11 @@ local function GetAt<Value, Velocity>(self: Snapshot<Value, Velocity>, at: numbe
 	local cache = self.cache
 	local head = self.head
 	local lerpFunction = self.Lerp
+	local lockedTime = self.lockedTime
+
+	if at < lockedTime and not bypassLock then
+		at = lockedTime
+	end
 
 	local insertionPos = BinarySearchInsertionPoint(self, at)
 
@@ -188,6 +193,7 @@ local function New<Value, Velocity>(
 		cache = cache,
 		head = 1,
 		count = 0,
+		lockedTime = 0,
 		Lerp = lerpFunction,
 
 		Push = Push,

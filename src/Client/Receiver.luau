@@ -3,7 +3,7 @@ local Shared = script.Parent.Parent.Shared
 local Holder = require(Shared.Holder)
 local Entity = require(Shared.Entity)
 local Types = require(Shared.Types)
-local Models = require(script.Parent.Models)
+local ModelHelper = require(Shared.ModelHelper)
 
 local SetTickMode = Entity._SetTickMode
 
@@ -93,7 +93,11 @@ local function HandleChanges(changes: { id: number, data: { { any } } })
 		local handler = ValueChanges[key]
 		if handler then
 			handler(entity, value)
-		elseif key == "_playerObject" then
+		elseif key == "model" then
+			local model, modelType = ModelHelper.CreateModelFromData(value)
+			Entity.SetModel(entity, model, modelType :: any)
+			entity.modelReplicationMode = modelType :: any
+		elseif key == "_player" then
 			if value then
 				Holder.SetAsCharacter(value, entity)
 			else
@@ -112,9 +116,9 @@ local function HandleChanges(changes: { id: number, data: { { any } } })
 end
 
 local function HandleNewEntity(data: Types.EntityReceivePacket)
-	local model, modelType = Models(data.model)
+	local model, modelType = ModelHelper.CreateModelFromData(data.model)
 
-	local entity = Entity.new(data.config, model)
+	local entity = Entity.new(data.config, model,nil, data.cframe)
 	entity.id = data.id
 	entity._player = data._player
 	entity.paused = data.paused or false

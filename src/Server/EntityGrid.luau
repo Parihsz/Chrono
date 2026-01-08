@@ -66,7 +66,7 @@ local SetTickMode = Entity._SetTickMode
 
 type Entity = Types.Entity
 
-local UPDATE_INTERVAL = 1
+local UPDATE_INTERVAL = 0.5
 
 local lastUpdate = 0
 

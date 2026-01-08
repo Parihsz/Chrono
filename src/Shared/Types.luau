@@ -26,11 +26,12 @@ export type Snapshot<Value, Velocity> = {
 	cache: { SnapshotData<Value, Velocity> },
 	head: number,
 	count: number,
+	lockedTime: number,
 	Lerp: (p0: Vector3, p1: Vector3, v0: Velocity, v1: Velocity, t: number, dt: number) -> Vector3,
 
 	Push: (self: Snapshot<Value, Velocity>, t: number, value: Value, velocity: Velocity) -> (),
 	GetLatest: (self: Snapshot<Value, Velocity>) -> SnapshotData<Value, Velocity>?,
-	GetAt: (self: Snapshot<Value, Velocity>, t: number) -> Value?,
+	GetAt: (self: Snapshot<Value, Velocity>, t: number, bypassLock: boolean?) -> Value?,
 	Clear: (self: Snapshot<Value, Velocity>) -> (),
 }
 

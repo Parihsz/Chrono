@@ -5,7 +5,7 @@ local Entity = require(script.Parent.Parent.Shared.Entity)
 local Holder = require(script.Parent.Parent.Shared.Holder)
 local Types = require(script.Parent.Parent.Shared.Types)
 
-local playerEntities = {} :: { [Player]: Types.Entity }
+local playerEntities = Holder._playerChars
 
 local function RegisterPlayer(
 	player: Player,
@@ -16,19 +16,24 @@ local function RegisterPlayer(
 	}
 ): Types.Entity
 	local entity = playerEntities[player]
-	print(entity)
+
 	if entity then
 		Entity.Destroy(entity)
-		print("Destroyed")
 	end
 
 	local config = configuration.config or "PLAYER"
 	local modelRepMode = configuration.modelRepMode
-
+	modelRepMode = "CUSTOM"
 	local newEntity = Entity.new(config, character, modelRepMode :: "NATIVE" | "MIRRORED" | "CUSTOM")
 	Holder.RegisterEntity(newEntity)
 	Holder.SetAsCharacter(player, newEntity)
 	Entity.SetNetworkOwner(newEntity, player)
+
+	task.delay(7, function()
+		Entity.SetModel(newEntity, character,"NATIVE", true)
+		task.wait(5)
+		Entity.SetModel(newEntity, character, "MIRRORED", true)
+	end)
 
 	return newEntity
 end

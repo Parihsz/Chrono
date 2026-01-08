@@ -1,6 +1,7 @@
 local EntityGrid = require(script.Parent.EntityGrid)
 local Types = require(script.Parent.Parent.Shared.Types)
 local Shared = script.Parent.Parent.Shared
+local ModelHelper = require(Shared.ModelHelper)
 
 local FULL_BYTES = 4 * 3 + 2 * 3 + 2
 local YAW_BYTES = 4 * 3 + 2 + 2
@@ -106,59 +107,13 @@ local function FlushEntities(player, buffers: BufferHolder, isHalf: boolean?)
 	end
 end
 
-local function ReadyModelFromRep(entity: Types.Entity, playerSpecific: Player): Model | string?
-	local model = entity.model
-	local actualModel = entity.actualModel
-	local modelString = entity.modelString
-	local replicationMode: "NATIVE" | "CUSTOM" | "MIRRORED" = (entity.modelReplicationMode or "NATIVE") :: any
-
-	if replicationMode == "NATIVE" then
-		return model
-	elseif replicationMode == "MIRRORED" then
-		return actualModel
-	elseif replicationMode == "CUSTOM" then
-		if modelString then
-			return modelString
-		end
-		local ModelReplicator = script.Parent.Parent.Shared._CUSTOM_MODEL_REP
-		if playerSpecific then
-			local PlayerGui = playerSpecific.PlayerGui
-			ModelReplicator = PlayerGui:FindFirstChild("_ChronoClientModels") :: Instance
-			if not PlayerGui:FindFirstChild("_ChronoClientModels") then
-				ModelReplicator = Instance.new("Folder")
-				ModelReplicator.Name = "_ChronoClientModels"
-				ModelReplicator.Parent = PlayerGui
-			end
-		end
-		if model then
-			local modelClone = model:Clone()
-			if not modelClone then
-				warn(`Cloned model for {model:GetFullName()} is not Archivable. Failed to replicate model.`)
-				modelClone = Instance.new("Model")
-				local part = Instance.new("Part")
-				part.Size = Vector3.one;
-
-				(modelClone :: any).PrimaryPart = part
-			end
-			modelClone.Parent = ModelReplicator
-
-			task.delay(5, function()
-				modelClone:Destroy()
-			end)
-			return modelClone
-		end
-	else
-		warn(`{modelString} is not a valid model string for entity {entity.id}`)
-	end
-	return nil
-end
 
 --//honestly tables should beeeee fine for nowww, could buffer it later if reallllly needed
 local function GetEntityFullData(player: Player, entity: Types.Entity): Types.EntityReceivePacket?
 	if entity.destroyed then
 		return nil
 	end
-	local modelData = ReadyModelFromRep(entity, player)
+	local modelData = ModelHelper.ReadyModelFromRep(entity, player)
 
 	local configName: string? = entity.entityConfig.NAME
 	if configName == "DEFAULT" then
@@ -167,7 +122,7 @@ local function GetEntityFullData(player: Player, entity: Types.Entity): Types.En
 
 	return { 
 		id = entity.id,
-		_plrCharacter = entity._player,
+		_player = entity._player,
 		networkOwner = entity.networkOwner,
 		cframe = entity.latestCFrame or CFrame.new(),
 		time = entity.latestTime or 0,

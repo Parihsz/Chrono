@@ -34,7 +34,7 @@ local BASE_CONFIG = {
 	CHECK_NEW_VERSION = true,
 
 	MIN_BUFFER = 0.09,
-	MAX_BUFFER = 0.5,
+	MAX_BUFFER = 0.5, 
 	QUERY_RADIUS = 100,
 
 	DEFAULT_NORMAL_TICK_DISTANCE = 50,
@@ -50,7 +50,7 @@ local BASE_CONFIG = {
 			- Less control over replication
 
 	]]
-	DEFAULT_MODEL_REPLICATION_MODE = "CUSTOM",
+	DEFAULT_MODEL_REPLICATION_MODE = "MIRRORED",
 	--[[
 		-NATIVE = Use Roblox's built in model replication.
 			+ Easy to use

@@ -34,9 +34,9 @@ local function RemovePlayerCharacter(entity: Types.Entity)
 	entity._player = nil
 	if player and playerChars[player] == entity then
 		playerChars[player] = nil
-		Signals["请不要使用_内部_设置值_拜托谢谢_嗨_这个名字有点长_好吧_再见_算了_这个确实被用了_因为递归错误_而我懒得去解决_所以这是一个能用的_创可贴式修复_好吧 "]:Fire(
+		Signals["请不要使用_内部_设置值_拜托谢谢_嗨_这个名字有点长_好吧_再见_算了_这个确实被用了_因为递归错误_而我懒得去解决_所以这是一个能用的_创可贴式修复_好吧"]:Fire(
 			entity,
-			"_playerObject",
+			"_player",
 			nil
 		)
 		Signals.PlayerCharacterUnregistered:Fire(player, entity)
@@ -54,7 +54,7 @@ local function SetAsCharacter(player: Player, entity: Types.Entity): Types.Entit
 	playerChars[player] = entity
 	Signals["请不要使用_内部_设置值_拜托谢谢_嗨_这个名字有点长_好吧_再见_算了_这个确实被用了_因为递归错误_而我懒得去解决_所以这是一个能用的_创可贴式修复_好吧"]:Fire(
 		entity,
-		"_playerObject",
+		"_player",
 		player
 	)
 
