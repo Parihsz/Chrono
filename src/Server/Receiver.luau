@@ -69,18 +69,12 @@ local function HandleEntity(player: Player, id: number, clock: number, cf: CFram
 			entity.arriveFrame = time()
 		end)
 		entity.cframeBuffer = copyB
-		if entity.motor6d then
-			local primaryPart = entity.model and entity.model.PrimaryPart
-			if primaryPart then
-				if primaryPart.Anchored then
-					primaryPart.CFrame = cf
-				else
-					if entity.motor6d.Part0 then
-						entity.motor6d.Part0.CFrame = CFrame.identity
-					end
-					entity.motor6d.Transform = cf
-				end
-			end
+		if entity.modelRepMode == "NATIVE" then
+			return
+		end
+		local primaryPart = entity.model and entity.model.PrimaryPart
+		if primaryPart then
+			primaryPart.CFrame = cf
 		end
 	end
 end

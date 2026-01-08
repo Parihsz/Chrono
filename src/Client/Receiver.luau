@@ -134,7 +134,7 @@ local function HandleChanges(changes: { id: number, data: { { any } } })
 		local handler = ValueChanges[key]
 		if handler then
 			handler(entity, value)
-		elseif key == "plrCharacter" then
+		elseif key == "_plrCharacter" then
 			if value then
 				Holder.SetAsCharacter(value, entity)
 			else
@@ -163,6 +163,7 @@ local function HandleNewEntity(data: Types.EntityReceivePacket)
 	entity._data = data._data
 	entity.modelRepMode = type :: any
 	Entity.Push(entity, data.time, data.cframe)
+
 	Entity._SetNetworkOwner(entity, data.networkOwner)
 	SetTickMode(entity, data.isHalfTicked)
 

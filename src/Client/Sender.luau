@@ -101,7 +101,7 @@ local function WriteEntity(id: number, cf: CFrame, fullCFrame: boolean?, halfTic
 	else
 		INDEX = SerializeYaw(BUFFER, cf, INDEX)
 	end
-	print("Written entity", id, "fullCFrame:", fullCFrame, "halfTicked:", halfTicked)
+	
 end
 
 local function CFrameChanged(cf1: CFrame?, cf2: CFrame?): boolean

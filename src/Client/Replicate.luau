@@ -6,6 +6,7 @@ local Holder = require(Shared.Holder)
 local Config = require(Shared.Config)
 local Types = require(Shared.Types)
 local Sender = require(script.Parent.Sender)
+require(script.Parent.Player)
 require(script.Parent.Receiver)
 
 local idMap = Holder.idMap
@@ -20,6 +21,7 @@ local function Interpolate(entity: Types.Entity)
 	if entity.isContextOwner then
 		return
 	end
+
 	local primaryPart = model.PrimaryPart
 	local snapshot = entity.snapshot
 	if not snapshot then

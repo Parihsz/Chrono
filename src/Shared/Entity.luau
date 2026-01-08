@@ -37,6 +37,12 @@ local function SafeDestroy(instance: Instance?)
 	end
 end
 
+local function SafeSetNetworkOwner(part: BasePart, player: Player?)
+	pcall(function()
+		part:SetNetworkOwner(player)
+	end)
+end
+
 local function SetValue(entity: Entity, key: string, value: any, bypass: boolean?, specialValue: any)
 	if not bypass and entity[key] == value then
 		return
@@ -65,41 +71,10 @@ end
 local function CheckNetworkOwner(self: Entity, prev: Player?)
 	self.isContextOwner = self.networkOwner == LOCAL_PLAYER
 	local isSameOwner = self.networkOwner == prev
-	if IS_SERVER and not self.isContextOwner then
-		if not self.motor6d then
-			local motor6d = Instance.new("Motor6D")
-			motor6d.Name = "Chrono_NetworkOwnerMotor6D"
-			local center = Instance.fromExisting(CENTER_PART)
-			motor6d.Part0 = center
-			local primaryPart = self.model and self.model.PrimaryPart
-			if primaryPart then
-				center.Parent = Holder.GetEntityStorageInstance()
-				motor6d.Parent = primaryPart
-				motor6d.Part1 = primaryPart
-				local cf = self.latestCFrame or primaryPart.CFrame
-				if primaryPart.Anchored then
-					primaryPart.CFrame = cf
-				else
-					motor6d.Transform = cf
-				end
-			end
-			self.motor6d = motor6d
-		end
-	else
-		if self.motor6d then
-			if self.motor6d.Part0 then
-				SafeDestroy(self.motor6d.Part0)
-			end
-			SafeDestroy(self.motor6d)
-			self.motor6d = nil
-		end
-	end
 	if IS_SERVER then
 		if not isSameOwner then
 			if self.model and self.model.PrimaryPart then
-				pcall(function()
-					self.model.PrimaryPart:SetNetworkOwner(self.networkOwner)
-				end)
+				SafeSetNetworkOwner(self.model.PrimaryPart, self.networkOwner)
 			end
 		end
 		if self.isContextOwner and not self.entityConfig.STORE_SNAPSHOTS then
@@ -200,14 +175,15 @@ function Entity.new(
 		destroyed = false,
 	}
 	local modelRepMode: "NATIVE" | "MIRRORED" | "CUSTOM" = CheckModelReplicationMode(self, modelReplicationMode)
-	
+
 	if IS_SERVER then
 		self.modelRepMode = modelRepMode
 		if modelRepMode == "MIRRORED" and _model then
-			local actualModel = _model:Clone()
-			actualModel.Parent = script.Parent._MIRRORED_MODELS
-			self.actualModel = actualModel
-			_model.Parent = Holder.GetEntityStorageInstance()
+			local fakeModel = _model:Clone()
+			_model.Parent = script.Parent._MIRRORED_MODELS
+			self.actualModel = _model
+			self.model = fakeModel
+			fakeModel.Parent = Holder.GetEntityStorageInstance()
 		elseif modelRepMode == "CUSTOM" and _model then
 			_model.Parent = Holder.GetEntityStorageInstance()
 		end

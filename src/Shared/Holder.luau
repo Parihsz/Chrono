@@ -1,5 +1,6 @@
 local Types = require(script.Parent.Types)
 local Signals = require(script.Parent.Events)._Signals
+local Config = require(script.Parent.Config)
 local IS_SERVER = game:GetService("RunService"):IsServer()
 
 local currentId = 0 -- First Id will start at 1
@@ -57,17 +58,14 @@ local function SetAsCharacter(player: Player, entity: Types.Entity): Types.Entit
 		"_plrCharacter",
 		player
 	)
+
+
+
 	Signals.PlayerCharacterRegistered:Fire(player, entity)
 	return entity
 end
 
 local function RegisterEntity(entity: Types.Entity)
-	if entity._plrCharacter then
-		if playerChars[entity._plrCharacter] then
-			warn("Player already has an entity registered", entity, "overwriting")
-		end
-		SetAsCharacter(entity._plrCharacter, entity)
-	end
 	if IS_SERVER then
 		local id = GetNextId()
 		if idMap[id] then
@@ -83,6 +81,13 @@ local function RegisterEntity(entity: Types.Entity)
 		idMap[id] = entity
 	end
 	entity.registered = true
+
+	if entity._plrCharacter then
+		if playerChars[entity._plrCharacter] then
+			warn("Player already has an entity registered", entity, "overwriting")
+		end
+		SetAsCharacter(entity._plrCharacter, entity)
+	end
 	Signals.EntityAdded:Fire(entity)
 end
 

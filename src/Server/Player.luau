@@ -22,16 +22,16 @@ local function RegisterPlayer(
 	end
 
 	local config = configuration.config or "PLAYER"
-	local modelRepMode = configuration.modelRepMode or "NATIVE"
+	local modelRepMode = configuration.modelRepMode
 
+	if character.PrimaryPart then
+		character.PrimaryPart:SetNetworkOwner(player)
+	end
 	local newEntity = Entity.new(config, character, modelRepMode :: "NATIVE" | "MIRRORED" | "CUSTOM")
-	newEntity._plrCharacter = player
-
 	Holder.RegisterEntity(newEntity)
 	Holder.SetAsCharacter(player, newEntity)
-	Entity._SetNetworkOwner(newEntity, player)
+	Entity.SetNetworkOwner(newEntity, player)
 
-	playerEntities[player] = newEntity
 	return newEntity
 end
 
@@ -49,13 +49,13 @@ local function OnCharacterAdded(character: Model, player: Player)
 			config = "PLAYER",
 			modelRepMode = Config._GetConfig("DEFAULT_MODEL_REPLICATION_MODE"),
 		})
-	else
-		print("automatic player replication is disabled")
+	elseif Config._GetConfig("SHOW_WARNINGS") then
+		warn("automatic player replication is disabled")
 	end
 end
 
 local function OnPlayerAdded(player: Player)
-	player.CharacterAdded:Connect(function(character: Model)
+	player.CharacterAppearanceLoaded:Connect(function(character: Model)
 		OnCharacterAdded(character, player)
 	end)
 	if player.Character then

@@ -50,7 +50,7 @@ local BASE_CONFIG = {
 			- Less control over replication
 
 	]]
-	DEFAULT_MODEL_REPLICATION_MODE = "NATIVE",
+	DEFAULT_MODEL_REPLICATION_MODE = "MIRRORED",
 	--[[
 		-NATIVE = Use Roblox's built in model replication.
 			+ Easy to use

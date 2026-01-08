@@ -98,6 +98,7 @@ local function Check(entity: Entity)
 	local normalTickDist = entityConfig.NORMAL_TICK_DISTANCE or math.huge
 	local networkOwner = entity.networkOwner
 	local ownedHolder = networkOwner and playerToHolder[networkOwner]
+
 	local isNotNative = entity.modelRepMode ~= "NATIVE"
 	for holder, playerPos in playerTablePositionPair do
 		local dist = vector.magnitude(position - playerPos)

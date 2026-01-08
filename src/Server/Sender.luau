@@ -126,8 +126,7 @@ local function ReadyModelFromRep(entity: Types.Entity, playerSpecific: Player): 
 				warn(`Cloned model for {model:GetFullName()} is not Archivable. Failed to replicate model.`)
 				modelClone = Instance.new("Model")
 				local part = Instance.new("Part")
-				part.Size = Vector3.new(1, 1, 1);
-				(modelClone :: any).PrimaryPart = part
+				part.Size = Vector3.new(1, 1, 1);(modelClone :: any).PrimaryPart = part
 			end
 			modelClone.Parent = ModelReplicator
 			task.delay(5, function()
@@ -155,7 +154,7 @@ local function GetEntityFullData(player: Player, entity: Types.Entity): Types.En
 
 	return {
 		id = entity.id,
-		plrCharacter = entity._plrCharacter,
+		_plrCharacter = entity._plrCharacter,
 		networkOwner = entity.networkOwner,
 		cframe = entity.latestCFrame or CFrame.new(),
 		time = entity.latestTime or 0,
@@ -204,10 +203,9 @@ local function ReplicatePlayer(player: Player)
 	end
 
 	local function handle(entity: Types.Entity, isNormal: boolean)
-		if entity.destroyed or entity.paused then
+		if entity.destroyed  then
 			return
 		end
-
 		replicated[entity] = true
 		if not replicatedOLD[entity] then
 			table.insert(toSendFull, GetEntityFullData(player, entity))
@@ -217,6 +215,10 @@ local function ReplicatePlayer(player: Player)
 			table.insert(entityChanges, entity._changes)
 		end
 		replicatedOLD[entity] = nil
+		if entity.paused then
+			return
+		end
+	
 		local isServerOwned = entity.isContextOwner
 		if not isServerOwned then
 			handleClientEntities(entity)
@@ -248,7 +250,7 @@ local function ReplicatePlayer(player: Player)
 	for _, entity in half do
 		handle(entity, false)
 	end
-
+	
 	for entity, _ in replicatedOLD do
 		replicated[entity] = nil
 		table.insert(toRemove, entity._lastId or entity.id)
