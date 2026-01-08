@@ -83,6 +83,7 @@ function Connection.new(signal, fn, defer)
 		_fn = fn,
 		_next = false,
 		_defer = defer or false,
+		_binCleanup = Connection.Disconnect
 	}, Connection)
 end
 
@@ -126,8 +127,8 @@ function Event.new()
 	}, Event)
 end
 
-function Event:Connect(fn)
-	local connection = Connection.new(self, fn)
+function Event:Connect(fn,defer)
+	local connection = Connection.new(self, fn, defer)
 	if self._handlerListHead then
 		connection._next = self._handlerListHead
 		self._handlerListHead = connection
@@ -137,11 +138,7 @@ function Event:Connect(fn)
 	return connection
 end
 
--- Disconnect all handlers. Since we use a linked list it suffices to clear the
--- reference to the head handler.
-function Event:DisconnectAll()
-	self._handlerListHead = false
-end
+
 
 -- Implement Signal:Wait() in terms of a temporary connection using
 -- a Signal:Connect() which disconnects itself.
@@ -176,6 +173,7 @@ function Signal.new()
 	return setmetatable({
 		_type_ = "Signal",
 		Event = Event.new(),
+		_binCleanup = Signal.DisconnectAll
 	}, Signal)
 end
 

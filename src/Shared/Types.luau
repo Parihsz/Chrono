@@ -17,9 +17,9 @@ export type Connection = {
 }
 
 export type Event<fx, T...> = {
-	Connect: (self: any, FN: fx) -> Connection,
-	Once: (self: any, FN: fx) -> Connection,
-	Wait: (self: any) -> T...,
+	Connect: (self: any, FN: fx,defer:boolean?) -> Connection,
+	Once: (self: any, FN: fx,defer:boolean?) -> Connection,
+	Wait: (self: any,defer:boolean?) -> T...,
 }
 
 export type Snapshot<Value, Velocity> = {
