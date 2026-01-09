@@ -31,7 +31,7 @@ local function FireEvent(entity: Types.Entity, eventName: string, ...: any)
 	local events = entity._events
 	if not events then
 		return
-	end 
+	end
 	local signal = events[eventName]
 	if signal then
 		signal:Fire(entity, ...)
@@ -40,8 +40,11 @@ end
 
 local FULL_BYTES = 4 * 3 + 2 * 3 + 2
 local YAW_BYTES = 4 * 3 + 2 + 2
+
+local TAU = math.pi * 2
+
 local function MapRotation(x: number): number
-	return math.round((x + math.pi) / (2 * math.pi / 65535))
+	return math.round((x + math.pi) / (TAU / 65535))
 end
 
 local function SerializeFull(b: buffer, cf: CFrame, index: number)
@@ -76,14 +79,14 @@ local function SerializeYaw(b: buffer, cf: CFrame, index: number)
 	return index
 end
 
-local function CFrameChanged(cf1: CFrame?, cf2: CFrame?): boolean
-	if cf1 == cf2 then
+local function CFrameChanged(cframe1: CFrame?, cframe2: CFrame?): boolean
+	if cframe1 == cframe2 then
 		return false
 	end
-	if cf1 == nil or cf2 == nil then
+	if cframe1 == nil or cframe2 == nil then
 		return true
 	end
-	return cf1:FuzzyEq(cf2, 0.0001) == false
+	return cframe1:FuzzyEq(cframe2, 0.0001) == false
 end
 
 local function PushLatest(entity: Types.Entity, time: number)
@@ -93,8 +96,8 @@ local function PushLatest(entity: Types.Entity, time: number)
 			warn("Entity", entity, "has no primary part")
 			return
 		end
-		local cf = primaryPart.CFrame
-		Entity.Push(entity, time, cf)
+		local cframe = primaryPart.CFrame
+		Entity.Push(entity, time, cframe)
 	end
 end
 
@@ -149,6 +152,7 @@ local function CheckEntity(entity: Types.Entity, ticker: Types.Ticker, useFull: 
 end
 
 local Changes: { Types.Entity } = {}
+
 --In the future we can optimize this so it uses buffers if really needed
 local function CheckEntityChanges()
 	for entity, changes in Entity._Changes do
