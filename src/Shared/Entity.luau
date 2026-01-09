@@ -122,7 +122,7 @@ local function CheckNetworkOwner(self: Entity, prev: Player?)
 				ClientClock.new(self.entityConfig.TICK_RATE, `Entity id: {self.id} plr: {self.networkOwner.Name}`)
 		end
 	end
-	warn(isSameOwner,'aa')
+
 	if isSameOwner then
 		return
 	elseif self.snapshot then
