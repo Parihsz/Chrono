@@ -1,11 +1,13 @@
 --!native
 local Players = game:GetService("Players")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
 local RunService = game:GetService("RunService")
 
 local Shared = script.Parent.Parent.Shared
 
-local Holder = require(ReplicatedStorage.Packages.chrono.Shared.Holder)
+local Bin = require(Shared.Bin)
+local Holder = require(Shared.Holder)
+local Events = require(Shared.Events)
 local Ticker = require(Shared.Ticker)
 local Config = require(Shared.Config)
 local Types = require(Shared.Types)
@@ -216,8 +218,52 @@ local function Update()
 	table.clear(Changes)
 end
 
+local function HandleEntity(plr, entity: Types.Entity)
+	local add, clear = Bin()
+	local function HandleModel(entity: Types.Entity)
+		if not entity.model then
+			return
+		end
+		local primaryPart = entity.model.PrimaryPart
+		if not primaryPart then
+			return
+		end
+		add(primaryPart:GetPropertyChangedSignal("CFrame"):Connect(function()
+			local cframe = primaryPart.CFrame
+			if cframe == entity.latestCFrame then
+				return
+			end
+			Entity.SetCFrame(entity, primaryPart.CFrame)
+		end))
+	end
+	local event = Entity.GetEvent(entity, "ModelChanged")
+		:Connect(function(entity: Types.Entity, newModel: Model?, oldModel: Model?) 
+			clear()
+			HandleModel(entity)
+		end)
+	Entity.GetEvent(entity, "NetworkOwnerChanged"):Once(function()
+		clear()
+		event:Disconnect()
+	end)
+	HandleModel(entity)
+end
+
+local function HandleCFrameSetters()
+	local mode: "NONE" | "PLAYER_ENTITIES" | "PLAYER_CHARACTERS" = Config._GetConfig("REPLICATE_CFRAME_SETTERS")
+	mode= "PLAYER_CHARACTERS"
+	if mode == "NONE" then
+		return
+	end
+	if mode == "PLAYER_ENTITIES" then
+		Events.PlayerOwnedAdded:Connect(HandleEntity,true)
+	else
+		Events.PlayerCharacterRegistered:Connect(HandleEntity,true)
+	end
+end
+
 Config._WaitForLock(function()
 	RunService.PreSimulation:Connect(Update)
+	HandleCFrameSetters()
 end)
 
 return nil

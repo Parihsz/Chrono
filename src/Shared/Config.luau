@@ -14,6 +14,8 @@ export type Configs =
 	| "DEFAULT_HALF_TICK_DISTANCE"
 	| "DEFAULT_MODEL_REPLICATION_MODE"
 	| "PLAYER_REPLICATION"
+	|  "REPLICATE_DEATHS"
+	| "REPLICATE_CFRAME_SETTERS"
 	| "__VERSION"
 
 export type SetConfig =
@@ -27,6 +29,8 @@ export type SetConfig =
 	& ("CHECK_NEW_VERSION", boolean) -> ()
 	& ("DEFAULT_MODEL_REPLICATION_MODE", "NATIVE" | "MIRRORED" | "CUSTOM") -> ()
 	& ("PLAYER_REPLICATION", "AUTOMATIC" | "CUSTOM") -> ()
+	& ("REPLICATE_DEATHS", "NONE" | "PLAYER_ENTITIES" | "PLAYER_CHARACTERS") -> ()
+	& ("REPLICATE_CFRAME_SETTERS", "NONE" | "PLAYER_ENTITIES" | "PLAYER_CHARACTERS") -> ()
 
 local LOCKED = false
 local BASE_CONFIG = {
@@ -41,6 +45,14 @@ local BASE_CONFIG = {
 	DEFAULT_HALF_TICK_DISTANCE = 100, -- Anything beyond this distance will not be replicated
 
 	REPLICATE_DEATHS = "NONE", 
+	--[[
+		TODO: IMPLEMENT these options
+		- This requires PLAYER_REPLICATION to be set to AUTOMATIC
+		-NONE = No deaths are replicated
+		-PLAYER_ENTITIES = Only deaths where player has entity ownership are replicated to players
+		-PLAYER_CHARACTERS= Only replicate deaths for player characters
+	]]
+	REPLICATE_CFRAME_SETTERS = "NONE",
 	--[[
 		TODO: IMPLEMENT these options
 		- This requires PLAYER_REPLICATION to be set to AUTOMATIC

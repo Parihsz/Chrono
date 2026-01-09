@@ -70,12 +70,19 @@ Config._WaitForLock(function()
 		return
 	end
 	local deathRemote = script.Parent.Parent.Shared.Remotes.Death
+	local ReplicateMode:"NONE" | "PLAYER_ENTITIES" | "PLAYER_CHARACTERS" = Config._GetConfig("REPLICATE_DEATHS")
 	deathRemote.OnServerEvent:Connect(function(plr, id)
+		if ReplicateMode == "NONE" then
+			return
+		end
 		local entity = Holder.GetEntityFromId(id)
 		if not entity then
 			return
 		end
 		if entity.networkOwner ~= plr or entity.modelReplicationMode == "NATIVE" then
+			return
+		end
+		if ReplicateMode == "PLAYER_CHARACTERS" and not entity._player then
 			return
 		end
 		
