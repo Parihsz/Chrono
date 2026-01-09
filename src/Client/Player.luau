@@ -13,7 +13,11 @@ Events.PlayerCharacterRegistered:Connect(function(player: Player, entity: Types.
 	if not entity.model then
 		return warn(`No model found for {player}`)
 	end
+	
 	if entity.model then
+		if not entity.model:IsA("Model") then
+			return warn(`Model for {player} is not a Model instance.`)
+		end
 		player.Character = entity.model
 	end
 
@@ -36,7 +40,7 @@ Events.PlayerCharacterRegistered:Connect(function(player: Player, entity: Types.
 
 	if LocalPlayer == player then
 		Entity.GetEvent(entity, "ModelChanged"):Connect(newModel)
-		newModel(entity, entity.model)
+		newModel(entity, entity.model::any)
 	end
 end)
 local DeathRemote = script.Parent.Parent.Shared.Remotes.Death
@@ -46,13 +50,13 @@ Config._WaitForLock(function()
 	end
 	Events.PlayerOwnedAdded:Connect(function(player: Player, entity: Types.Entity)  
 		local prevConnection:RBXScriptConnection?
-		local function newModel(_, model: Model?)
+		local function newModel(_, model: Model|BasePart?)
 			if prevConnection then
 				prevConnection:Disconnect()
 				prevConnection = nil
 			end
 		
-			if not model or not entity.isContextOwner then
+			if not model or not entity.isContextOwner or not model:IsA("Model") then
 				return
 			end
 			local humanoid = model:FindFirstChildWhichIsA("Humanoid")

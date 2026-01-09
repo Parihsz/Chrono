@@ -44,6 +44,19 @@ local function SafeSetNetworkOwner(part: BasePart, player: Player?)
 	end)
 end
 
+local function GetPart(model: Model | BasePart?): BasePart?
+	if not model then
+		return nil
+	end
+	if model:IsA("BasePart") then
+		return model
+	end
+	if model:IsA("Model") then
+		return model.PrimaryPart
+	end
+	return nil
+end
+
 local function SetValue(entity: Entity, key: string, value: any, bypass: boolean?, specialValue: any)
 	if not bypass and entity[key] == value then
 		return
@@ -76,18 +89,20 @@ local function CheckNetworkOwner(self: Entity, prev: Player?)
 		self.latestTime = 0
 	end
 	if IS_SERVER then
-		if self.model and self.model.PrimaryPart then
-			SafeSetNetworkOwner(self.model.PrimaryPart, self.networkOwner)
+		local part = GetPart(self.model)
+		if part then
+			SafeSetNetworkOwner(part, self.networkOwner)
 		end
-		if self.actualModel and self.actualModel.PrimaryPart then
-			local camera = self.actualModel:FindFirstChild("__CHRONO_MIRROR_CAMERA")
+		local apart = GetPart(self.actualModel)
+		if apart then
+			local camera = apart:FindFirstChild("__CHRONO_MIRROR_CAMERA")
 			if camera then
 				local weld = camera:FindFirstChildOfClass("Weld")
 				if weld then
 					weld.Part1 = nil
 					print("setnetworkowner", self.networkOwner)
-					SafeSetNetworkOwner(self.actualModel.PrimaryPart, self.networkOwner)
-					weld.Part1 = self.actualModel.PrimaryPart
+					SafeSetNetworkOwner(apart, self.networkOwner)
+					weld.Part1 = apart
 				end
 			end
 		end
@@ -107,6 +122,7 @@ local function CheckNetworkOwner(self: Entity, prev: Player?)
 				ClientClock.new(self.entityConfig.TICK_RATE, `Entity id: {self.id} plr: {self.networkOwner.Name}`)
 		end
 	end
+	warn(isSameOwner,'aa')
 	if isSameOwner then
 		return
 	elseif self.snapshot then
@@ -116,17 +132,21 @@ local function CheckNetworkOwner(self: Entity, prev: Player?)
 	FireEvent(self, "NetworkOwnerChanged", self.networkOwner, prev)
 	if prev then
 		local ownedEntities = clientOwned[prev]
+	
 		if ownedEntities then
 			ownedEntities[self] = nil
+	
 			Events._Signals.PlayerOwnedRemoved:Fire(prev, self)
 		end
 	end
 	if self.networkOwner then
+	
 		local ownedEntities = clientOwned[self.networkOwner]
 		if not ownedEntities then
 			return
 		end
 		ownedEntities[self] = true
+
 		Events._Signals.PlayerOwnedAdded:Fire(self.networkOwner, self)
 	end
 end
@@ -149,7 +169,7 @@ end
 
 local function SetModel(
 	self: Entity,
-	model: Model | string?,
+	model: Model | BasePart | string?,
 	modelReplicationMode: "NATIVE" | "MIRRORED" | "CUSTOM"?,
 	noDestroy: boolean?
 ): ()
@@ -168,8 +188,9 @@ local function SetModel(
 			if not noDestroy then
 				SafeDestroy(self.model)
 			end
+			
 			if self.model then
-				self.model.Parent = workspace
+				(self.model::any).Parent = workspace
 			end
 			self.model = nil
 		end
@@ -185,11 +206,15 @@ local function SetModel(
 		if model then
 			model = (model :: any):Clone()
 		end
-	elseif typeof(model) == "Instance" and model:IsA("Model") then
-		initCFrame = model.PrimaryPart and model.PrimaryPart.CFrame
+	elseif typeof(model) == "Instance" and (model:IsA("Model") or model:IsA("BasePart")) then
+		local part = GetPart(model :: Model | BasePart)
+		if part then
+			initCFrame = part.CFrame
+		end
 	end
 	local _model: Model? = model :: any
-	if _model and not _model.PrimaryPart then
+	local primaryPart = GetPart(_model)
+	if _model and not primaryPart then
 		warn(`{_model:GetFullName()} must have a PrimaryPart set for things like autoReplication and movement.`)
 	elseif _model and not _model.Archivable then
 		warn(
@@ -201,41 +226,48 @@ local function SetModel(
 	local replicationMode: "NATIVE" | "MIRRORED" | "CUSTOM" = CheckModelReplicationMode(self, modelReplicationMode)
 	self.modelString = modelString
 	self.model = _model
-	if IS_SERVER then
+
+	if IS_SERVER and _model then
 		self.modelReplicationMode = replicationMode
 
-		if replicationMode == "MIRRORED" and _model then
+		if replicationMode == "MIRRORED"  then
 			local fakeModel = _model:Clone()
 
-			local camera = Instance.new("Camera", _model)
+			local camera = Instance.new("Camera", primaryPart)
 			local weld = Instance.new("Weld", camera)
 			camera.Name = "__CHRONO_MIRROR_CAMERA"
 			local part = CENTER_PART:Clone()
 			part.Parent = camera
 			weld.Part0 = part
-			weld.Part1 = _model.PrimaryPart
+			weld.Part1 = primaryPart
 			part.CFrame = CFrame.new(0, 1000, 0)
 			_model.Parent = workspace
 			self.actualModel = _model
 			self.model = fakeModel
 			fakeModel.Parent = Holder.GetEntityStorageInstance()
-		elseif replicationMode == "CUSTOM" and _model then
+		elseif replicationMode == "CUSTOM" then
 			_model.Parent = Holder.GetEntityStorageInstance()
+		else
+			_model.Parent = workspace
 		end
+	elseif _model then
+		_model.Parent = Holder.GetEntityStorageInstance()
 	end
 	if not self.latestCFrame then
-		Entity.SetCFrame(self, initCFrame or CFrame.new(0, 10, 0))
+		Entity.SetCFrame(self, initCFrame or (primaryPart and primaryPart.CFrame) or CFrame.new())
 	end
 	if self.latestCFrame then
-		if self.model and self.model.PrimaryPart then
-			self.model.PrimaryPart.CFrame = self.latestCFrame
+		local part = GetPart(self.model)
+		if part then
+			part.CFrame = self.latestCFrame
 		end
 	end
+
 end
 
 function Entity.new(
 	entityConfig: string?,
-	model: Model | string?,
+	model: Model | BasePart | string?,
 	modelReplicationMode: "NATIVE" | "MIRRORED" | "CUSTOM"?,
 	initCFrame: CFrame?
 ): Entity
@@ -269,7 +301,7 @@ end
 
 function Entity.SetModel(
 	self: Entity,
-	model: Model | string?,
+	model: Model |BasePart| string?,
 	modelReplicationMode: "NATIVE" | "MIRRORED" | "CUSTOM"?,
 	noDestroy: boolean?
 )
@@ -309,7 +341,7 @@ function Entity.GetData(self: Entity): any
 	return self._data
 end
 
-function Entity.GetModel(self: Entity): Model?
+function Entity.GetModel(self: Entity): Model|BasePart?
 	return self.actualModel or self.model
 end
 
@@ -420,7 +452,8 @@ function Entity.SetAutoUpdatePos(self: Entity, autoUpdate: boolean)
 end
 
 function Entity.GetCFrame(self: Entity): CFrame?
-	return self.latestCFrame or (self.model and self.model.PrimaryPart and self.model.PrimaryPart.CFrame)
+	local part = GetPart(self.model)
+	return self.latestCFrame or (part and part.CFrame)
 end
 
 function Entity.SetCFrame(self: Entity, cframe: CFrame)
@@ -430,9 +463,17 @@ function Entity.SetCFrame(self: Entity, cframe: CFrame)
 	end
 	Entity.Push(self, latestTime, cframe)
 	SetValue(self, "latestCFrame", cframe, true)
-	if self.model and self.model.PrimaryPart then
-		self.model.PrimaryPart.CFrame = cframe
+	local part = GetPart(self.model)
+	if part then
+		part.CFrame = cframe
 	end
+end
+
+function Entity.GetPrimaryPart(self: Entity): BasePart?
+	if self.model then
+		return GetPart(self.model)
+	end
+	return nil
 end
 
 function Entity.Destroy(self: Entity)
@@ -445,14 +486,15 @@ function Entity.Destroy(self: Entity)
 	FireEvent(self, "Destroying")
 	if not IS_SERVER then
 		local modeType = self.modelReplicationMode
+		local primaryPat = GetPart(self.model)
 		if modeType == "MIRRORED" then
 			if self.model then
-				self.model.Parent = script.Parent._MIRRORED_MODELS
+				(self.model::any).Parent = script.Parent._MIRRORED_MODELS
 			end
 		elseif modeType == "CUSTOM" then
 			SafeDestroy(self.model)
-		elseif self.model and self.model.PrimaryPart then
-			self.model.PrimaryPart.CFrame = CFrame.new(0, 1000000, 0)
+		elseif primaryPat then
+			primaryPat.CFrame = CFrame.new(0, 1000000, 0)
 		end
 	else
 		SafeDestroy(self.model)
@@ -510,4 +552,5 @@ Events._Signals["请不要使用_内部_设置值_拜托谢谢_嗨_这个名字�
 	SetValue
 )
 Entity._Changes = Changes
+Entity._GetPart = GetPart
 return Entity

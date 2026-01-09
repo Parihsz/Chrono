@@ -29,6 +29,7 @@ Config._WaitForLock(function()
 	end
 end)
 
+
 local function FireEvent(entity: Types.Entity, eventName: string, ...: any)
 	local events = entity._events
 	if not events then
@@ -93,7 +94,7 @@ end
 
 local function PushLatest(entity: Types.Entity, time: number)
 	if entity.autoUpdatePosition and entity.isContextOwner and entity.model then
-		local primaryPart = entity.model.PrimaryPart
+		local primaryPart = Entity.GetPrimaryPart(entity)
 		if not primaryPart then
 			warn("Entity", entity, "has no primary part")
 			return
@@ -220,11 +221,12 @@ end
 
 local function HandleEntity(plr, entity: Types.Entity)
 	local add, clear = Bin()
+
 	local function HandleModel(entity: Types.Entity)
 		if not entity.model then
 			return
 		end
-		local primaryPart = entity.model.PrimaryPart
+		local primaryPart = Entity.GetPrimaryPart(entity)
 		if not primaryPart then
 			return
 		end
@@ -244,18 +246,20 @@ local function HandleEntity(plr, entity: Types.Entity)
 	Entity.GetEvent(entity, "NetworkOwnerChanged"):Once(function()
 		clear()
 		event:Disconnect()
+
 	end)
+
 	HandleModel(entity)
 end
 
 local function HandleCFrameSetters()
 	local mode: "NONE" | "PLAYER_ENTITIES" | "PLAYER_CHARACTERS" = Config._GetConfig("REPLICATE_CFRAME_SETTERS")
-	mode= "PLAYER_CHARACTERS"
 	if mode == "NONE" then
 		return
 	end
 	if mode == "PLAYER_ENTITIES" then
 		Events.PlayerOwnedAdded:Connect(HandleEntity,true)
+
 	else
 		Events.PlayerCharacterRegistered:Connect(HandleEntity,true)
 	end

@@ -4,6 +4,7 @@ local LocalPlayer = Players.LocalPlayer
 local Shared = script.Parent.Parent.Shared
 local Holder = require(Shared.Holder)
 local Types = require(Shared.Types)
+local Entity = require(Shared.Entity)
 local UnreliableEvent = Shared.Remotes.Replicate
 
 local ClientOwned = Holder._clientOwned
@@ -146,10 +147,10 @@ local function CheckEntity(entity: Types.Entity)
 
 	entity.lastReplicatedTime = now
 	FireEvent(entity, "Ticked", difference)
-	local model = entity.model
+	local primaryPart = Entity.GetPrimaryPart(entity)
 
-	if entity.autoUpdatePosition and model and model.PrimaryPart then
-		entity.latestCFrame = model.PrimaryPart.CFrame
+	if entity.autoUpdatePosition and primaryPart then
+		entity.latestCFrame = primaryPart.CFrame
 	end
 
 	local currentCFrame = entity.latestCFrame

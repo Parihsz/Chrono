@@ -94,7 +94,7 @@ Config._WaitForLock(function()
 			end
 			entity.actualModel:PivotTo(entity.latestCFrame or CFrame.new())
 			if entity.model then
-				entity.model.Parent = nil
+				(entity.model :: any).Parent = nil
 			end	
 		end
 		if model then

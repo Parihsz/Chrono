@@ -3,7 +3,7 @@ local Holder = require(Shared.Holder)
 local Config = require(Shared.Config)
 local Types = require(Shared.Types)
 
-local function ReadyModelFromRep(entity: Types.Entity, playerSpecific: Player?): Model | string?
+local function ReadyModelFromRep(entity: Types.Entity, playerSpecific: Player?): Model | string | BasePart?
 	local model = entity.model
 	local actualModel = entity.actualModel
 	local modelString = entity.modelString
@@ -35,9 +35,9 @@ local function ReadyModelFromRep(entity: Types.Entity, playerSpecific: Player?):
 				warn(`Cloned model for {model:GetFullName()} is not Archivable. Failed to replicate model.`)
 				modelClone = Instance.new("Model")
 				local part = Instance.new("Part")
-				part.Size = Vector3.one;(modelClone :: any).PrimaryPart = part
+				part.Size = Vector3.one;				(modelClone :: any).PrimaryPart = part
 			end
-			modelClone.Parent = ModelReplicator
+			(modelClone :: any).Parent = ModelReplicator
 
 			task.delay(2, function()
 				modelClone:Destroy()
@@ -66,7 +66,8 @@ local function CreateTempModel(): (Model, string)
 	return model, "CUSTOM"
 end
 
-local function CreateModelFromData(model: Model | string?): (Model?, string?)
+local function CreateModelFromData(model: Model | string | BasePart?): (Model | BasePart?, string?)
+	print(model)
 	if not model then
 		return
 	end
@@ -76,7 +77,7 @@ local function CreateModelFromData(model: Model | string?): (Model?, string?)
 		if source then
 			local clone = source:Clone()
 			if clone then
-				clone.Parent = Holder.GetEntityStorageInstance()
+				(clone :: any).Parent = Holder.GetEntityStorageInstance()
 				return clone, "CUSTOM"
 			end
 		end
@@ -85,7 +86,7 @@ local function CreateModelFromData(model: Model | string?): (Model?, string?)
 
 	-- if model.Parent == Shared._MIRRORED_MODELS then
 	-- 	model.Parent = Holder.GetEntityStorageInstance()
-	-- 	return model, "MIRRORED" -- MIRRORED NO LONGER IS DETECTED ON THE CLIENT 
+	-- 	return model, "MIRRORED" -- MIRRORED NO LONGER IS DETECTED ON THE CLIENT
 	-- end
 
 	if
@@ -99,7 +100,7 @@ local function CreateModelFromData(model: Model | string?): (Model?, string?)
 	then
 		local clone = model:Clone()
 		if clone then
-			clone.Parent = Holder.GetEntityStorageInstance()
+			(clone :: any).Parent = Holder.GetEntityStorageInstance()
 			return clone, "CUSTOM"
 		end
 		return CreateTempModel()

@@ -82,7 +82,8 @@ local playerTablePositionPair: { [PlayerEntityHolder]: vector } = {}
 local playerToHolder: { [Player]: PlayerEntityHolder } = {}
 
 local function Check(entity: Entity)
-	local cframe = entity.model and entity.model.PrimaryPart and entity.model.PrimaryPart.CFrame or entity.latestCFrame
+	local part = Entity.GetPrimaryPart(entity)
+	local cframe = part and part.CFrame or entity.latestCFrame
 	if not cframe or entity.destroyed then
 		return
 	end

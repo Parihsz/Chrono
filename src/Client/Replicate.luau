@@ -14,15 +14,14 @@ local idMap = Holder.idMap
 local parts = {}
 local cframes = {}
 local function Interpolate(entity: Types.Entity)
-	local model = entity.model
-	if not model or not model.PrimaryPart then
+	local primaryPart = Entity.GetPrimaryPart(entity)
+	if not primaryPart then
 		return
 	end
 	if entity.isContextOwner then
 		return
 	end
 
-	local primaryPart = model.PrimaryPart
 	local snapshot = entity.snapshot
 	if not snapshot then
 		warn("No snapshot for entity", entity)

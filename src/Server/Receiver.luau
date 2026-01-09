@@ -77,8 +77,8 @@ local function HandleEntity(player: Player, id: number, clock: number, cframe: C
 		if entity.modelReplicationMode == "NATIVE" then
 			return
 		end
-
-		local primaryPart = entity.model and entity.model.PrimaryPart
+	
+		local primaryPart = Entity.GetPrimaryPart(entity)
 		if primaryPart then
 			primaryPart.CFrame = cframe
 		end

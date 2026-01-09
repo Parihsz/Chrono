@@ -117,8 +117,8 @@ local function RegisterEntityType(name, config: Types.EntityConfigInput)
 end
 
 --Model can be registered after LOCKED FYI
-local function RegisterEntityModel(name: string, model: Model)
-	if not model.PrimaryPart then
+local function RegisterEntityModel(name: string, model: Model|BasePart)
+	if model:IsA("Model") and not model.PrimaryPart then
 		error(name .. " must have a PrimaryPart to be registered as an entity model.")
 	end
 	ENTITY_MODELS[name] = model
@@ -133,7 +133,7 @@ local function GetEntityType(name: string): Types.EntityConfig
 	return ENTITY_TYPES[name] or ENTITY_TYPES["DEFAULT"]
 end
 
-local function GetEntityModel(name: string): Model?
+local function GetEntityModel(name: string): Model|BasePart?
 	if not ENTITY_MODELS[name] then
 		warn(`Entity model {name} not found in Config.`)
 		return nil

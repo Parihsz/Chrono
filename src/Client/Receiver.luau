@@ -1,3 +1,4 @@
+local RunService = game:GetService("RunService")
 local Shared = script.Parent.Parent.Shared
 
 local Holder = require(Shared.Holder)
@@ -116,8 +117,8 @@ local function HandleChanges(changes: { id: number, data: { { any } } })
 end
 
 local function HandleNewEntity(data: Types.EntityReceivePacket)
+	print(data)
 	local model, modelType = ModelHelper.CreateModelFromData(data.model)
-	print("new entity", modelType)
 	local entity = Entity.new(data.config, model,nil, data.cframe)
 	entity.id = data.id
 	entity._player = data._player
@@ -236,6 +237,7 @@ local function HandleUnreliable(id: string, data: buffer)
 end
 
 local function HandleReliable(newEntities: {}, removedEntities: { number }, entityChanges: { any })
+	--RunService.PreAnimation:Wait() -- was encountering an issues where instances were not replicated prob was streaming endabled?
 	if removedEntities then
 		for _, id in removedEntities do
 			HandleRemoved(id)

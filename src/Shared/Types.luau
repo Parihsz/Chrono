@@ -114,7 +114,7 @@ export type EntityReceivePacket = {
 	time: number,
 	cframe: CFrame,
 	config: string?,
-	model: string | Model?,
+	model: string | Model| BasePart?,
 	paused: boolean?,
 	isHalfTicked: boolean?,
 	_data: any,
@@ -143,8 +143,8 @@ export type Entity = {
 	id: number,
 	entityConfig: EntityConfig, -- defaults to DEFAULT config
 	modelString: string?,
-	model: Model?,
-	actualModel: Model?, -- For mirrored models
+	model: Model|BasePart?,
+	actualModel: Model|BasePart?, -- For mirrored models
 	paused: boolean,
 	modelReplicationMode: "NATIVE" | "MIRRORED" | "CUSTOM"?,
 
