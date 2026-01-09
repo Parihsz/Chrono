@@ -23,7 +23,6 @@ local function RegisterPlayer(
 
 	local config = configuration.config or "PLAYER"
 	local modelRepMode = configuration.modelRepMode
-	modelRepMode = "MIRRORED"
 	local newEntity = Entity.new(config, character, modelRepMode :: "NATIVE" | "MIRRORED" | "CUSTOM")
 	Holder.RegisterEntity(newEntity)
 	Holder.SetAsCharacter(player, newEntity)
