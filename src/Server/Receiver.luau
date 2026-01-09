@@ -2,6 +2,7 @@ local RunService = game:GetService("RunService")
 local Receiver = {}
 
 local Shared = script.Parent.Parent.Shared
+local ServerClock = require(script.Parent.ServerClock)
 local Holder = require(Shared.Holder)
 local Entity = require(Shared.Entity)
 
@@ -47,34 +48,39 @@ local function DeserializeEntityPacket(b: buffer, index: number): (number, CFram
 	local packed = buffer.readu8(b, index)
 	index += 1
 	local isFull = bit32.band(packed, 1) == 1
-	local cf: CFrame
+
+	local cframe: CFrame
 	if isFull then
-		cf = DeserializeFull(b, index)
+		cframe = DeserializeFull(b, index)
 		index += FULL_BYTES
 	else
-		cf = DeserializeYaw(b, index)
+		cframe = DeserializeYaw(b, index)
 		index += YAW_BYTES
 	end
-	return id, cf, index
+
+	return id, cframe, index
 end
 
-local function HandleEntity(player: Player, id: number, clock: number, cf: CFrame, copyB: buffer)
+local function HandleEntity(player: Player, id: number, clock: number, cframe: CFrame, copyB: buffer)
 	local entity = Holder.GetEntityFromId(id)
 	if not entity or entity.networkOwner ~= player then
 		return
 	end
-	if Entity.Push(entity, clock, cf) then
+
+	if Entity.Push(entity, clock, cframe) then
 		task.spawn(function()
 			RunService.PreAnimation:Wait()
 			entity.arriveFrame = time()
 		end)
+
 		entity.cframeBuffer = copyB
 		if entity.modelReplicationMode == "NATIVE" then
 			return
 		end
+
 		local primaryPart = entity.model and entity.model.PrimaryPart
 		if primaryPart then
-			primaryPart.CFrame = cf
+			primaryPart.CFrame = cframe
 		end
 	end
 end
@@ -84,12 +90,15 @@ local function OnReceive(player: Player, data: buffer)
 	local clock = buffer.readf32(data, index)
 	index += 4
 	local dataLength = buffer.len(data)
+
+	ServerClock.Store(player, clock)
+
 	while index < dataLength do
-		local id, cf, newIndex = DeserializeEntityPacket(data, index)
+		local id, cframe, newIndex = DeserializeEntityPacket(data, index)
 		local copy = buffer.create(newIndex - index)
 		buffer.copy(copy, 0, data, index, newIndex - index)
 		index = newIndex
-		HandleEntity(player, id, clock, cf, copy)
+		HandleEntity(player, id, clock, cframe, copy)
 	end
 end
 
