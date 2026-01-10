@@ -72,6 +72,14 @@ local function HandleRemoved(id: number)
 	warn("Tried to remove non existent entity with id", id)
 end
 
+local function SetMountId(entity: Types.Entity, mountParentId: number?)
+	entity.mountParentId = mountParentId
+end
+
+local function SetMountOffset(entity: Types.Entity, mountOffset: CFrame?)
+	entity.mountOffset = mountOffset or CFrame.identity
+end
+
 local ValueChanges = {
 	networkOwner = Entity["设置网络主控玩家"],
 	isHalfTicked = SetTickMode,
@@ -79,6 +87,8 @@ local ValueChanges = {
 	entityConfig = Entity.SetConfig,
 	latestCFrame = Entity.SetCFrame,
 	autoUpdatePos = Entity.SetAutoUpdatePos,
+	mountParentId = SetMountId,
+	mountOffset = SetMountOffset,
 }
 
 local function HandleChanges(changes: { id: number, data: { { any } } })
@@ -118,13 +128,15 @@ end
 
 local function HandleNewEntity(data: Types.EntityReceivePacket)
 	local model, modelType = ModelHelper.CreateModelFromData(data.model)
-	local entity = Entity._new(data.config, model,nil, data.cframe)
+	local entity = Entity._new(data.config, model, nil, data.cframe)
 	entity.id = data.id
 	entity._player = data._player
 	entity.paused = data.paused or false
 	entity.isHalfTicked = data.isHalfTicked
 	entity._data = data._data
 	entity.modelReplicationMode = modelType :: any
+	entity.mountParentId = data.mountParentId
+	entity.mountOffset = data.mountOffset or CFrame.identity
 
 	Entity.Push(entity, data.time, data.cframe)
 

@@ -121,6 +121,8 @@ export type EntityReceivePacket = {
 	paused: boolean?,
 	isHalfTicked: boolean?,
 	_data: any,
+	mountParentId: number?,
+	mountOffset: CFrame?,
 }
 
 export type Entity = {
@@ -165,6 +167,9 @@ export type Entity = {
 	_changes: { { string | any } }?,
 	_events: { [string]: Signal<any, any> }?,
 	_lastId: number?,
+
+	mountParentId: number?,
+	mountOffset: CFrame?,
 }
 
 return nil

@@ -107,7 +107,6 @@ local function FlushEntities(player, buffers: BufferHolder, isHalf: boolean?)
 	end
 end
 
-
 --//honestly tables should beeeee fine for nowww, could buffer it later if reallllly needed
 local function GetEntityFullData(player: Player, entity: Types.Entity): Types.EntityReceivePacket?
 	if entity.destroyed then
@@ -120,7 +119,7 @@ local function GetEntityFullData(player: Player, entity: Types.Entity): Types.En
 		configName = nil
 	end
 
-	return { 
+	return {
 		id = entity.id,
 		_player = entity._player,
 		networkOwner = entity.networkOwner,
@@ -132,6 +131,9 @@ local function GetEntityFullData(player: Player, entity: Types.Entity): Types.En
 		paused = entity.paused,
 		isHalfTicked = entity.isHalfTicked,
 		_data = entity._data,
+
+		mountParentId = entity.mountParentId,
+		mountOffset = entity.mountOffset,
 	}
 end
 

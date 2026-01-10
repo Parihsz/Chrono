@@ -310,6 +310,7 @@ local function SetModel(
 		LockCFReplication(primaryPart)
 	end
 end
+
 function Entity._new(
 	entityConfig: string?,
 	model: Model | BasePart | string?,
@@ -416,6 +417,41 @@ function Entity._SetTickMode(self: Entity, isHalfTicked: boolean?)
 		self.isHalfTicked = isHalfTicked
 	end
 	FireEvent(self, "TickChanged", isHalfTicked == nil and "NONE" or if isHalfTicked then "HALF" else "NORMAL")
+end
+
+function Entity.ClearMount(self: Entity)
+	if not IS_SERVER then
+		error("ClearMount can only be called on the server")
+	end
+	if not self.mountParentId then
+		return
+	end
+
+	SetValue(self, "mountParentId", nil)
+	SetValue(self, "mountOffset", nil)
+end
+
+function Entity.SetMount(self: Entity, parent: Entity?, offset: CFrame?)
+	if not IS_SERVER then
+		error("SetMount can only be called on the server")
+	end
+
+	if parent == nil then
+		return Entity.ClearMount(self)
+	end
+
+	if self == parent then
+		warn("An entity cannot mount itself")
+		return
+	end
+
+	if not parent.id then
+		warn("Parent entity must be registered before mounting")
+		return
+	end
+
+	SetValue(self, "mountParentId", parent.id)
+	SetValue(self, "mountOffset", offset)
 end
 
 Entity["设置网络主控玩家"] = function(self: Entity, player: Player?)

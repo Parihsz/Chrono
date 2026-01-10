@@ -1,5 +1,7 @@
 local Shared = script.Parent.Parent.Shared
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
+local ApplyMounts = require(ReplicatedStorage.Packages.chrono.Shared.ApplyMounts)
 local RenderCache = require(script.Parent.ClientClock)
 local Entity = require(Shared.Entity)
 local Holder = require(Shared.Holder)
@@ -15,7 +17,7 @@ local parts = {}
 local cframes = {}
 local function Interpolate(entity: Types.Entity)
 	local primaryPart = Entity.GetPrimaryPart(entity)
-	
+
 	if not primaryPart then
 		return
 	end
@@ -49,11 +51,16 @@ Config._WaitForLock(function()
 			if entity.destroyed then
 				continue
 			end
+			if entity.mountParentId then
+				continue
+			end
 			Interpolate(entity)
 		end
 		workspace:BulkMoveTo(parts, cframes)
 		parts = {}
 		cframes = {}
+
+		ApplyMounts()
 	end)
 	RunService.Heartbeat:Connect(Sender.Update)
 
