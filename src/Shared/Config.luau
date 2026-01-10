@@ -27,7 +27,7 @@ export type SetConfig =
 	& ("SHOW_WARNINGS", boolean) -> ()
 	& ("MAX_SNAPSHOT_COUNT", number) -> ()
 	& ("CHECK_NEW_VERSION", boolean) -> ()
-	& ("DEFAULT_MODEL_REPLICATION_MODE", "NATIVE" | "MIRRORED" | "CUSTOM") -> ()
+	& ("DEFAULT_MODEL_REPLICATION_MODE", Types.MODEL_REPLICATION_MODE) -> ()
 	& ("PLAYER_REPLICATION", "AUTOMATIC" | "CUSTOM") -> ()
 	& ("REPLICATE_DEATHS", "NONE" | "PLAYER_ENTITIES" | "PLAYER_CHARACTERS") -> ()
 	& ("REPLICATE_CFRAME_SETTERS", "NONE" | "PLAYER_ENTITIES" | "PLAYER_CHARACTERS") -> ()
@@ -44,17 +44,15 @@ local BASE_CONFIG = {
 	DEFAULT_NORMAL_TICK_DISTANCE = 50,
 	DEFAULT_HALF_TICK_DISTANCE = 100, -- Anything beyond this distance will not be replicated
 
-	REPLICATE_DEATHS = "NONE", 
+	REPLICATE_DEATHS = "PLAYER_ENTITIES", 
 	--[[
-		TODO: IMPLEMENT these options
 		- This requires PLAYER_REPLICATION to be set to AUTOMATIC
 		-NONE = No deaths are replicated
 		-PLAYER_ENTITIES = Only deaths where player has entity ownership are replicated to players
 		-PLAYER_CHARACTERS= Only replicate deaths for player characters
 	]]
-	REPLICATE_CFRAME_SETTERS = "NONE",
+	REPLICATE_CFRAME_SETTERS = "PLAYER_ENTITIES",
 	--[[
-		TODO: IMPLEMENT these options
 		- This requires PLAYER_REPLICATION to be set to AUTOMATIC
 		-NONE = No deaths are replicated
 		-PLAYER_ENTITIES = Only deaths where player has entity ownership are replicated to players
@@ -72,15 +70,15 @@ local BASE_CONFIG = {
 			- Less control over replication
 
 	]]
-	DEFAULT_MODEL_REPLICATION_MODE = "MIRRORED",
+	DEFAULT_MODEL_REPLICATION_MODE = "NATIVE",
 	--[[
 		-NATIVE = Use Roblox's built in model replication.
 			+ Easy to use
 			- More bandwidth
-		-MIRRORED = Mirror the model. Actual Model in ReplicatedStorage on the server that client move to workspace. Changes done to it replicates. Which also means default replication gets disabled.
-			+ Less bandwidth
-			- More memory
-			- Have to modify actual model to replicate changes
+		-NATIVE_WITH_LOCK = Use Roblox's built in model replication, but disable server CFrame replication.
+			+ Less bandwidth than NATIVE as roblox's cframe replication is disabled.
+			- Server side roblox physics is disabled acting as if it was anchored.
+			+ Good for characters or client owned entities as physics will be client sided
 		-CUSTOM = Client and Server have separate cloned models.
 			+ Less bandwidth
 			- Have to write custom code to replicate stuff like animations
@@ -105,6 +103,7 @@ local ENTITY_TYPES: { [string]: Types.EntityConfig } = {
 	},
 	PLAYER = {
 		NAME = "PLAYER",
+		MODEL_REPLICATION_MODE = "NATIVE_WITH_LOCK",
 		BUFFER = 0, -- handled dynamically for players
 		TICK_RATE = 1 / 20,
 	},

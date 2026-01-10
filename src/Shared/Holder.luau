@@ -63,6 +63,13 @@ local function SetAsCharacter(player: Player, entity: Types.Entity): Types.Entit
 end
 
 local function RegisterEntity(entity: Types.Entity)
+	if entity.destroyed then
+		error("Cannot register a destroyed entity")
+	end
+	if idMap[entity.id] then
+		warn("Entity is already registered", entity)
+		return
+	end
 	if IS_SERVER then
 		local id = GetNextId()
 		if idMap[id] then
@@ -116,7 +123,7 @@ end
 --Warning: O(n) operation
 local function GetEntityFromModel(model: Model): Types.Entity?
 	for _, entity in idMap do
-		if entity.model == model or entity.actualModel == model then
+		if entity.model == model then
 			return entity
 		end
 	end

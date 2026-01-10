@@ -1,4 +1,4 @@
-type BinItem = Instance | RBXScriptConnection | thread | () -> ...any
+type BinItem = Instance | RBXScriptConnection | thread | () -> (...any) | { _binCleanup: (...any) -> () }
 
 export type Add = <T>(Item: T & BinItem) -> T
 export type Clear = () -> ()

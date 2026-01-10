@@ -5,14 +5,11 @@ local Types = require(Shared.Types)
 
 local function ReadyModelFromRep(entity: Types.Entity, playerSpecific: Player?): Model | string | BasePart?
 	local model = entity.model
-	local actualModel = entity.actualModel
 	local modelString = entity.modelString
-	local replicationMode: "NATIVE" | "CUSTOM" | "MIRRORED" = (entity.modelReplicationMode or "NATIVE") :: any
+	local replicationMode: "NATIVE" | "CUSTOM" = (entity.modelReplicationMode or "NATIVE") :: any
 
 	if replicationMode == "NATIVE" then
 		return model
-	elseif replicationMode == "MIRRORED" then
-		return actualModel
 	elseif replicationMode == "CUSTOM" then
 		if modelString then
 			return modelString
@@ -84,10 +81,7 @@ local function CreateModelFromData(model: Model | string | BasePart?): (Model | 
 		return CreateTempModel()
 	end
 
-	-- if model.Parent == Shared._MIRRORED_MODELS then
-	-- 	model.Parent = Holder.GetEntityStorageInstance()
-	-- 	return model, "MIRRORED" -- MIRRORED NO LONGER IS DETECTED ON THE CLIENT
-	-- end
+
 
 	if
 		model.Parent == Shared._CUSTOM_MODEL_REP

@@ -74,14 +74,10 @@ local function HandleEntity(player: Player, id: number, clock: number, cframe: C
 		end)
 
 		entity.cframeBuffer = copyB
-		if entity.modelReplicationMode == "NATIVE" then
+		if entity.modelReplicationMode == "NATIVE" and not entity._lockedCFReplication then
 			return
 		end
-	
-		local primaryPart = Entity.GetPrimaryPart(entity)
-		if primaryPart then
-			primaryPart.CFrame = cframe
-		end
+		Entity._SetPartCFrame(entity, cframe)
 	end
 end
 

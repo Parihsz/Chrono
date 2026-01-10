@@ -15,6 +15,7 @@ local parts = {}
 local cframes = {}
 local function Interpolate(entity: Types.Entity)
 	local primaryPart = Entity.GetPrimaryPart(entity)
+	
 	if not primaryPart then
 		return
 	end

@@ -16,7 +16,7 @@ return {
 	end,
 	server = function()
 		local native = Entity.new(nil, "TestPart", "NATIVE")
-		Holder.RegisterEntity(native)
+		
 		local part = Entity.GetPrimaryPart(native)
 
 		if part then
@@ -24,8 +24,9 @@ return {
 			part.Color = Color3.new(1, 0, 0)
 		end
 
-		local mirrored = Entity.new(nil, "TestPart", "MIRRORED")
-		Holder.RegisterEntity(mirrored)
+		local mirrored = Entity.new(nil, "TestPart")
+        Entity.LockNativeServerCFrameReplication(mirrored)
+
 		local part = mirrored.model :: BasePart?
 		if part then
 			part.Name = "MirroredTestPart"
@@ -35,7 +36,7 @@ return {
 		local p = Players:GetPlayers()[1] or Players.PlayerAdded:Wait()
 
 		local custom = Entity.new(nil, "TestPart", "CUSTOM")
-		Holder.RegisterEntity(custom)
+
 		local part = custom.model :: BasePart?
 		if part then
 			part.Color = Color3.new(0, 1, 0)

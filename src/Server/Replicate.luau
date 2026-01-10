@@ -29,7 +29,6 @@ Config._WaitForLock(function()
 	end
 end)
 
-
 local function FireEvent(entity: Types.Entity, eventName: string, ...: any)
 	local events = entity._events
 	if not events then
@@ -221,8 +220,8 @@ end
 
 local function HandleEntity(plr, entity: Types.Entity)
 	local add, clear = Bin()
-
 	local function HandleModel(entity: Types.Entity)
+		print(entity.model)
 		if not entity.model then
 			return
 		end
@@ -230,23 +229,44 @@ local function HandleEntity(plr, entity: Types.Entity)
 		if not primaryPart then
 			return
 		end
-		add(primaryPart:GetPropertyChangedSignal("CFrame"):Connect(function()
-			local cframe = primaryPart.CFrame
+		local partToUse = primaryPart
+		local function CFrameChanged()
+			local cframe = partToUse.CFrame
 			if cframe == entity.latestCFrame then
 				return
 			end
-			Entity.SetCFrame(entity, primaryPart.CFrame)
-		end))
+			Entity.SetCFrame(entity, cframe)
+		end
+
+		if entity._lockedCFReplication then
+			local locker = primaryPart:FindFirstChild("__CHRONO_LOCKER")
+
+			if not locker then
+				return
+			end
+			local lockerPart = locker:FindFirstChild("__CHRONO_LOCKER_PART") :: BasePart?
+			if not lockerPart or not lockerPart:IsA("BasePart") then
+				return
+			end
+			partToUse = lockerPart
+			add(lockerPart:GetPropertyChangedSignal("CFrame"):Connect(CFrameChanged))
+		else
+			add(primaryPart:GetPropertyChangedSignal("CFrame"):Connect(CFrameChanged))
+		end
 	end
-	local event = Entity.GetEvent(entity, "ModelChanged")
-		:Connect(function(entity: Types.Entity, newModel: Model?, oldModel: Model?) 
-			clear()
-			HandleModel(entity)
-		end)
+	local add2, clear2 = Bin()
+	add2(Entity.GetEvent(entity, "ModelChanged"):Connect(function()
+		clear()
+		HandleModel(entity)
+	end))
+	add2(Entity.GetEvent(entity, "LockChanged"):Connect(function()
+		clear()
+		HandleModel(entity)
+	end))
+
 	Entity.GetEvent(entity, "NetworkOwnerChanged"):Once(function()
 		clear()
-		event:Disconnect()
-
+		clear2()
 	end)
 
 	HandleModel(entity)
@@ -258,10 +278,9 @@ local function HandleCFrameSetters()
 		return
 	end
 	if mode == "PLAYER_ENTITIES" then
-		Events.PlayerOwnedAdded:Connect(HandleEntity,true)
-
+		Events.PlayerOwnedAdded:Connect(HandleEntity, true)
 	else
-		Events.PlayerCharacterRegistered:Connect(HandleEntity,true)
+		Events.PlayerCharacterRegistered:Connect(HandleEntity, true)
 	end
 end
 

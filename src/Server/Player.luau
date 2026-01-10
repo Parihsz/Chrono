@@ -12,7 +12,7 @@ local function RegisterPlayer(
 	character: Model,
 	configuration: {
 		config: string?,
-		modelRepMode: "NATIVE" | "MIRRORED" | "CUSTOM"?,
+		modelRepMode: Types.MODEL_REPLICATION_MODE?,
 	}
 ): Types.Entity
 	local entity = playerEntities[player]
@@ -23,15 +23,15 @@ local function RegisterPlayer(
 
 	local config = configuration.config or "PLAYER"
 	local modelRepMode = configuration.modelRepMode
-	local newEntity = Entity.new(config, character, modelRepMode :: "NATIVE" | "MIRRORED" | "CUSTOM")
-	Holder.RegisterEntity(newEntity)
+	
+	local newEntity = Entity.new(config, character, modelRepMode::any)
 	Holder.SetAsCharacter(player, newEntity)
 	Entity.SetNetworkOwner(newEntity, player)
 
 	-- task.delay(7, function()
 	-- 	Entity.SetModel(newEntity, character, "NATIVE", true)
 	-- 	task.wait(5)
-	-- 	Entity.SetModel(newEntity, character, "MIRRORED", true)
+	-- 	Entity.SetModel(newEntity, character, "CUSTOM", true)
 	-- end)
 
 	return newEntity
@@ -48,7 +48,6 @@ local function OnCharacterAdded(character: Model, player: Player)
 	task.wait()
 	RegisterPlayer(player, character, {
 		config = "PLAYER",
-		modelRepMode = Config._GetConfig("DEFAULT_MODEL_REPLICATION_MODE"),
 	})
 end
 
@@ -78,6 +77,7 @@ Config._WaitForLock(function()
 		if not entity then
 			return
 		end
+
 		if entity.networkOwner ~= plr or entity.modelReplicationMode == "NATIVE" then
 			return
 		end
@@ -85,17 +85,7 @@ Config._WaitForLock(function()
 			return
 		end
 		
-		local model = entity.actualModel or entity.model
-		if entity.actualModel then
-			local camera = entity.actualModel:FindFirstChildWhichIsA("Camera")
-			if camera then
-				camera:Destroy()
-			end
-			entity.actualModel:PivotTo(entity.latestCFrame or CFrame.new())
-			if entity.model then
-				(entity.model :: any).Parent = nil
-			end	
-		end
+		local model = entity.model
 		if model then
 			local humanoid = model:FindFirstChildWhichIsA("Humanoid")
 			if humanoid then

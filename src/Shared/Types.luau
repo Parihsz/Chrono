@@ -14,12 +14,14 @@ export type Signal<fx, T...> = {
 export type Connection = {
 	Disconnect: (self: any) -> (),
 	Connected: boolean,
+	_binCleanup: () -> (),
 }
 
 export type Event<fx, T...> = {
-	Connect: (self: any, FN: fx,defer:boolean?) -> Connection,
-	Once: (self: any, FN: fx,defer:boolean?) -> Connection,
-	Wait: (self: any,defer:boolean?) -> T...,
+	Connect: (self: any, FN: fx, defer: boolean?) -> Connection,
+	Once: (self: any, FN: fx, defer: boolean?) -> Connection,
+	Wait: (self: any, defer: boolean?) -> T...,
+	_binCleanup: () -> (),
 }
 
 export type Snapshot<Value, Velocity> = {
@@ -35,6 +37,7 @@ export type Snapshot<Value, Velocity> = {
 	Clear: (self: Snapshot<Value, Velocity>) -> (),
 }
 
+export type MODEL_REPLICATION_MODE = "NATIVE" | "NATIVE_WITH_LOCK" | "CUSTOM"
 export type EntityConfig = {
 	NAME: string,
 	TICKER: Ticker?,
@@ -48,7 +51,7 @@ export type EntityConfig = {
 	FULL_ROTATION: boolean?, -- defaults to false
 	AUTO_UPDATE_POSITION: boolean?, -- defaults to true
 	STORE_SNAPSHOTS: boolean?, -- defaults to false
-	MODEL_REPLICATION_MODE: "NATIVE" | "MIRRORED" | "CUSTOM"?,
+	MODEL_REPLICATION_MODE: MODEL_REPLICATION_MODE?,
 	NORMAL_TICK_DISTANCE: number?,
 	HALF_TICK_DISTANCE: number?,
 }
@@ -59,7 +62,7 @@ export type EntityConfigInput = {
 	FULL_ROTATION: boolean?,
 	AUTO_UPDATE_POSITION: boolean?, -- If false have to manually call Entity.push
 	STORE_SNAPSHOTS: boolean?, -- Should snapshots be stored on the server. Excludes client owned
-	MODEL_REPLICATION_MODE: "NATIVE" | "MIRRORED" | "CUSTOM"?,
+	MODEL_REPLICATION_MODE: MODEL_REPLICATION_MODE?,
 
 	NORMAL_TICK_DISTANCE: number?,
 	HALF_TICK_DISTANCE: number?,
@@ -114,7 +117,7 @@ export type EntityReceivePacket = {
 	time: number,
 	cframe: CFrame,
 	config: string?,
-	model: string | Model| BasePart?,
+	model: string | Model | BasePart?,
 	paused: boolean?,
 	isHalfTicked: boolean?,
 	_data: any,
@@ -143,10 +146,10 @@ export type Entity = {
 	id: number,
 	entityConfig: EntityConfig, -- defaults to DEFAULT config
 	modelString: string?,
-	model: Model|BasePart?,
-	actualModel: Model|BasePart?, -- For mirrored models
+	model: Model | BasePart?,
 	paused: boolean,
-	modelReplicationMode: "NATIVE" | "MIRRORED" | "CUSTOM"?,
+
+	modelReplicationMode: "NATIVE" | "CUSTOM"?,
 
 	lastCheckedCFrame: CFrame?,
 
@@ -157,6 +160,7 @@ export type Entity = {
 	registered: boolean,
 	destroyed: boolean,
 
+	_lockedCFReplication: boolean?,
 	_data: any,
 	_changes: { { string | any } }?,
 	_events: { [string]: Signal<any, any> }?,

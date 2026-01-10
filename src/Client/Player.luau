@@ -67,7 +67,6 @@ Config._WaitForLock(function()
 					if not entity.isContextOwner then
 						return
 					end
-					print('dead')
 					DeathRemote:FireServer(entity.id)
 				end)
 			end

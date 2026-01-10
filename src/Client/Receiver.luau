@@ -117,20 +117,19 @@ local function HandleChanges(changes: { id: number, data: { { any } } })
 end
 
 local function HandleNewEntity(data: Types.EntityReceivePacket)
-	print(data)
 	local model, modelType = ModelHelper.CreateModelFromData(data.model)
-	local entity = Entity.new(data.config, model,nil, data.cframe)
+	local entity = Entity._new(data.config, model,nil, data.cframe)
 	entity.id = data.id
 	entity._player = data._player
 	entity.paused = data.paused or false
 	entity.isHalfTicked = data.isHalfTicked
 	entity._data = data._data
 	entity.modelReplicationMode = modelType :: any
+
 	Entity.Push(entity, data.time, data.cframe)
 
 	Entity["设置网络主控玩家"](entity, data.networkOwner)
 	SetTickMode(entity, data.isHalfTicked)
-
 	Holder.RegisterEntity(entity)
 end
 
