@@ -53,9 +53,8 @@ Registers an NPC on the server.
 **Returns:**  
 The id for the registered NPC.
 
-:::danger
+> ⚠️ **Danger**
 If `initData` is given, the data will be serialized using `HttpService:JSONEncode()`. Be aware of what can and cannot be serialized.
-:::
 
 
 ---
@@ -77,10 +76,8 @@ The original NPC `Model`.
 
 These will fired on both the server and client.
 
-:::danger
+> ⚠️ **Danger**
 These will only fire if the entity is registered via `NpcRegistry`. Manual Registration using `ChronoServer.RegisterNPC` will not trigger these signals.
-:::
-
 
 ### `Npc.NpcAdded`
 

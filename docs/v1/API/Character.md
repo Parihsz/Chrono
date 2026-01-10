@@ -39,9 +39,8 @@ Assigns a character model to the given player.
 - On the **server**, a clone is inserted into `ReplicatedStorage.PLAYER_MODEL_CACHE` to sync with the clients.  
 - On the **client**, incoming clones from the cache are registered automatically.
 
-:::danger
+> ⚠️ **Danger**
 If `data` is provided, ensure it is JSON-serializable.
-:::
 
 ---
 
@@ -108,9 +107,9 @@ When using **custom characters** with the `Characters` module, the default Roblo
   - On the **server**, the character will still be considered alive and will not be replaced.
 
 
-:::danger
+> ⚠️ **Danger**
 If you enable `Config.ENABLE_CUSTOM_CHARACTERS`, you must implement your own **respawn / reset logic**.  
 Roblox’s built-in reset button will no longer respawn the player automatically.
-:::
+
 
 ---

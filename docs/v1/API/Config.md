@@ -1,13 +1,11 @@
 # Config
 Configs on how chronos works. This can be modified pre-runtime or at runtime before initialization.
 
-:::danger
+> ⚠️ **Danger**
 Remember to modify the config on both the server and client.
-:::
 
-:::danger
+> ⚠️ **Danger**
 Only the properties `NPC_MODELS` and `NPC_TYPES` may be modified after `Chrono.Start()` is called, otherwise an error would occur. Other properties must be modified before running `Chrono.Start()`.
-:::
 
 ## Types
 
@@ -53,9 +51,8 @@ If true, allows the use of custom characters in the game. This will disable defa
 ### `DISABLE_DEFAULT_REPLICATION: boolean`
 If true, disables default roblox replication for players.
 
-:::danger
+> ⚠️ **Danger**
 This will also prevent you from anchoring the primary part of player characters as chrono would be unanchoring locally so they can move as they are anchored on the server to prevent replication.
-:::
 
 ---
 
@@ -64,9 +61,8 @@ If true, clients and server will replicate **full 3D rotation** (as 3× mapped `
 If false (default), only yaw rotation is sent.  
 This property can be modified during as chrono is running. 
 
-:::note
+> 📕 **Note**
 Full rotation packets are slightly larger (**24 bytes**) compared to yaw-only packets (**20 bytes**).
-:::
 
 ---
 

@@ -12,9 +12,8 @@
 
 If no rule is found then  every Player will receive updates. Otherwise, only the specified players will receive updates.
 
-:::danger
+> ⚠️ **Danger**
 When players leave, players stored in `filterPlayers` will continue to exist, make sure to clean them up if necessary.
-:::
 
 ---
 
