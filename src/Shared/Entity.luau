@@ -244,10 +244,6 @@ local function SetModel(
 		if not noDestroy then
 			SafeDestroy(self.model)
 		end
-
-		if self.model then
-			(self.model :: any).Parent = workspace
-		end
 		self.model = nil
 	elseif not IS_SERVER and isCustom then
 		SafeDestroy(self.model)
