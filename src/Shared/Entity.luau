@@ -258,6 +258,10 @@ local function SetModel(
 		if model then
 			model = (model :: any):Clone()
 		end
+
+		if model then
+			(model::any).Parent = workspace
+		end
 	elseif typeof(model) == "Instance" and (model:IsA("Model") or model:IsA("BasePart")) then
 		local part = GetPart(model :: Model | BasePart)
 		if part then
@@ -289,8 +293,6 @@ local function SetModel(
 
 		if replicationMode == "CUSTOM" then
 			_model.Parent = Holder.GetEntityStorageInstance()
-		else
-			_model.Parent = workspace
 		end
 	end
 	if not primaryPart then
