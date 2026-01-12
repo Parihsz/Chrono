@@ -8,6 +8,7 @@ local ServerClock = require(script.Parent.ServerClock)
 local Types = require(Shared.Types)
 local Holder = require(Shared.Holder)
 local Entity = require(Shared.Entity)
+local Config = require(Shared.Config)
 local MAX_TOTAL_BYTES_PER_FRAME_PER_PLAYER = 3000
 
 local UnreliableEvent = Shared.Remotes.Replicate
@@ -172,4 +173,8 @@ RunService.Heartbeat:Connect(function(a0: number)
 	table.clear(TotalBytes)
 end)
 UnreliableEvent.OnServerEvent:Connect(OnReceive)
+
+Config._WaitForLock(function()
+	MAX_TOTAL_BYTES_PER_FRAME_PER_PLAYER = Config._GetConfig("MAX_TOTAL_BYTES_PER_FRAME_PER_PLAYER")
+end)
 return Receiver
