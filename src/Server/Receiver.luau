@@ -8,6 +8,7 @@ local ServerClock = require(script.Parent.ServerClock)
 local Types = require(Shared.Types)
 local Holder = require(Shared.Holder)
 local Entity = require(Shared.Entity)
+local MAX_TOTAL_BYTES_PER_FRAME_PER_PLAYER = 3000
 
 local UnreliableEvent = Shared.Remotes.Replicate
 
@@ -100,7 +101,16 @@ local function HandleEntity(player: Player, id: number, clock: number, cframe: C
 	end
 end
 
+local TotalBytes = {}
 local function OnReceive(player: Player, data: buffer)
+	if not data then
+		return
+	end
+	TotalBytes[player] = (TotalBytes[player] or 0) + buffer.len(data)
+	if TotalBytes[player] > MAX_TOTAL_BYTES_PER_FRAME_PER_PLAYER then
+		warn("Player", player.Name, "exceeded max bytes per frame:", TotalBytes[player])
+		return
+	end
 	local index = 0
 	local clock = buffer.readf32(data, index)
 	index += 4
@@ -158,6 +168,8 @@ function Receiver.UnregisterMiddleMan(name: string)
 		return a.priority > b.priority
 	end)
 end
-
+RunService.Heartbeat:Connect(function(a0: number)  
+	table.clear(TotalBytes)
+end)
 UnreliableEvent.OnServerEvent:Connect(OnReceive)
 return Receiver
