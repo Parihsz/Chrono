@@ -15,7 +15,7 @@ local function ReadyModelFromRep(entity: Types.Entity, playerSpecific: Player?):
 			return modelString
 		end
 		local ModelReplicator = script.Parent.Parent.Shared._CUSTOM_MODEL_REP
-		print(playerSpecific)
+	
 		if playerSpecific then
 			local PlayerGui = playerSpecific.PlayerGui
 			ModelReplicator = PlayerGui:FindFirstChild("_ChronoClientModels") :: Instance
@@ -64,7 +64,7 @@ local function CreateTempModel(): (Model, string)
 end
 
 local function CreateModelFromData(model: Model | string | BasePart?): (Model | BasePart?, string?)
-	print(model)
+
 	if not model then
 		return
 	end

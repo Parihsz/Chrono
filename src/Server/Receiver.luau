@@ -1,8 +1,11 @@
 local RunService = game:GetService("RunService")
 local Receiver = {}
 
+local MiddleMans = {}
+local SortedMiddleMans = {}
 local Shared = script.Parent.Parent.Shared
 local ServerClock = require(script.Parent.ServerClock)
+local Types = require(Shared.Types)
 local Holder = require(Shared.Holder)
 local Entity = require(Shared.Entity)
 
@@ -11,6 +14,18 @@ local UnreliableEvent = Shared.Remotes.Replicate
 local FULL_BYTES = 4 * 3 + 2 * 3
 local YAW_BYTES = 4 * 3 + 2
 
+local function FireMiddleMans(player: Player, entity: Types.Entity, cframe: CFrame, arriveTime: number): boolean
+	if #SortedMiddleMans == 0 then
+		return false
+	end
+	for _, mmData:any in SortedMiddleMans do
+		local block = mmData.func(player, entity, cframe, arriveTime)
+		if block then
+			return true
+		end
+	end
+	return false
+end
 local function UnmapRotation(x: number): number
 	return (x / 65535) * (2 * math.pi) - math.pi
 end
@@ -67,6 +82,10 @@ local function HandleEntity(player: Player, id: number, clock: number, cframe: C
 		return
 	end
 
+	if FireMiddleMans(player, entity, cframe, clock) then
+		return
+	end
+
 	if Entity.Push(entity, clock, cframe) then
 		task.spawn(function()
 			RunService.PreAnimation:Wait()
@@ -96,6 +115,48 @@ local function OnReceive(player: Player, data: buffer)
 		index = newIndex
 		HandleEntity(player, id, clock, cframe, copy)
 	end
+end
+
+--[=[
+	Registers a middle man function that can intercept incoming entity updates.
+	
+	@param name The unique name of the middle man
+	@param priority The priority of the middle man ( higher priority runs first )
+	@param func The function to call. Should return true to block the update, else allow it.
+]=]
+function Receiver.RegisterMiddleMan(
+	name: string,
+	priority: number,
+	func: (
+		player: Player,
+		entity: Types.Entity,
+		cframe: CFrame,
+		arriveTime: number
+	) -> boolean
+)
+	MiddleMans[name] = { priority = priority, func = func }
+	SortedMiddleMans = {}
+	for mm, data in MiddleMans do
+		table.insert(SortedMiddleMans, data)
+	end
+	table.sort(SortedMiddleMans, function(a, b)
+		return a.priority > b.priority
+	end)
+end
+
+--[=[
+	Unregisters a middle man function.
+	@param name The unique name of the middle man
+]=]
+function Receiver.UnregisterMiddleMan(name: string)
+	MiddleMans[name] = nil
+	SortedMiddleMans = {}
+	for mm, data in MiddleMans do
+		table.insert(SortedMiddleMans, data)
+	end
+	table.sort(SortedMiddleMans, function(a, b)
+		return a.priority > b.priority
+	end)
 end
 
 UnreliableEvent.OnServerEvent:Connect(OnReceive)

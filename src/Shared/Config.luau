@@ -123,6 +123,7 @@ local function RegisterEntityModel(name: string, model: Model|BasePart)
 	ENTITY_MODELS[name] = model
 end
 
+
 local SetConfig = function(name, value)
 	assert(not LOCKED, "Config is locked and cannot be modified after startup.")
 	BASE_CONFIG[name] = value

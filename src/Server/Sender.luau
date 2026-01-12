@@ -168,7 +168,7 @@ local function ReplicatePlayer(player: Player)
 		if not clientOwned[latestTime] then
 			clientOwned[latestTime] = {}
 		end
-		warn("Adding client owned entity", entity.id, "to replicate buffer")
+
 		table.insert(clientOwned[latestTime], entity.cframeBuffer :: buffer)
 	end
 
@@ -232,16 +232,16 @@ local function ReplicatePlayer(player: Player)
 	FlushEntities(player, halfBuffers, true)
 
 	if #toRemove > 0 or #toSendFull > 0 or #entityChanges > 0 then
-		print(
-			"Sending reliable packet to",
-			player.Name,
-			"toSendFull:",
-			#toSendFull,
-			"toRemove:",
-			#toRemove,
-			"entityChanges:",
-			#entityChanges
-		)
+		-- print(
+		-- 	"Sending reliable packet to",
+		-- 	player.Name,
+		-- 	"toSendFull:",
+		-- 	#toSendFull,
+		-- 	"toRemove:",
+		-- 	#toRemove,
+		-- 	"entityChanges:",
+		-- 	#entityChanges
+		-- )
 		ReliableEvent:FireClient(player, toSendFull, toRemove, entityChanges)
 	end
 end

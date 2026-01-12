@@ -221,10 +221,9 @@ end
 local function HandleEntity(plr, entity: Types.Entity)
 	local add, clear = Bin()
 	local function HandleModel(entity: Types.Entity)
-		print(entity.model)
 		if not entity.model then
 			return
-		end
+		end 
 		local primaryPart = Entity.GetPrimaryPart(entity)
 		if not primaryPart then
 			return

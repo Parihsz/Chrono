@@ -45,11 +45,9 @@ local function SafeSetNetworkOwner(part: BasePart, player: Player?)
 end
 
 local function LockCFReplication(part: BasePart?)
-	warn(part)
 	if not part then
 		return
 	end
-	print(part:GetFullName())
 	local initCF = part.CFrame
 	local previousLocker = part:FindFirstChild("__CHRONO_LOCKER")
 	if previousLocker then
@@ -345,6 +343,16 @@ function Entity._new(
 	return self
 end
 
+--[=[
+	Creates a new Entity instance and registers.
+
+	@param entityConfig The entity configuration name to use. Defaults to "DEFAULT" if not provided or invalid.
+	@param model The model to use for the entity. Can be a Model, BasePart, or a string representing a registered model name.
+	@param modelReplicationMode The model replication mode to use. Will default of the entity config if not provided.
+	@param initCFrame The initial CFrame for the entity. Optional.
+
+	@return The newly created Entity instance.
+]=]
 function Entity.new(
 	entityConfig: string?,
 	model: Model | BasePart | string?,
@@ -356,6 +364,13 @@ function Entity.new(
 	return self
 end
 
+--[=[
+	Sets the model for the entity.
+
+	@param model The model to set for the entity. Can be a Model, BasePart, or a string representing a registered model name.
+	@param modelReplicationMode The model replication mode to use. Will default to the last used mode or the entity config if not provided.
+	@param noDestroy If true, will not destroy the previous model. Defaults to false.
+]=]
 function Entity.SetModel(
 	self: Entity,
 	model: Model | BasePart | string?,
@@ -385,6 +400,11 @@ local function GetEvent(self: Entity, eventName: string): Types.Event<any>
 	return events[eventName].Event
 end
 
+--[=[
+	Sets the entity configuration for the entity.
+
+	@param entityConfig The entity configuration name to set.
+]=]
 function Entity.SetConfig(self: Entity, entityConfig: string)
 	local config = Config._GetEntityType(entityConfig)
 	if not config then
@@ -394,14 +414,29 @@ function Entity.SetConfig(self: Entity, entityConfig: string)
 	SetValue(self, "entityConfig", config, false, config.NAME)
 end
 
+--[=[
+	Gets the user associated data with the entity.
+
+	@return The data associated with the entity.
+]=]
 function Entity.GetData(self: Entity): any
 	return self._data
 end
 
+--[=[
+	Gets the model associated with the entity.
+
+	@return The model associated with the entity.
+]=]
 function Entity.GetModel(self: Entity): Model | BasePart?
 	return self.model
 end
 
+--[=[
+	Sets the user associated data with the entity.
+
+	@param data The data to associate with the entity.
+]=]
 function Entity.SetData(self: Entity, data: any)
 	SetValue(self, "_data", data, true)
 	FireEvent(self, "DataChanged", data)
@@ -419,6 +454,9 @@ function Entity._SetTickMode(self: Entity, isHalfTicked: boolean?)
 	FireEvent(self, "TickChanged", isHalfTicked == nil and "NONE" or if isHalfTicked then "HALF" else "NORMAL")
 end
 
+--[=[
+	Clears the mount of the entity.
+]=]
 function Entity.ClearMount(self: Entity)
 	if not IS_SERVER then
 		error("ClearMount can only be called on the server")
@@ -431,6 +469,12 @@ function Entity.ClearMount(self: Entity)
 	SetValue(self, "mountOffset", nil)
 end
 
+--[=[
+	Sets the mount of the entity.
+
+	@param parent The parent entity to mount to. If nil, will clear the mount.
+	@param offset The CFrame offset from the parent entity.
+]=]
 function Entity.SetMount(self: Entity, parent: Entity?, offset: CFrame?)
 	if not IS_SERVER then
 		error("SetMount can only be called on the server")
@@ -465,14 +509,22 @@ Entity["设置网络主控玩家"] = function(self: Entity, player: Player?)
 	end
 end
 
+--[=[
+	Sets the network owner of the entity. Does nothing if called on the client.
+
+	@param player The player to set as the network owner. If nil, will clear the network owner.
+]=]
 function Entity.SetNetworkOwner(self: Entity, player: Player?)
 	if IS_SERVER and player ~= self.networkOwner then
 		Entity["设置网络主控玩家"](self, player)
 	elseif not IS_SERVER then
-		warn("SetNetworkOwner can only be called on the server")
+		error("SetNetworkOwner can only be called on the server")
 	end
 end
 
+--[=[
+	Clears the entity's snapshot and latest CFrame/time.
+]=]
 function Entity.Clear(self: Entity)
 	local snapshot = self.snapshot
 	self.latestCFrame = nil
@@ -482,14 +534,29 @@ function Entity.Clear(self: Entity)
 	end
 end
 
+--[=[
+	Pauses replication for the entity.
+]=]
 function Entity.PauseReplication(self: Entity)
 	SetValue(self, "paused", true)
 end
 
+
+--[=[
+	Resumes replication for the entity.
+]=]
 function Entity.ResumeReplication(self: Entity)
 	SetValue(self, "paused", false)
 end
 
+--[=[
+	Pushes a new CFrame value into the entity's snapshot.
+
+	@param time The time associated with the CFrame value.
+	@param value The CFrame value to push.
+
+	@return Whether the pushed value is the newest.
+]=]
 function Entity.Push(self: Entity, time: number, value: CFrame): boolean
 	local snapshot = self.snapshot
 	local newer = not self.latestTime or time > self.latestTime
@@ -514,6 +581,13 @@ function Entity.Push(self: Entity, time: number, value: CFrame): boolean
 	return newer
 end
 
+--[=[
+	Gets the CFrame value at a specific time from the entity's snapshot.
+
+	@param time The time to get the CFrame value for.
+
+	@return The CFrame value at the specified time, or the latest CFrame if no snapshot exists.
+]=]
 function Entity.GetAt(self: Entity, time: number): CFrame?
 	local snapshot = self.snapshot
 	if snapshot then
@@ -523,6 +597,11 @@ function Entity.GetAt(self: Entity, time: number): CFrame?
 	end
 end
 
+--[=[
+	Gets the target render time from the entity's client clock.
+
+	@return The target render time.
+]=]
 function Entity.GetTargetRenderTime(self: Entity): number
 	local renderCache = self._clientClock
 
@@ -539,15 +618,30 @@ function Entity.GetTargetRenderTime(self: Entity): number
 	return renderCache:GetTargetRenderTime()
 end
 
+--[=[
+	Sets whether the entity should auto update its position to the model's primary part CFrame.
+
+	@param autoUpdate Whether to auto update the entity's position.
+]=]
 function Entity.SetAutoUpdatePos(self: Entity, autoUpdate: boolean)
 	SetValue(self, "autoUpdatePos", autoUpdate)
 end
 
+--[=[
+	Gets the current CFrame of the entity.
+
+	@return The current CFrame of the entity.
+]=]
 function Entity.GetCFrame(self: Entity): CFrame?
 	local part = GetPart(self.model)
 	return self.latestCFrame or (part and part.CFrame)
 end
 
+--[=[
+	Sets the current CFrame of the entity and locks the snapshot to the new time.
+
+	@param cframe The CFrame to set for the entity. 
+]=]
 function Entity.SetCFrame(self: Entity, cframe: CFrame)
 	local latestTime = (self.latestTime or 0) + 0.02
 	if self.snapshot then
@@ -558,6 +652,11 @@ function Entity.SetCFrame(self: Entity, cframe: CFrame)
 	SetPartCFrame(self, cframe)
 end
 
+--[=[
+	Gets the primary part of the entity's model. If the model is a BasePart, returns the model itself.
+
+	@return The primary part of the entity's model, or nil if no model or primary part exists.
+]=]
 function Entity.GetPrimaryPart(self: Entity): BasePart?
 	if self.model then
 		return GetPart(self.model)
@@ -565,6 +664,13 @@ function Entity.GetPrimaryPart(self: Entity): BasePart?
 	return nil
 end
 
+--[=[
+	Locks the native server CFrame replication for the entity.
+
+	Only works if the entity's model replication mode is "NATIVE".
+
+	Throws an error if called on the client or if the model replication mode is not "NATIVE".
+]=]
 function Entity.LockNativeServerCFrameReplication(self: Entity)
 	if IS_SERVER then
 		if self.modelReplicationMode ~= "NATIVE" then
@@ -582,6 +688,13 @@ function Entity.LockNativeServerCFrameReplication(self: Entity)
 	end
 end
 
+--[=[
+	Unlocks the native server CFrame replication for the entity.
+
+	Only works if the entity's model replication mode is "NATIVE".
+
+	Throws an error if called on the client or if the model replication mode is not "NATIVE".
+]=]
 function Entity.UnlockNativeServerCFrameReplication(self: Entity)
 	if IS_SERVER then
 		if self.modelReplicationMode ~= "NATIVE" then
@@ -599,6 +712,9 @@ function Entity.UnlockNativeServerCFrameReplication(self: Entity)
 	end
 end
 
+--[=[
+	Destroys the entity, unregistering it and cleaning up resources.
+]=]
 function Entity.Destroy(self: Entity)
 	self.destroyed = true
 	Holder.UnregisterEntity(self)
@@ -625,6 +741,13 @@ function Entity.Destroy(self: Entity)
 	--//TODO: add more
 end
 
+--[=[
+	Gets the event signal for the specified event name.
+
+	@param eventName The name of the event to get.
+
+	@return The event signal associated with the specified event name.
+]=]
 Entity.GetEvent = (GetEvent :: any) :: ((
 	self: Entity,
 	eventName: "Destroying"

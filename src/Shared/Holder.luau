@@ -29,6 +29,11 @@ local function ReleaseId(id: number)
 	task.delay(RandomOffset:NextNumber(5, 10), table.insert, idStack, id)
 end
 
+--[=[
+	Removes the player character mapping from an entity.
+
+	@param entity The entity to remove the player character mapping from.
+]=]
 local function RemovePlayerCharacter(entity: Types.Entity)
 	local player: Player? = entity._player
 	entity._player = nil
@@ -43,7 +48,13 @@ local function RemovePlayerCharacter(entity: Types.Entity)
 	end
 end
 
-local function SetAsCharacter(player: Player, entity: Types.Entity): Types.Entity
+--[=[
+	Sets an entity as the character entity for a player.
+
+	@param player The player to set the character for.
+	@param entity The entity to set as the character.
+]=]
+local function SetAsCharacter(player: Player, entity: Types.Entity)
 	if not idMap[entity.id] or entity.id < 1 then
 		error("Entity must be registered before being set as a player character")
 	end
@@ -59,9 +70,14 @@ local function SetAsCharacter(player: Player, entity: Types.Entity): Types.Entit
 	)
 
 	Signals.PlayerCharacterRegistered:Fire(player, entity)
-	return entity
 end
 
+--[=[
+	Registers an entity in the global entity map. Already registered entities will be ignored.
+	Destroyed entities cannot be registered.
+
+	@param entity The entity to register.
+]=]
 local function RegisterEntity(entity: Types.Entity)
 	if entity.destroyed then
 		error("Cannot register a destroyed entity")
@@ -95,6 +111,11 @@ local function RegisterEntity(entity: Types.Entity)
 	Signals.EntityAdded:Fire(entity)
 end
 
+--[=[
+	Unregisters an entity from the global entity map. Non-registered entities will be ignored.
+
+	@param entity The entity to unregister.
+]=]
 local function UnregisterEntity(entity: Types.Entity)
 	if not idMap[entity.id] then
 		return
@@ -120,7 +141,13 @@ local function UnregisterEntity(entity: Types.Entity)
 	entity.registered = false
 end
 
---Warning: O(n) operation
+--[=[
+	Gets the entity associated with a given model. Warning this is an O(n) operation.
+
+	@param model The model to look up.
+
+	@return The entity associated with the model, or nil if none exists.
+]=]
 local function GetEntityFromModel(model: Model): Types.Entity?
 	for _, entity in idMap do
 		if entity.model == model then
@@ -130,15 +157,32 @@ local function GetEntityFromModel(model: Model): Types.Entity?
 	return nil
 end
 
+--[=[
+	Gets the entity associated with a given player.
+	@param player The player to look up.
+	@return The entity associated with the player, or nil if none exists.
+]=]
 local function GetEntityFromPlayer(player: Player): Types.Entity?
 	local plrCharacter = playerChars[player]
 	return plrCharacter
 end
 
+--[=[
+	Gets the entity associated with a given id.
+
+	@param id The id to look up.
+
+	@return The entity associated with the id, or nil if none exists.
+]=]
 local function GetEntityFromId(id: number): Types.Entity?
 	return idMap[id]
 end
 
+--[=[
+	Gets or creates the instance used for storing entities in the workspace.
+
+	@return The Camera instance used for entity storage.
+]=]
 local function getEntityStorageInstance(): Camera
 	if workspace:FindFirstChild("Chrono_EntityStorage") then
 		return workspace:FindFirstChild("Chrono_EntityStorage") :: Camera
