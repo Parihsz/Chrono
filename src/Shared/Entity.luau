@@ -517,6 +517,7 @@ end
 function Entity.SetNetworkOwner(self: Entity, player: Player?)
 	if IS_SERVER and player ~= self.networkOwner then
 		Entity["设置网络主控玩家"](self, player)
+		SetValue(self, "isHalfTicked", self.isHalfTicked,true)
 	elseif not IS_SERVER then
 		error("SetNetworkOwner can only be called on the server")
 	end

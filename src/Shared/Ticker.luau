@@ -5,7 +5,9 @@ local Ticker = {}
 local function popSwap(t, item, index)
 	local lastIndex = #t
 	if index ~= lastIndex then
-		t[index] = t[lastIndex]
+		local lastItem = t[lastIndex]
+		t[index] = lastItem
+		lastItem._tickerIndex = index
 	end
 	t[lastIndex] = nil
 end
@@ -54,7 +56,7 @@ function Ticker.Remove(ticker: Ticker, object: Entity)
 		return
 	end
 
-	popSwap(ticker.objects, object, index)
+	popSwap(ticker.objects::any, object, index)
 
 	object._ticker = nil
 	object._tickerIndex = nil
