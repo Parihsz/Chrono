@@ -1,7 +1,6 @@
 local Shared = script.Parent.Parent.Shared
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
-local ApplyMounts = require(ReplicatedStorage.Packages.chrono.Shared.ApplyMounts)
+local ApplyMounts = require(script.Parent.Parent.Shared.ApplyMounts) 
 local RenderCache = require(script.Parent.ClientClock)
 local Entity = require(Shared.Entity)
 local Holder = require(Shared.Holder)
@@ -13,8 +12,6 @@ require(script.Parent.Receiver)
 
 local idMap = Holder.idMap
 
-local parts = {}
-local cframes = {}
 local function Interpolate(entity: Types.Entity)
 	local primaryPart = Entity.GetPrimaryPart(entity)
 
@@ -37,8 +34,7 @@ local function Interpolate(entity: Types.Entity)
 	local targetCFrame = snapshot:GetAt(targetTime)
 
 	if targetCFrame then
-		table.insert(parts, primaryPart)
-		table.insert(cframes, targetCFrame)
+		primaryPart.CFrame = targetCFrame
 	end
 
 	debug.profileend()
@@ -56,10 +52,7 @@ Config._WaitForLock(function()
 			end
 			Interpolate(entity)
 		end
-		workspace:BulkMoveTo(parts, cframes)
-		parts = {}
-		cframes = {}
-
+	
 		ApplyMounts()
 	end)
 	RunService.Heartbeat:Connect(Sender.Update)

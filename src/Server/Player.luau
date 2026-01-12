@@ -52,7 +52,7 @@ local function OnCharacterAdded(character: Model, player: Player)
 end
 
 local function OnPlayerAdded(player: Player)
-	player.CharacterAppearanceLoaded:Connect(function(character: Model)
+	player.CharacterAdded:Connect(function(character: Model)
 		OnCharacterAdded(character, player)
 	end)
 	if player.Character then

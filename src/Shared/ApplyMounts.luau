@@ -1,9 +1,8 @@
 --!native
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Entity = require(ReplicatedStorage.Packages.chrono.Shared.Entity)
-local Holder = require(ReplicatedStorage.Packages.chrono.Shared.Holder)
-local Types = require(ReplicatedStorage.Packages.chrono.Shared.Types)
-local FastStack = require(script.Parent.Parent.Shared.FastStackPlus)
+local Entity = require(script.Parent.Entity)
+local Holder = require(script.Parent.Holder)
+local Types = require(script.Parent.Types)
+local FastStack = require(script.Parent.FastStackPlus)
 local new = FastStack("create")
 
 local timestamp = 0

@@ -45,9 +45,11 @@ local function SafeSetNetworkOwner(part: BasePart, player: Player?)
 end
 
 local function LockCFReplication(part: BasePart?)
+	warn(part)
 	if not part then
 		return
 	end
+	print(part:GetFullName())
 	local initCF = part.CFrame
 	local previousLocker = part:FindFirstChild("__CHRONO_LOCKER")
 	if previousLocker then
