@@ -48,7 +48,11 @@ repo_name = "parihsz/chrono"
 # Read more: https://zensical.org/docs/setup/navigation/
 nav = [
   { Home = "index.md" },
-  { "Get started" = "getting-started.md" },
+  { "Getting started" = [
+        {"Getting Started" = "getting-started/installation.md"},
+        {"Start Chrono" = "getting-started/start-chrono.md"},
+        {"Configurate Chrono" = "getting-started/configurations.md"}
+  ]},
 
   { Guides = [
       { Overview = "guides/index.md" },
