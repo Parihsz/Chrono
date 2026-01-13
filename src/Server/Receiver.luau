@@ -20,12 +20,14 @@ local function FireMiddleMans(player: Player, entity: Types.Entity, cframe: CFra
 	if #SortedMiddleMans == 0 then
 		return false
 	end
-	for _, mmData:any in SortedMiddleMans do
+	debug.profilebegin("FireMiddleMans")
+	for _, mmData: any in SortedMiddleMans do
 		local block = mmData.func(player, entity, cframe, arriveTime)
 		if block then
 			return true
 		end
 	end
+	debug.profileend()
 	return false
 end
 local function UnmapRotation(x: number): number
@@ -112,6 +114,7 @@ local function OnReceive(player: Player, data: buffer)
 		warn("Player", player.Name, "exceeded max bytes per frame:", TotalBytes[player])
 		return
 	end
+	debug.profilebegin("Receiver.OnReceive")
 	local index = 0
 	local clock = buffer.readf32(data, index)
 	index += 4
@@ -126,6 +129,7 @@ local function OnReceive(player: Player, data: buffer)
 		index = newIndex
 		HandleEntity(player, id, clock, cframe, copy)
 	end
+	debug.profileend()
 end
 
 --[=[
@@ -169,7 +173,7 @@ function Receiver.UnregisterMiddleMan(name: string)
 		return a.priority > b.priority
 	end)
 end
-RunService.Heartbeat:Connect(function(a0: number)  
+RunService.Heartbeat:Connect(function(a0: number)
 	table.clear(TotalBytes)
 end)
 UnreliableEvent.OnServerEvent:Connect(OnReceive)

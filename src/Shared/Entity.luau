@@ -260,7 +260,7 @@ local function SetModel(
 		end
 
 		if model then
-			(model::any).Parent = workspace
+			(model :: any).Parent = workspace
 		end
 	elseif typeof(model) == "Instance" and (model:IsA("Model") or model:IsA("BasePart")) then
 		local part = GetPart(model :: Model | BasePart)
@@ -270,6 +270,7 @@ local function SetModel(
 	end
 	local _model: Model? = model :: any
 	local primaryPart = GetPart(_model)
+	local broadPhase = Config._GetBroadPhase(modelString :: string)
 	if _model and not primaryPart then
 		warn(`{_model:GetFullName()} must have a PrimaryPart set for things like autoReplication and movement.`)
 	elseif _model and not _model.Archivable then
@@ -282,6 +283,10 @@ local function SetModel(
 	local replicationMode: "NATIVE" | "CUSTOM" = CheckModelReplicationMode(self, modelReplicationMode)
 	self.modelString = modelString
 	self.model = _model
+
+	if IS_SERVER or not self.broadPhase then
+		self.broadPhase = broadPhase
+	end
 
 	if _model and not primaryPart then
 		warn("No primary part found for entity model.", _model:GetFullName())
@@ -297,6 +302,9 @@ local function SetModel(
 	end
 	if not primaryPart then
 		return
+	end
+	if not IS_SERVER and not self.isContextOwner and replicationMode == "CUSTOM" then
+		primaryPart.Anchored = true
 	end
 	if not self.latestCFrame then
 		Entity.SetCFrame(self, initCFrame or primaryPart.CFrame)
@@ -415,6 +423,15 @@ function Entity.SetConfig(self: Entity, entityConfig: string)
 end
 
 --[=[
+	Sets the broad phase vector for the entity.
+
+	@param broadPhase The broad phase vector to set.
+]=]
+function Entity.SetBroadPhase(self: Entity, broadPhase: vector?)
+	SetValue(self, "broadPhase", broadPhase)
+end
+
+--[=[
 	Gets the user associated data with the entity.
 
 	@return The data associated with the entity.
@@ -507,6 +524,13 @@ Entity["设置网络主控玩家"] = function(self: Entity, player: Player?)
 			self.snapshot:Clear()
 		end
 	end
+	self.lastCheckedCFrame = nil
+	if not IS_SERVER and self.modelReplicationMode == "CUSTOM" then
+		local primaryPart = Entity.GetPrimaryPart(self)
+		if primaryPart then
+			primaryPart.Anchored = not self.isContextOwner
+		end
+	end
 end
 
 --[=[
@@ -517,7 +541,7 @@ end
 function Entity.SetNetworkOwner(self: Entity, player: Player?)
 	if IS_SERVER and player ~= self.networkOwner then
 		Entity["设置网络主控玩家"](self, player)
-		SetValue(self, "isHalfTicked", self.isHalfTicked,true)
+		SetValue(self, "isHalfTicked", self.isHalfTicked, true)
 	elseif not IS_SERVER then
 		error("SetNetworkOwner can only be called on the server")
 	end
@@ -541,7 +565,6 @@ end
 function Entity.PauseReplication(self: Entity)
 	SetValue(self, "paused", true)
 end
-
 
 --[=[
 	Resumes replication for the entity.

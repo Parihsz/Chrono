@@ -32,7 +32,7 @@ local function ReadyModelFromRep(entity: Types.Entity, playerSpecific: Player?):
 				warn(`Cloned model for {model:GetFullName()} is not Archivable. Failed to replicate model.`)
 				modelClone = Instance.new("Model")
 				local part = Instance.new("Part")
-				part.Size = Vector3.one;				(modelClone :: any).PrimaryPart = part
+				part.Size = Vector3.one;(modelClone :: any).PrimaryPart = part
 			end
 			(modelClone :: any).Parent = ModelReplicator
 
@@ -63,22 +63,14 @@ local function CreateTempModel(): (Model, string)
 	return model, "CUSTOM"
 end
 
-local function CreateModelFromData(model: Model | string | BasePart?): (Model | BasePart?, string?)
+local function CreateModelFromData(model: Model | string | BasePart?): (Model|string | BasePart?, string?)
 
 	if not model then
 		return
 	end
 
 	if type(model) == "string" then
-		local source = Config._GetEntityModel(model)
-		if source then
-			local clone = source:Clone()
-			if clone then
-				(clone :: any).Parent = Holder.GetEntityStorageInstance()
-				return clone, "CUSTOM"
-			end
-		end
-		return CreateTempModel()
+		return model, nil
 	end
 
 

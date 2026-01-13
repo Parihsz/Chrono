@@ -5,6 +5,12 @@ local Holder = require(Shared.Holder)
 local Entity = require(Shared.Entity)
 local Types = require(Shared.Types)
 local ModelHelper = require(Shared.ModelHelper)
+local Stats = require(Shared.Stats).CLIENT
+
+local BytesReceived = 0
+local NewPerSec = 0
+local RemovedPerSec = 0
+local ChangesPerSec = 0
 
 local SetTickMode = Entity._SetTickMode
 
@@ -89,6 +95,7 @@ local ValueChanges = {
 	autoUpdatePos = Entity.SetAutoUpdatePos,
 	mountParentId = SetMountId,
 	mountOffset = SetMountOffset,
+	broadPhase = Entity.SetBroadPhase,
 }
 
 local function HandleChanges(changes: { id: number, data: { { any } } })
@@ -137,6 +144,7 @@ local function HandleNewEntity(data: Types.EntityReceivePacket)
 	entity.modelReplicationMode = modelType :: any
 	entity.mountParentId = data.mountParentId
 	entity.mountOffset = data.mountOffset or CFrame.identity
+	entity.broadPhase = data.broadPhase or entity.broadPhase
 
 	Entity.Push(entity, data.time, data.cframe)
 
@@ -186,6 +194,7 @@ local function PushCFrameFor(
 end
 
 local function HandleClientOwned(b: buffer)
+	BytesReceived += buffer.len(b)
 	local bLen = buffer.len(b)
 	local index = 0
 	while index < bLen do
@@ -215,6 +224,7 @@ end
 
 local function HandleServerOwned(b: buffer)
 	local bLen = buffer.len(b)
+	BytesReceived += bLen
 	local index = 0
 	while index < bLen do
 		local lastTicked, isFull, isHalfTickRate = ReadTickerHeader(b, index)
@@ -253,22 +263,39 @@ local function HandleReliable(newEntities: {}, removedEntities: { number }, enti
 		for _, id in removedEntities do
 			HandleRemoved(id)
 		end
+		RemovedPerSec += #removedEntities
 	end
 
 	if newEntities then
 		for _, data: any in newEntities do
 			HandleNewEntity(data)
 		end
+		NewPerSec += #newEntities
 	end
 
 	if entityChanges then
 		for _, changeData in entityChanges do
 			HandleChanges(changeData)
 		end
+		ChangesPerSec += #entityChanges
 	end
 end
 
 UnreliableEvent.OnClientEvent:Connect(HandleUnreliable)
 ReliableEvent.OnClientEvent:Connect(HandleReliable)
 
+local lastByteCheckTime = 0
+RunService.Heartbeat:Connect(function()
+	if os.clock() - lastByteCheckTime > 1 then
+		Stats.BYTES_RECEIVED_PER_SEC = BytesReceived
+		Stats.NEW_ENTITIES_PER_SEC = NewPerSec
+		Stats.ENTITY_REMOVALS_PER_SEC = RemovedPerSec
+		Stats.ENTITY_CHANGES_PER_SEC = ChangesPerSec
+		NewPerSec = 0
+		RemovedPerSec = 0
+		ChangesPerSec = 0
+		BytesReceived = 0
+		lastByteCheckTime = os.clock()
+	end
+end)
 return nil

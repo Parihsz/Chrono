@@ -14,7 +14,7 @@ return {
 		char.Name = "TestChar"
 
 		Config.RegisterEntityModel("TestChar", char)
-		Config.SetConfig("REPLICATE_CFRAME_SETTERS", "PLAYER_ENTITIES")
+		Config.SetConfig("REPLICATE_CFRAME_SETTERS", "PLAYER_CHARACTERS")
 	end,
 	server = function()
 		local native = Entity.new(nil, "TestChar", "NATIVE")

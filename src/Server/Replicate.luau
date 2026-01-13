@@ -220,20 +220,23 @@ end
 
 local function HandleEntity(plr, entity: Types.Entity)
 	local add, clear = Bin()
+
 	local function HandleModel(entity: Types.Entity)
 		if not entity.model then
 			return
-		end 
+		end
 		local primaryPart = Entity.GetPrimaryPart(entity)
 		if not primaryPart then
 			return
 		end
 		local partToUse = primaryPart
+
 		local function CFrameChanged()
 			local cframe = partToUse.CFrame
 			if cframe == entity.latestCFrame then
 				return
 			end
+
 			Entity.SetCFrame(entity, cframe)
 		end
 
@@ -285,7 +288,7 @@ end
 
 Config._WaitForLock(function()
 	RunService.PreSimulation:Connect(Update)
-	HandleCFrameSetters()
 end)
+HandleCFrameSetters()
 
 return nil

@@ -3,7 +3,7 @@ local RunService = game:GetService("RunService")
 
 type tests = "" | "testPart" | "testChar" |"largeCharTest"
 
-local test: tests = "largeCharTest"
+local test: tests = "testChar"
 if test == "" then
 	return nil
 end

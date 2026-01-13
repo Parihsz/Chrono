@@ -68,7 +68,6 @@ local function SetAsCharacter(player: Player, entity: Types.Entity)
 		"_player",
 		player
 	)
-
 	Signals.PlayerCharacterRegistered:Fire(player, entity)
 end
 

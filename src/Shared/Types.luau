@@ -54,6 +54,7 @@ export type EntityConfig = {
 	MODEL_REPLICATION_MODE: MODEL_REPLICATION_MODE?,
 	NORMAL_TICK_DISTANCE: number?,
 	HALF_TICK_DISTANCE: number?,
+	CUSTOM_INTERPOLATION: boolean?,
 }
 
 export type EntityConfigInput = {
@@ -66,6 +67,7 @@ export type EntityConfigInput = {
 
 	NORMAL_TICK_DISTANCE: number?,
 	HALF_TICK_DISTANCE: number?,
+	CUSTOM_INTERPOLATION: boolean?,
 	-- Might consider giving a config level replication rules instead of just entity
 }
 
@@ -123,12 +125,15 @@ export type EntityReceivePacket = {
 	_data: any,
 	mountParentId: number?,
 	mountOffset: CFrame?,
+	broadPhase: vector?,
 }
 
 export type Entity = {
 	--Client
 	-- this is for non server owned
 	_clientClock: ClientClock?,
+	broadPhase: vector?,
+	_outofBroadPhaseTick: number?,
 	--Server
 	autoUpdatePosition: boolean,
 	replicationRules: { ReplicationRule }?,

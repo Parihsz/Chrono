@@ -23,8 +23,8 @@ local function RegisterPlayer(
 
 	local config = configuration.config or "PLAYER"
 	local modelRepMode = configuration.modelRepMode
-	
-	local newEntity = Entity.new(config, character, modelRepMode::any)
+
+	local newEntity = Entity.new(config, character, modelRepMode :: any)
 	Holder.SetAsCharacter(player, newEntity)
 	Entity.SetNetworkOwner(newEntity, player)
 
@@ -68,7 +68,7 @@ Config._WaitForLock(function()
 		return
 	end
 	local deathRemote = script.Parent.Parent.Shared.Remotes.Death
-	local ReplicateMode:"NONE" | "PLAYER_ENTITIES" | "PLAYER_CHARACTERS" = Config._GetConfig("REPLICATE_DEATHS")
+	local ReplicateMode: "NONE" | "PLAYER_ENTITIES" | "PLAYER_CHARACTERS" = Config._GetConfig("REPLICATE_DEATHS")
 	deathRemote.OnServerEvent:Connect(function(plr, id)
 		if ReplicateMode == "NONE" then
 			return
@@ -84,7 +84,7 @@ Config._WaitForLock(function()
 		if ReplicateMode == "PLAYER_CHARACTERS" and not entity._player then
 			return
 		end
-		
+
 		local model = entity.model
 		if model then
 			local humanoid = model:FindFirstChildWhichIsA("Humanoid")

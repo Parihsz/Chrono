@@ -14,7 +14,7 @@ export type Configs =
 	| "DEFAULT_HALF_TICK_DISTANCE"
 	| "DEFAULT_MODEL_REPLICATION_MODE"
 	| "PLAYER_REPLICATION"
-	|  "REPLICATE_DEATHS"
+	| "REPLICATE_DEATHS"
 	| "REPLICATE_CFRAME_SETTERS"
 	| "__VERSION"
 	| "MAX_TOTAL_BYTES_PER_FRAME_PER_PLAYER"
@@ -40,13 +40,13 @@ local BASE_CONFIG = {
 	CHECK_NEW_VERSION = true,
 	MAX_TOTAL_BYTES_PER_FRAME_PER_PLAYER = 3000,
 	MIN_BUFFER = 0.09,
-	MAX_BUFFER = 0.5, 
+	MAX_BUFFER = 0.5,
 	QUERY_RADIUS = 100,
 
 	DEFAULT_NORMAL_TICK_DISTANCE = 50,
 	DEFAULT_HALF_TICK_DISTANCE = 100, -- Anything beyond this distance will not be replicated
 
-	REPLICATE_DEATHS = "PLAYER_ENTITIES", 
+	REPLICATE_DEATHS = "PLAYER_ENTITIES",
 	--[[
 		- This requires PLAYER_REPLICATION to be set to AUTOMATIC
 		-NONE = No deaths are replicated
@@ -62,7 +62,7 @@ local BASE_CONFIG = {
 	]]
 
 	PLAYER_REPLICATION = "AUTOMATIC",
-	
+
 	--[[
 		- Custom
 			+ More control over how replication is handled
@@ -111,20 +111,35 @@ local ENTITY_TYPES: { [string]: Types.EntityConfig } = {
 	},
 }
 local ENTITY_MODELS = {}
+local MODEL_BROAD_PHASES = {}
 
-local function RegisterEntityType(name, config: Types.EntityConfigInput)
+--[=[
+	Registers an entity type configuration.
+	Can only be called before the config is locked.
+
+	@param name The name of the entity type.
+	@param config The configuration for the entity type.
+]=]
+local function RegisterEntityType(name: string, config: Types.EntityConfigInput)
 	assert(not LOCKED, "Config is locked and cannot be modified after startup.")
 	ENTITY_TYPES[name] = config :: any
 end
 
---Model can be registered after LOCKED FYI
-local function RegisterEntityModel(name: string, model: Model|BasePart)
+--[=[
+	Registers an entity model. This can be registered after the config is locked. 
+	Server and client may have different models registered under the same name.
+
+	@param name The name of the entity model.
+	@param model The model or part to use for the entity.
+	@param broadPhase Optional broad phase vector or size for frustum culling on the client. If vector is zero then only do 1 check in the center instead of a box check.
+]=]
+local function RegisterEntityModel(name: string, model: Model | BasePart, broadPhase: vector | Vector3?)
 	if model:IsA("Model") and not model.PrimaryPart then
 		error(name .. " must have a PrimaryPart to be registered as an entity model.")
 	end
 	ENTITY_MODELS[name] = model
+	MODEL_BROAD_PHASES[name] = broadPhase
 end
-
 
 local SetConfig = function(name, value)
 	assert(not LOCKED, "Config is locked and cannot be modified after startup.")
@@ -135,12 +150,16 @@ local function GetEntityType(name: string): Types.EntityConfig
 	return ENTITY_TYPES[name] or ENTITY_TYPES["DEFAULT"]
 end
 
-local function GetEntityModel(name: string): Model|BasePart?
+local function GetEntityModel(name: string): Model | BasePart?
 	if not ENTITY_MODELS[name] then
 		warn(`Entity model {name} not found in Config.`)
 		return nil
 	end
 	return ENTITY_MODELS[name]
+end
+
+local function GetBroadPhase(name: string): vector?
+	return MODEL_BROAD_PHASES[name] :: any
 end
 
 local function GetConfig(name: Configs)
@@ -196,4 +215,5 @@ return {
 	_GetConfig = GetConfig,
 	_Lock = Lock,
 	_WaitForLock = WaitForLock,
+	_GetBroadPhase = GetBroadPhase,
 }

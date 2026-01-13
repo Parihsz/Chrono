@@ -5,10 +5,11 @@ local Chrono = ReplicatedStorage.Packages.chrono
 local Config = require(Chrono.Shared.Config)
 local Entity = require(Chrono.Shared.Entity)
 local Holder = require(Chrono.Shared.Holder)
+local Stats = require(Chrono.Shared.Stats)
 local p = Players:GetPlayers()[1] or Players.PlayerAdded:Wait()
 local char = p.Character or p.CharacterAdded:Wait()
-local AMT = 200
-local SHOW_DEBUG = true
+local AMT = 500
+local SHOW_DEBUG = false
 return {
 	init = function()
 		char.Archivable = true
@@ -18,10 +19,14 @@ return {
 		if RunService:IsServer() then
 			Config.RegisterEntityModel("TestChar", Instance.new("Part")) -- Dummy part to test server vs client model loading
 		else
-			Config.RegisterEntityModel("TestChar", char)
+			local char = char:Clone()
+			char.Name = "TestChar"
+
+			Config.RegisterEntityModel("TestChar", char,Vector3.new(5,6,5)) -- Larger char for client
+
 		end
 		Config.RegisterEntityType("TEST", {
-			TICK_RATE = 1/20,
+			TICK_RATE = 1/10,
 			FULL_ROTATION = false,
 			BUFFER = 0.1,
 			MODEL_REPLICATION_MODE = "CUSTOM"
@@ -48,6 +53,7 @@ return {
 				if part then
 					part.Anchored = true
 					part.CFrame *= CFrame.new(math.random(-1,1),0,math.random(-1,1))
+
 					
 				end
 				if entity.a then
@@ -64,6 +70,7 @@ return {
 		end)
 	end,
 	client = function()
-	
+		local playerGui = p:WaitForChild("PlayerGui")
+		
 	end,
 }

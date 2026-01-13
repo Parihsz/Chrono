@@ -161,7 +161,9 @@ local function Update()
 	debug.profilebegin("EntityGrid.Update")
 
 	for _, entity in entities do
+		debug.profilebegin(`Check One`)
 		Check(entity)
+		debug.profileend()
 	end
 	debug.profileend()
 end

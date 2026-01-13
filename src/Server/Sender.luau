@@ -134,6 +134,7 @@ local function GetEntityFullData(player: Player, entity: Types.Entity): Types.En
 
 		mountParentId = entity.mountParentId,
 		mountOffset = entity.mountOffset,
+		broadPhase = entity.broadPhase :: any,
 	}
 end
 
@@ -142,6 +143,7 @@ local function ReplicatePlayer(player: Player)
 	if not holder then
 		return
 	end
+	debug.profilebegin("ReplicatePlayer")
 	local replicatedOLD = holder.REPLICATED -- Leftovers will be removed
 	local replicated = table.clone(replicatedOLD)
 	holder.REPLICATED = replicated
@@ -244,6 +246,7 @@ local function ReplicatePlayer(player: Player)
 		-- )
 		ReliableEvent:FireClient(player, toSendFull, toRemove, entityChanges)
 	end
+	debug.profileend()
 end
 
 return {
