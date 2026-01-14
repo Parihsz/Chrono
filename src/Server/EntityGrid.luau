@@ -1,5 +1,6 @@
 --!native
 local Players = game:GetService("Players")
+local ReplicationRules = require(script.Parent.Parent.Shared.ReplicationRules)
 --[[
 	We just need to track entities with players near them
 
@@ -102,6 +103,12 @@ local function Check(entity: Entity)
 
 	local isNotNative = entity.modelReplicationMode ~= "NATIVE"
 	for holder, playerPos in playerTablePositionPair do
+		local viewer = holder.PLAYER
+		local allowed = ReplicationRules.Allows(entity, viewer)
+		if not allowed then
+			continue
+		end
+
 		local distance = vector.magnitude(position - playerPos)
 
 		if distance > halfTickDistance and isNotNative then
