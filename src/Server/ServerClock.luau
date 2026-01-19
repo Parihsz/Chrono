@@ -11,13 +11,13 @@ local function Store(player: Player, clientClockTime: number)
 	end
 end
 
-local function ConvertTo(player: Player, clock: number, enviornment: "Server" | "Client")
+local function ConvertTo(player: Player, clock: number, environment: "Server" | "Client")
 	local offset = offsets[player]
 	if not offset then
 		return clock
 	end
 
-	if enviornment == "Server" then
+	if environment == "Server" then
 		return clock + offset
 	else
 		return clock - offset

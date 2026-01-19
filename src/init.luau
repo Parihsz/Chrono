@@ -7,7 +7,7 @@ local HTTPS = game:GetService("HttpService")
 local function CheckVersion()
 	task.spawn(function()
 		pcall(function()
-			local url = "..."
+			local url = "https://api.github.com/repos/Parihsz/Chrono/releases/latest"
 			local success, result = pcall(function()
 				return HTTPS:GetAsync(url)
 			end)
@@ -15,7 +15,7 @@ local function CheckVersion()
 				return
 			end
 			local data = HTTPS:JSONDecode(result)
-			local latestVersion = "TO_IMPLEMENT"
+			local latestVersion = data.tag_name
 			local currentVersion = Config._GetConfig("__VERSION")
 			if data.latestVersion and data.latestVersion ~= currentVersion then
 				warn(

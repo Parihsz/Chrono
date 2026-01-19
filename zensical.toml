@@ -64,8 +64,15 @@ nav = [
   ]},
 
   { Reference = [
-      { "Markdown demo" = "markdown.md" },
-      { Demo = "demo.md" },
+        { Entity = "reference/entity.md" },
+        { Holder = "reference/holder.md" },
+        { Events = "reference/event.md" },
+        { Snapshots = "reference/snapshots.md" },
+        { ReplicationRules = "reference/replicationrules.md" },
+        { Stats = "reference/stats.md" },
+        { Receiver = "reference/receiver.md" },
+        { ServerClock = "reference/serverclock.md" },
+        
   ]},
 
   { "v1" = [

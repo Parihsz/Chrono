@@ -9,7 +9,6 @@ export type Configs =
 	| "SHOW_WARNINGS"
 	| "MAX_SNAPSHOT_COUNT"
 	| "CHECK_NEW_VERSION"
-	| "QUERY_RADIUS"
 	| "DEFAULT_NORMAL_TICK_DISTANCE"
 	| "DEFAULT_HALF_TICK_DISTANCE"
 	| "DEFAULT_MODEL_REPLICATION_MODE"
@@ -22,7 +21,6 @@ export type Configs =
 export type SetConfig =
 	("MIN_BUFFER", number) -> ()
 	& ("MAX_BUFFER", number) -> ()
-	& ("QUERY_RADIUS", number) -> ()
 	& ("DEFAULT_NORMAL_TICK_DISTANCE", number) -> ()
 	& ("DEFAULT_HALF_TICK_DISTANCE", number) -> ()
 	& ("SHOW_WARNINGS", boolean) -> ()
@@ -41,7 +39,6 @@ local BASE_CONFIG = {
 	MAX_TOTAL_BYTES_PER_FRAME_PER_PLAYER = 3000,
 	MIN_BUFFER = 0.09,
 	MAX_BUFFER = 0.5,
-	QUERY_RADIUS = 100,
 
 	DEFAULT_NORMAL_TICK_DISTANCE = 50,
 	DEFAULT_HALF_TICK_DISTANCE = 100, -- Anything beyond this distance will not be replicated
