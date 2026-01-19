@@ -17,7 +17,7 @@ local function CheckVersion()
 			local data = HTTPS:JSONDecode(result)
 			local latestVersion = data.tag_name
 			local currentVersion = Config._GetConfig("__VERSION")
-			if data.latestVersion and data.latestVersion ~= currentVersion then
+			if latestVersion ~= currentVersion then
 				warn(
 					("Chrono: A new version is available! You are using version %s, but the latest version is %s."):format(
 						currentVersion,
