@@ -35,7 +35,7 @@
 - `mountOffset` : `CFrame?` - The offset CFrame of this entity when mounted to a parent entity.
 
 !!! info
-For setting properties use the appropriate methods like `Entity.SetBroadPhase`, `Entity.SetAutoUpdatePosition`, etc. Goes the same for getting properties.
+  For setting properties use the appropriate methods like `Entity.SetBroadPhase`, `Entity.SetAutoUpdatePosition`, etc. Goes the same for getting properties.
 
 ## Functions
 
