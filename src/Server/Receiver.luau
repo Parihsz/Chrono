@@ -9,7 +9,10 @@ local Types = require(Shared.Types)
 local Holder = require(Shared.Holder)
 local Entity = require(Shared.Entity)
 local Config = require(Shared.Config)
+local Stats = require(Shared.Stats).SERVER
 local MAX_TOTAL_BYTES_PER_FRAME_PER_PLAYER = 3000
+
+local BytesReceived = 0
 
 local UnreliableEvent = Shared.Remotes.Replicate
 
@@ -110,6 +113,7 @@ local function OnReceive(player: Player, data: buffer)
 		return
 	end
 	TotalBytes[player] = (TotalBytes[player] or 0) + buffer.len(data)
+	BytesReceived += buffer.len(data)
 	if TotalBytes[player] > MAX_TOTAL_BYTES_PER_FRAME_PER_PLAYER then
 		warn("Player", player.Name, "exceeded max bytes per frame:", TotalBytes[player])
 		return
@@ -173,8 +177,15 @@ function Receiver.UnregisterMiddleMan(name: string)
 		return a.priority > b.priority
 	end)
 end
+local lastByteCheckTime = 0
 RunService.Heartbeat:Connect(function(a0: number)
 	table.clear(TotalBytes)
+
+	if os.clock() - lastByteCheckTime > 1 then
+		Stats.BYTES_RECEIVED_PER_SEC = BytesReceived
+		BytesReceived = 0
+		lastByteCheckTime = os.clock()
+	end
 end)
 UnreliableEvent.OnServerEvent:Connect(OnReceive)
 

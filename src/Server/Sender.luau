@@ -1,11 +1,16 @@
+local RunService = game:GetService("RunService")
 local EntityGrid = require(script.Parent.EntityGrid)
 local Types = require(script.Parent.Parent.Shared.Types)
 local Shared = script.Parent.Parent.Shared
 local ModelHelper = require(Shared.ModelHelper)
+local Stats = require(Shared.Stats).SERVER
 
 local FULL_BYTES = 4 * 3 + 2 * 3 + 2
 local YAW_BYTES = 4 * 3 + 2 + 2
 local MAX_BUFFER_SIZE = 900
+
+local BytesSentPerSec = 0
+local PacketsSentPerSec = 0
 
 local BUFFER = buffer.create(MAX_BUFFER_SIZE + 51)
 
@@ -36,6 +41,8 @@ local function Flush(player, index: number, id)
 	buffer.copy(copy, 0, BUFFER, 0, index)
 
 	UnreliableEvent:FireClient(player, id, copy)
+	BytesSentPerSec += index
+	PacketsSentPerSec += 1
 end
 
 local function FlushClientOwned(player, buffersT: { [number]: { buffer } })
@@ -138,6 +145,8 @@ local function GetEntityFullData(player: Player, entity: Types.Entity): Types.En
 	}
 end
 
+local playerReplicateTotal = 0
+local playerReplicateCount = 0
 local function ReplicatePlayer(player: Player)
 	local holder = EntityGrid.GetEntityHolder(player)
 	if not holder then
@@ -216,7 +225,7 @@ local function ReplicatePlayer(player: Player)
 		end
 		table.insert(bufferTable, entity.cframeBuffer)
 	end
-
+	local startTime = os.clock()
 	for _, entity in normal do
 		Handle(entity, true)
 	end
@@ -247,7 +256,24 @@ local function ReplicatePlayer(player: Player)
 		ReliableEvent:FireClient(player, toSendFull, toRemove, entityChanges)
 	end
 	debug.profileend()
+	local endTime = os.clock()
+	playerReplicateTotal += endTime - startTime
+	playerReplicateCount += 1
 end
+
+local lastStatTime = os.clock()
+RunService.Heartbeat:Connect(function()
+	Stats.REPLICATE_PLAYER_TIME_MS = playerReplicateTotal / math.max(playerReplicateCount, 1) * 1000
+	if os.clock() - lastStatTime > 1 then
+		Stats.BYTES_SENT_PER_SEC = BytesSentPerSec
+		Stats.PACKETS_SENT_PER_SEC = PacketsSentPerSec
+		BytesSentPerSec = 0
+		PacketsSentPerSec = 0
+		lastStatTime = os.clock()
+		playerReplicateTotal = 0
+		playerReplicateCount = 0
+	end
+end)
 
 return {
 	ReplicatePlayer = ReplicatePlayer,

@@ -1,6 +1,7 @@
 --!native
 local Players = game:GetService("Players")
 local ReplicationRules = require(script.Parent.Parent.Shared.ReplicationRules)
+local Stats = require(script.Parent.Parent.Shared.Stats)
 --[[
 	We just need to track entities with players near them
 
@@ -67,14 +68,21 @@ local SetTickMode = Entity._SetTickMode
 
 type Entity = Types.Entity
 
-local UPDATE_INTERVAL = 0.5
+local UPDATE_INTERVAL = 0.1
+local MAX_TIME_PER_UPDATE = 0.0005
 
 local lastUpdate = 0
+
+local FULL_TICKED = 0
+local HALF_TICKED = 0
+local UN_TICKED = 0
 
 type PlayerEntityHolder = {
 	PLAYER: Player,
 	HALF: { Entity },
 	NORMAL: { Entity },
+	_TEMP_HALF: { Entity },
+	_TEMP_NORMAL: { Entity },
 	REPLICATED: { [Entity]: true },
 }
 
@@ -113,17 +121,17 @@ local function Check(entity: Entity)
 
 		if distance > halfTickDistance and isNotNative then
 			if holder == ownedHolder then
-				table.insert(holder.NORMAL, entity)
+				table.insert(holder._TEMP_NORMAL, entity)
 			end
 			continue
 		end
 
 		if distance <= normalTickDistance then
 			hasNormalTickers = true
-			table.insert(holder.NORMAL, entity)
+			table.insert(holder._TEMP_NORMAL, entity)
 		else
 			hasHalfTickers = true
-			table.insert(holder.HALF, entity)
+			table.insert(holder._TEMP_HALF, entity)
 		end
 	end
 
@@ -133,16 +141,20 @@ local function Check(entity: Entity)
 	end
 
 	local currentTicker = entity._ticker
-	if hasHalfTickers then
+	if hasHalfTickers and not hasNormalTickers then
 		if entity.isHalfTicked == false then
 			--warn("Entity is now half ticked", entity.id)
 		end
 		SetTickMode(entity, true)
+		HALF_TICKED += 1
 	elseif hasNormalTickers then
 		if entity.isHalfTicked then
 			--warn("Entity is normal ticked", entity.id)
 		end
 		SetTickMode(entity, false)
+		FULL_TICKED += 1
+	else
+		UN_TICKED += 1
 	end
 	if (hasNormalTickers or hasHalfTickers) and entity._ticker ~= configTicker then
 		Ticker.move(entity, configTicker)
@@ -154,25 +166,70 @@ local function Check(entity: Entity)
 	end
 end
 
+local yielded: thread? = nil
+local totalTime = 0
+local function DoLoop()
+	totalTime = 0
+	FULL_TICKED = 0
+	HALF_TICKED = 0
+	UN_TICKED = 0
+	for holder, _ in playerTablePositionPair do
+		table.clear(holder._TEMP_HALF)
+		table.clear(holder._TEMP_NORMAL)
+	end
+	debug.profilebegin("EntityGrid.Update")
+	local count = 0
+	local start = os.clock()
+	local sections = 1
+	for _, entity in entities do
+		debug.profilebegin(`Check One`)
+		Check(entity)
+		count += 1
+		debug.profileend()
+		if os.clock() - start > MAX_TIME_PER_UPDATE then
+			sections += 1
+			debug.profileend()
+			totalTime += os.clock() - start
+			yielded = coroutine.running()
+			coroutine.yield()
+			yielded = nil
+			start = os.clock()
+			debug.profilebegin("EntityGrid.ResumeUpdate")
+		end
+	end
+	debug.profileend()
+	totalTime += os.clock() - start
+	Stats.SERVER.GRID_UPDATE_SECTIONS = sections
+	Stats.SERVER.ENTITY_GRID_UPDATE_TIME_MS = totalTime * 1000
+	Stats.SERVER.NUMBER_OF_ENTITIES = count
+	Stats.SERVER.ENTITIES_FULL_TICKED = FULL_TICKED
+	Stats.SERVER.ENTITIES_HALF_TICKED = HALF_TICKED
+	Stats.SERVER.NON_TICKED = UN_TICKED
+	for _, holder in playerToHolder do
+		local tempNormal = holder._TEMP_NORMAL
+		local tempHalf = holder._TEMP_HALF
+		table.clear(holder.HALF)
+		table.clear(holder.NORMAL)
+		for _, entity in tempNormal do
+			table.insert(holder.NORMAL, entity)
+		end
+		for _, entity in tempHalf do
+			table.insert(holder.HALF, entity)
+		end
+	end
+end
+
 -- this might be able to be optimized more later
 local function Update()
+	if yielded then
+		task.spawn(yielded)
+		return
+	end
 	if os.clock() - lastUpdate < UPDATE_INTERVAL then
 		return
 	end
 	lastUpdate = os.clock()
-
-	for holder, _ in playerTablePositionPair do
-		table.clear(holder.HALF)
-		table.clear(holder.NORMAL)
-	end
-	debug.profilebegin("EntityGrid.Update")
-
-	for _, entity in entities do
-		debug.profilebegin(`Check One`)
-		Check(entity)
-		debug.profileend()
-	end
-	debug.profileend()
+	task.spawn(DoLoop)
 end
 
 local function UpdatePlayerPosition(player: Player, position: vector)
@@ -196,6 +253,8 @@ local function PlayerAdded(player: Player)
 		HALF = {},
 		NORMAL = {},
 		REPLICATED = {},
+		_TEMP_HALF = {},
+		_TEMP_NORMAL = {},
 	}
 	playerToHolder[player] = t
 	playerTablePositionPair[t] = vector.zero

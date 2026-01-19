@@ -16,6 +16,7 @@ local EntityGrid = require(script.Parent.EntityGrid)
 local _Player = require(script.Parent.Player)
 local Sender = require(script.Parent.Sender)
 local _Receiver = require(script.Parent.Receiver)
+local Stats = require(Shared.Stats).SERVER
 
 local tickers: { Types.Ticker } = {}
 
@@ -115,6 +116,11 @@ local function CheckForChanges(entity: Types.Entity): CFrame?
 end
 
 local function CheckEntity(entity: Types.Entity, ticker: Types.Ticker, useFull: boolean, isHalfTick: boolean)
+	if entity.destroyed then
+		Ticker.Remove(ticker, entity)
+		return
+	end
+
 	if not entity.isContextOwner then
 		return
 	end
@@ -170,8 +176,12 @@ local function CheckEntityChanges()
 	end
 end
 
+local TotalTickerTime = 0
+local CountTicker = 0
+
 local function UpdateTickers()
 	debug.profilebegin("UpdateTickers")
+	local starts = os.clock()
 	for _, ticker in tickers do
 		if not next(ticker.objects) then
 			continue
@@ -191,6 +201,14 @@ local function UpdateTickers()
 		debug.profileend()
 	end
 	debug.profileend()
+	local diff = os.clock() - starts
+	TotalTickerTime += diff
+	CountTicker += 1
+	Stats.AVG_TICKER_TIME_MS = (TotalTickerTime / CountTicker) * 1000
+	if CountTicker >= 60 then
+		TotalTickerTime = 0
+		CountTicker = 0
+	end
 end
 
 local function UpdatePlayerPositions()

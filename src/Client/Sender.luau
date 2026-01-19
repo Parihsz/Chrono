@@ -158,7 +158,7 @@ local function CheckEntity(entity: Types.Entity)
 	if currentCFrame and CFrameChanged(lastCFrame, currentCFrame) then
 		local fullCFrame = config.FULL_ROTATION
 		entity.lastCheckedCFrame = currentCFrame
-		
+
 		WriteEntity(entity.id, currentCFrame, fullCFrame, entity.isHalfTicked)
 	end
 end
