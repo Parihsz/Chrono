@@ -83,7 +83,7 @@ function Connection.new(signal, fn, defer)
 		_fn = fn,
 		_next = false,
 		_defer = defer or false,
-		_binCleanup = Connection.Disconnect
+		_binCleanup = Connection.Disconnect,
 	}, Connection)
 end
 
@@ -127,7 +127,7 @@ function Event.new()
 	}, Event)
 end
 
-function Event:Connect(fn,defer)
+function Event:Connect(fn, defer)
 	local connection = Connection.new(self, fn, defer)
 	if self._handlerListHead then
 		connection._next = self._handlerListHead
@@ -137,8 +137,6 @@ function Event:Connect(fn,defer)
 	end
 	return connection
 end
-
-
 
 -- Implement Signal:Wait() in terms of a temporary connection using
 -- a Signal:Connect() which disconnects itself.
@@ -173,7 +171,7 @@ function Signal.new()
 	return setmetatable({
 		_type_ = "Signal",
 		Event = Event.new(),
-		_binCleanup = Signal.DisconnectAll
+		_binCleanup = Signal.DisconnectAll,
 	}, Signal)
 end
 

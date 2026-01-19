@@ -111,11 +111,11 @@ local function Interpolate(entity: Types.Entity)
 		return
 	end
 
-	local currentEntityTick = entity._outofBroadPhaseTick 
-	if currentEntityTick and currentEntityTick~=CurrentTick then
+	local currentEntityTick = entity._outofBroadPhaseTick
+	if currentEntityTick and currentEntityTick ~= CurrentTick then
 		return
 	end
-	
+
 	local snapshot = entity.snapshot
 	if not snapshot then
 		warn("No snapshot for entity", entity)
@@ -153,7 +153,7 @@ local function Interpolate(entity: Types.Entity)
 				if not entity._outofBroadPhaseTick then
 					entity._outofBroadPhaseTick = OutOfBroadPhaseTick
 					OutOfBroadPhaseTick += 1
-					if OutOfBroadPhaseTick%Ticks == 0 then
+					if OutOfBroadPhaseTick % Ticks == 0 then
 						OutOfBroadPhaseTick = 0
 					end
 				end
@@ -173,7 +173,7 @@ end
 Config._WaitForLock(function()
 	RunService.Heartbeat:Connect(function(deltaTime: number)
 		CurrentTick += 1
-		if CurrentTick%Ticks == 0 then -- Runs every 4 frames at 60hz this is 15hz
+		if CurrentTick % Ticks == 0 then -- Runs every 4 frames at 60hz this is 15hz
 			Stats.TOTAL_ENTITIES_CULLED = TotalCulled
 			TotalCulled = 0
 			CurrentTick = 0

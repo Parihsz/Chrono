@@ -26,7 +26,7 @@ return {
 		end
 
 		local mirrored = Entity.new(nil, "TestChar", "NATIVE_WITH_LOCK")
-		
+
 		local part = Entity.GetPrimaryPart(mirrored) :: BasePart?
 		if part then
 			part.Name = "MirroredTestPart"
@@ -39,10 +39,9 @@ return {
 			part.Color = Color3.new(0, 1, 0)
 		end
 
-
-	--	Entity.SetNetworkOwner(mirrored, p)
+		--	Entity.SetNetworkOwner(mirrored, p)
 		print(p, " has control")
-	
+
 		while true do
 			task.wait(5)
 			warn("Give player owner")

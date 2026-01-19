@@ -799,7 +799,12 @@ Entity.GetEvent = (GetEvent :: any) :: ((
 ) -> Types.Event<(entity: Entity, dt: number) -> (), Entity, number>) & ((
 	self: Entity,
 	eventName: "ModelChanged"
-) -> Types.Event<(entity: Entity, newModel: Model|BasePart|string?, oldModel: Model|BasePart|string?) -> (), Entity, Model |BasePart|string?, Model | BasePart|string?>) & ((
+) -> Types.Event<
+	(entity: Entity, newModel: Model | BasePart?, oldModel: Model | BasePart?) -> (),
+	Entity,
+	Model | BasePart?,
+	Model | BasePart?
+>) & ((
 	self: Entity,
 	eventName: "LockChanged"
 ) -> Types.Event<(entity: Entity, isLocked: boolean) -> (), Entity, boolean>)

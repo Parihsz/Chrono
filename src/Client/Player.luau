@@ -13,7 +13,7 @@ Events.PlayerCharacterRegistered:Connect(function(player: Player, entity: Types.
 	if not entity.model then
 		return warn(`No model found for {player}`)
 	end
-	
+
 	if entity.model then
 		if not entity.model:IsA("Model") then
 			return warn(`Model for {player} is not a Model instance.`)
@@ -21,8 +21,12 @@ Events.PlayerCharacterRegistered:Connect(function(player: Player, entity: Types.
 		player.Character = entity.model
 	end
 
-	local function newModel(entity, model: Model?)
+	local function newModel(entity, model: Model | BasePart?)
 		if not model then
+			return
+		end
+		if not model:IsA("Model") then
+			warn(`Model for {player} is not a Model instance.`)
 			return
 		end
 		LocalPlayer.Character = entity.model
@@ -30,7 +34,7 @@ Events.PlayerCharacterRegistered:Connect(function(player: Player, entity: Types.
 		workspace.CurrentCamera.CameraSubject = entity.model:FindFirstChildWhichIsA("Humanoid")
 			or entity.model.PrimaryPart
 		workspace.CurrentCamera.CFrame = cf
-		for i,v in model:QueryDescendants("LocalScript") do
+		for i, v in model:QueryDescendants("LocalScript") do
 			if v:IsA("LocalScript") then
 				v.Disabled = true
 				v.Disabled = false
@@ -40,7 +44,7 @@ Events.PlayerCharacterRegistered:Connect(function(player: Player, entity: Types.
 
 	if LocalPlayer == player then
 		Entity.GetEvent(entity, "ModelChanged"):Connect(newModel)
-		newModel(entity, entity.model::any)
+		newModel(entity, entity.model :: any)
 	end
 end)
 local DeathRemote = script.Parent.Parent.Shared.Remotes.Death
@@ -48,21 +52,20 @@ Config._WaitForLock(function()
 	if Config._GetConfig("PLAYER_REPLICATION") ~= "AUTOMATIC" then
 		return
 	end
-	Events.PlayerOwnedAdded:Connect(function(player: Player, entity: Types.Entity)  
-		local prevConnection:RBXScriptConnection?
-		local function newModel(_, model: Model|BasePart?)
+	Events.PlayerOwnedAdded:Connect(function(player: Player, entity: Types.Entity)
+		local prevConnection: RBXScriptConnection?
+		local function newModel(_, model: Model | BasePart?)
 			if prevConnection then
 				prevConnection:Disconnect()
 				prevConnection = nil
 			end
-		
+
 			if not model or not entity.isContextOwner or not model:IsA("Model") then
 				return
 			end
 			local humanoid = model:FindFirstChildWhichIsA("Humanoid")
-		
+
 			if humanoid then
-				
 				prevConnection = humanoid.Died:Connect(function()
 					if not entity.isContextOwner then
 						return

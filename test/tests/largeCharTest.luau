@@ -22,26 +22,24 @@ return {
 			local char = char:Clone()
 			char.Name = "TestChar"
 
-			Config.RegisterEntityModel("TestChar", char,Vector3.new(5,6,5)) -- Larger char for client
-
+			Config.RegisterEntityModel("TestChar", char, Vector3.new(5, 6, 5)) -- Larger char for client
 		end
 		Config.RegisterEntityType("TEST", {
-			TICK_RATE = 1/10,
+			TICK_RATE = 1 / 20,
 			FULL_ROTATION = false,
 			BUFFER = 0.1,
-			MODEL_REPLICATION_MODE = "CUSTOM"
+			MODEL_REPLICATION_MODE = "CUSTOM",
 		})
 	end,
 	server = function()
-
 		local entities = {}
 		for i = 1, AMT do
-			local custom = Entity.new("TEST", "TestChar",nil,CFrame.new(0,10,0))
+			local custom = Entity.new("TEST", "TestChar", nil, CFrame.new(0, 10, 0))
 			table.insert(entities, custom)
 			if SHOW_DEBUG then
 				local p = Instance.new("Part")
-				p.Color = Color3.new(1,0,1)
-				p.Size = Vector3.new(0.5,2,0.5)
+				p.Color = Color3.new(1, 0, 1)
+				p.Size = Vector3.new(0.5, 2, 0.5)
 				p.Anchored = true
 				p.Parent = workspace
 				custom.a = p
@@ -52,9 +50,7 @@ return {
 				local part = Entity.GetPrimaryPart(entity) :: BasePart?
 				if part then
 					part.Anchored = true
-					part.CFrame *= CFrame.new(math.random(-1,1),0,math.random(-1,1))
-
-					
+					part.CFrame *= CFrame.new(math.random(-1, 1), 0, math.random(-1, 1))
 				end
 				if entity.a then
 					if entity.isHalfTicked == false then
@@ -71,6 +67,5 @@ return {
 	end,
 	client = function()
 		local playerGui = p:WaitForChild("PlayerGui")
-		
 	end,
 }

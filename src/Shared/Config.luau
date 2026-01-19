@@ -96,7 +96,7 @@ local ENTITY_TYPES: { [string]: Types.EntityConfig } = {
 	},
 	WITH_ROT = {
 		NAME = "WITH_ROT",
-		TICK_RATE = 1 / 2,
+		TICK_RATE = 1 / 20,
 		BUFFER = 0.1,
 		FULL_ROTATION = true,
 	},

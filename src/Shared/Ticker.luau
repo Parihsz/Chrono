@@ -56,7 +56,7 @@ function Ticker.Remove(ticker: Ticker, object: Entity)
 		return
 	end
 
-	popSwap(ticker.objects::any, object, index)
+	popSwap(ticker.objects :: any, object, index)
 
 	object._ticker = nil
 	object._tickerIndex = nil

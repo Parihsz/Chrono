@@ -15,7 +15,7 @@ local function ReadyModelFromRep(entity: Types.Entity, playerSpecific: Player?):
 			return modelString
 		end
 		local ModelReplicator = script.Parent.Parent.Shared._CUSTOM_MODEL_REP
-	
+
 		if playerSpecific then
 			local PlayerGui = playerSpecific.PlayerGui
 			ModelReplicator = PlayerGui:FindFirstChild("_ChronoClientModels") :: Instance
@@ -32,7 +32,8 @@ local function ReadyModelFromRep(entity: Types.Entity, playerSpecific: Player?):
 				warn(`Cloned model for {model:GetFullName()} is not Archivable. Failed to replicate model.`)
 				modelClone = Instance.new("Model")
 				local part = Instance.new("Part")
-				part.Size = Vector3.one;(modelClone :: any).PrimaryPart = part
+				part.Size = Vector3.one;
+				(modelClone :: any).PrimaryPart = part
 			end
 			(modelClone :: any).Parent = ModelReplicator
 
@@ -63,8 +64,7 @@ local function CreateTempModel(): (Model, string)
 	return model, "CUSTOM"
 end
 
-local function CreateModelFromData(model: Model | string | BasePart?): (Model|string | BasePart?, string?)
-
+local function CreateModelFromData(model: Model | string | BasePart?): (Model | string | BasePart?, string?)
 	if not model then
 		return
 	end
@@ -72,8 +72,6 @@ local function CreateModelFromData(model: Model | string | BasePart?): (Model|st
 	if type(model) == "string" then
 		return model, nil
 	end
-
-
 
 	if
 		model.Parent == Shared._CUSTOM_MODEL_REP

@@ -2543,8 +2543,8 @@
 <h3 id="modelchanged"><code>ModelChanged</code><a class="headerlink" href="#modelchanged" title="Permanent link">&para;</a></h3>
 <p>Fired when the model of the entity changes.</p>
 <ul>
-<li>newModel : <code>Model | BasePart | string?</code> - The new model or base part, or model string name if using custom replication.</li>
-<li>prevModel : <code>Model | BasePart | string?</code> - The previous model or base part, or model string name if using custom replication.</li>
+<li>newModel : <code>Model | BasePart?</code> - The new model or base part of the entity.</li>
+<li>oldModel : <code>Model | BasePart?</code> - The previous model or base part of the entity.</li>
 </ul>
 <h3 id="lockchanged"><code>LockChanged</code><a class="headerlink" href="#lockchanged" title="Permanent link">&para;</a></h3>
 <p>Fired when the native server CFrame replication lock state changes.</p>

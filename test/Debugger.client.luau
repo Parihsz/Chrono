@@ -34,11 +34,14 @@ Iris:Connect(function()
 		if Iris.Tree({ "Server Stats" }).state.isUncollapsed.value then
 			Iris.Text({ "Avg Ticker Time Per Frame (ms): " .. tostring(Stats.SERVER.AVG_TICKER_TIME_MS) })
 			Iris.Text({ "Entity Grid Total Update Time (ms): " .. tostring(Stats.SERVER.ENTITY_GRID_UPDATE_TIME_MS) })
-			Iris.Text({ "Entity Grid Section Time (ms): " .. tostring(Stats.SERVER.ENTITY_GRID_UPDATE_TIME_MS/Stats.SERVER.GRID_UPDATE_SECTIONS) })
+			Iris.Text({
+				"Entity Grid Section Time (ms): "
+					.. tostring(Stats.SERVER.ENTITY_GRID_UPDATE_TIME_MS / Stats.SERVER.GRID_UPDATE_SECTIONS),
+			})
 			Iris.Text({ "Grid Update Sections: " .. tostring(Stats.SERVER.GRID_UPDATE_SECTIONS) })
 			Iris.Text({ "Number of Entities: " .. tostring(Stats.SERVER.NUMBER_OF_ENTITIES) })
 			Iris.Text({ "Entities Non-Ticked: " .. tostring(Stats.SERVER.NON_TICKED) })
-			Iris.Text({ "Entities Full-Ticked: " .. tostring(Stats.SERVER.ENTITIES_FULL_TICKED) }) 
+			Iris.Text({ "Entities Full-Ticked: " .. tostring(Stats.SERVER.ENTITIES_FULL_TICKED) })
 			Iris.Text({ "Entities Half-Ticked: " .. tostring(Stats.SERVER.ENTITIES_HALF_TICKED) })
 			Iris.Text({
 				"Bytes Received (Non-Compressed): " .. tostring(Stats.SERVER.BYTES_RECEIVED_PER_SEC / 1000) .. " KB/s",

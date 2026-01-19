@@ -195,7 +195,7 @@ local function New<Value, Velocity>(
 		count = 0,
 		lockedTime = 0,
 		Lerp = lerpFunction,
- 
+
 		Push = Push,
 		GetLatest = GetLatest,
 		GetAt = GetAt,

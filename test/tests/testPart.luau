@@ -12,11 +12,11 @@ return {
 		p.Position = Vector3.new(0, 100, 0)
 		p.Name = "TestPart"
 		Config.RegisterEntityModel("TestPart", p)
-        Config.SetConfig("REPLICATE_CFRAME_SETTERS","PLAYER_ENTITIES")
+		Config.SetConfig("REPLICATE_CFRAME_SETTERS", "PLAYER_ENTITIES")
 	end,
 	server = function()
 		local native = Entity.new(nil, "TestPart", "NATIVE")
-		
+
 		local part = Entity.GetPrimaryPart(native)
 
 		if part then
@@ -25,7 +25,7 @@ return {
 		end
 
 		local mirrored = Entity.new(nil, "TestPart")
-        Entity.LockNativeServerCFrameReplication(mirrored)
+		Entity.LockNativeServerCFrameReplication(mirrored)
 
 		local part = mirrored.model :: BasePart?
 		if part then
@@ -41,22 +41,21 @@ return {
 		if part then
 			part.Color = Color3.new(0, 1, 0)
 		end
-        print(p,' has control')
+		print(p, " has control")
 		while true do
 			task.wait(5)
 			warn("Give player owner")
-            Entity.SetNetworkOwner(native, p)
-            Entity.SetNetworkOwner(mirrored, p)
-            Entity.SetNetworkOwner(custom, p)
-            task.wait(10)
-            warn("Remove player owner")
-            Entity.SetNetworkOwner(native, nil)
-            Entity.SetNetworkOwner(mirrored, nil)
-            Entity.SetNetworkOwner(custom, nil)
-
+			Entity.SetNetworkOwner(native, p)
+			Entity.SetNetworkOwner(mirrored, p)
+			Entity.SetNetworkOwner(custom, p)
+			task.wait(10)
+			warn("Remove player owner")
+			Entity.SetNetworkOwner(native, nil)
+			Entity.SetNetworkOwner(mirrored, nil)
+			Entity.SetNetworkOwner(custom, nil)
 		end
 	end,
 	client = function()
-        workspace.ChildAdded:Connect(print)
-    end,
+		workspace.ChildAdded:Connect(print)
+	end,
 }

@@ -204,8 +204,8 @@ Fired when the entity is ticked.
 
 Fired when the model of the entity changes.
 
-- newModel : `Model | BasePart | string?` - The new model or base part, or model string name if using custom replication.
-- prevModel : `Model | BasePart | string?` - The previous model or base part, or model string name if using custom replication.
+- newModel : `Model | BasePart?` - The new model or base part of the entity.
+- oldModel : `Model | BasePart?` - The previous model or base part of the entity.
 
 ### `LockChanged`
 

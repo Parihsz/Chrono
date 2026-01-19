@@ -1,4 +1,4 @@
-type BinItem = Instance | RBXScriptConnection | thread | () -> (...any) | { _binCleanup: (...any) -> () }
+type BinItem = Instance | RBXScriptConnection | thread | () -> ...any | { _binCleanup: (...any) -> () }
 
 export type Add = <T>(Item: T & BinItem) -> T
 export type Clear = () -> ()
@@ -21,8 +21,8 @@ return function(): (Add, Clear)
 					task.spawn(Item)
 				elseif typeof(Item) == "thread" then
 					pcall(task.cancel, Item) -- must pcall or could error when passing its own thread in
-                elseif typeof(Item) == "table" and Item._binCleanup and type(Item._binCleanup) == "function" then
-                    Item:_binCleanup()
+				elseif typeof(Item) == "table" and Item._binCleanup and type(Item._binCleanup) == "function" then
+					Item:_binCleanup()
 				end
 			end
 
