@@ -107,7 +107,7 @@ PLAYER_REPLICATION = "AUTOMATIC"
 ```
 
 * `AUTOMATIC` means that player characters are automatically registered as entities. This was the default for v1 but we figured we should give users the ability to choose whether to use Chrono for players.
-* `CUSTOM` means that you manually manage player entities, using `RegisterPlayer` api or make a custom system.
+* `CUSTOM` means that you manually manage player entities. 
 
 !!! Warning
     If you choose `AUTOMATIC` Then make sure you have a `PLAYER` entity type defined.
