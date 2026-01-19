@@ -38,11 +38,9 @@ local chrono = require(PATH_TO_CHRONO)
 chrono.Start(Shared.ChronoConfig)
 ```
 
-## Default Configurations
-```lua
-
 ## Configurations
 These are Chrono's default values. If you don't override them, these are the settings chrono will run with. 
+
 ```lua
 local BASE_CONFIG = {
     __VERSION = "v2.0.0",
