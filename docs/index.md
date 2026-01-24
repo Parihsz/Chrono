@@ -28,7 +28,7 @@ Chrono uses a **dynamic tick rate** instead. Tick rate scales from "default" -> 
 
 When someone moves, it takes x ms to reach the server and then another x ms to reach another client and then another **200-500**ms (or something around that, we're not too sure) to interpolate.
 
-Chrono lets the DEVELOPER, control the minimum and maximum delay (or u can use a static delay!). You can
+Chrono lets the developer, control the minimum and maximum delay (or u can use a static delay!). You can
 introspect it in realtime so lag compensation becomes much nicer :3
 
 ---
@@ -74,4 +74,9 @@ For 150 NPCs moving randomly:
 
 ---
 ## Whats new in v2?
-Cubetian, creator of haobical removed all skidding and made everyting better. 
+* Optimizations to replicator
+* More reliable npc replication
+* Custom half tick for different npc types
+* Mount system
+* New method for disabling default replication
+* Optional frustum culling
