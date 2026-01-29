@@ -1,25 +1,20 @@
-export type SnapshotData<Value, Velocity> = {
-	t: number,
-	value: Value,
-	velocity: Velocity,
-}
+--!native
 
-export type Snapshot<Value, Velocity> = {
-	cache: { SnapshotData<Value, Velocity> },
-	head: number,
-	count: number,
-	Lerp: (p0: Vector3, p1: Vector3, v0: Velocity, v1: Velocity, t: number, dt: number) -> Vector3,
+local Types = require(script.Parent.Types)
 
-	Push: (self: Snapshot<Value, Velocity>, t: number, value: Value, velocity: Velocity) -> (),
-	GetLatest: (self: Snapshot<Value, Velocity>) -> SnapshotData<Value, Velocity>?,
-	GetAt: (self: Snapshot<Value, Velocity>, t: number) -> Value?,
-	Clear: (self: Snapshot<Value, Velocity>) -> (),
-}
+type SnapshotData<Value, Velocity> = Types.SnapshotData<Value, Velocity>
 
-local Config = require(script.Parent.Parent.Shared.Config)
+type Snapshot<Value, Velocity> = Types.Snapshot<Value, Velocity>
 
-local MAX_LENGTH = Config.MAX_SNAPSHOT_COUNT
-local SHOW_WARNINGS = Config.SHOW_WARNINGS
+local Config = require(script.Parent.Config)
+
+local MAX_LENGTH
+local SHOW_WARNINGS
+
+Config._WaitForLock(function()
+	MAX_LENGTH = Config._GetConfig("MAX_SNAPSHOT_COUNT")
+	SHOW_WARNINGS = Config._GetConfig("SHOW_WARNINGS")
+end)
 
 local function WarnIfEnabled(...)
 	if SHOW_WARNINGS then
@@ -116,7 +111,7 @@ local function GetLatest<Value, Velocity>(self: Snapshot<Value, Velocity>): Snap
 	return self.cache[lastIndex]
 end
 
-local function GetAt<Value, Velocity>(self: Snapshot<Value, Velocity>, at: number): Value?
+local function GetAt<Value, Velocity>(self: Snapshot<Value, Velocity>, at: number, bypassLock: boolean?): Value?
 	local count = self.count
 	if count == 0 then
 		return nil
@@ -130,6 +125,11 @@ local function GetAt<Value, Velocity>(self: Snapshot<Value, Velocity>, at: numbe
 	local cache = self.cache
 	local head = self.head
 	local lerpFunction = self.Lerp
+	local lockedTime = self.lockedTime
+
+	if at < lockedTime and not bypassLock then
+		at = lockedTime
+	end
 
 	local insertionPos = BinarySearchInsertionPoint(self, at)
 
@@ -166,7 +166,7 @@ local function GetAt<Value, Velocity>(self: Snapshot<Value, Velocity>, at: numbe
 
 		return CFrame.new(position) * rotation
 	elseif beforeData then
-		WarnIfEnabled("Tried to fetch a time that was ahead of snapshot storage!")
+		--WarnIfEnabled("Tried to fetch a time that was ahead of snapshot storage!")
 		return beforeData.value
 	elseif afterData then
 		WarnIfEnabled("Tried to fetch a time that was behind snapshot storage!")
@@ -193,6 +193,7 @@ local function New<Value, Velocity>(
 		cache = cache,
 		head = 1,
 		count = 0,
+		lockedTime = 0,
 		Lerp = lerpFunction,
 
 		Push = Push,

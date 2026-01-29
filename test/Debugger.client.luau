@@ -1,72 +1,56 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Config = require(ReplicatedStorage.Packages.chrono.Shared.Config)
+local Chrono = ReplicatedStorage.Packages.chrono
+local Shared = Chrono.Shared
+local Config = require(Shared.Config)
+local Stats = require(Shared.Stats)
 local Iris = require(ReplicatedStorage.DevPackages.iris)
-local Replication = require(ReplicatedStorage.Packages.chrono.Client.Replicate)
 
-local GetAllNetworkIds = Replication.GetAllNetworkIds
-local BufferTracker = Replication.BufferTracker
-
-local playerTickRates = Replication.playerTickRates
-local idMap = Replication.idMap
-
-local searchText = Iris.State("") :: typeof(Iris.State(""))
-local networkIds = GetAllNetworkIds()
+local ClientStats = Stats.CLIENT
 
 Iris.Init()
 
 Iris:Connect(function()
 	if Iris.Window({ "Replication Debug" }) then
-		if Iris.Button({ "🔄 Refresh" }).clicked then
-			networkIds = GetAllNetworkIds()
+		if Iris.Tree({ "Client Network Stats" }).state.isUncollapsed.value then
+			Iris.Text({
+				"Received (Non-Compressed): " .. tostring(ClientStats.BYTES_RECEIVED_PER_SEC / 1000) .. " KB/s",
+			})
+			Iris.Text({ "Entities Added: " .. tostring(ClientStats.NEW_ENTITIES_PER_SEC) .. "/s" })
+			Iris.Text({ "Entity Changes: " .. tostring(ClientStats.ENTITY_CHANGES_PER_SEC) .. "/s" })
+			Iris.Text({ "Entity Removals: " .. tostring(ClientStats.ENTITY_REMOVALS_PER_SEC) .. "/s" })
 		end
-
-		Iris.InputText({ "Search ID" }, { text = searchText })
-		Iris.Separator()
-
-		for _, id in networkIds do
-			if not tostring(id):find(searchText:get()) then
-				continue
-			end
-
-			if Iris.Tree({ `Player ID: {id}` }).state.isUncollapsed.value then
-				local tickRate = playerTickRates[id] or Config.TICK_RATE
-				local bufferTime = BufferTracker.GetBuffer(id, tickRate)
-				local latencyInfo = BufferTracker.PlayerLatencies[id]
-
-				Iris.Separator()
-
-				if latencyInfo then
-					local latencyLabel = if latencyInfo.averageLatency > 0.2 then "🔴" else "🟢"
-					local deviationLabel = if latencyInfo.deviation > 0.05 then "🔴" else "🟢"
-
-					Iris.Text({ `{latencyLabel} Client1 -> Server -> Client2 Latency: {latencyInfo.averageLatency}` })
-					Iris.Text({ `{deviationLabel} Deviation: {latencyInfo.deviation}` })
-					Iris.Text({ `Buffer Time: {bufferTime}` })
-					Iris.Text({ `Tick Rate: {tickRate}` })
-				else
-					Iris.Text({ "No latency/deviation data, please investigate!" })
-				end
-
-				Iris.Separator()
-				Iris.Text({ "📦 Snapshot Cache:" })
-
-				for i, snapshot in idMap[id].snapshot.cache do
-					local snapshotText = Iris.State("")
-
-					Iris.Text({ snapshotText:get() })
-
-					task.defer(function()
-						local position = if snapshot.value
-							then `({snapshot.value.Position.X}, {snapshot.value.Position.Y}, {snapshot.value.Position.Z})`
-							else "❌ nil"
-						snapshotText:set(`{i}: {snapshot.t} - Position {position}`)
-					end)
-				end
-			end
-
-			Iris.End()
+		Iris.End()
+		if Iris.Tree({ "Client Render Stats" }).state.isUncollapsed.value then
+			Iris.Text({ "Avg Interpolation Time (ms): " .. tostring(ClientStats.AVG_INTERPOLATION_TIME_MS) })
+			Iris.Text({ "Total Entities Culled: " .. tostring(ClientStats.TOTAL_ENTITIES_CULLED) })
+			Iris.Text({ "Entities Moved This Frame: " .. tostring(ClientStats.ENTITIES_MOVED_THIS_FRAME) })
+			Iris.Text({
+				"Total Client Entities Checked This Frame: "
+					.. tostring(ClientStats.TOTAL_CLIENT_ENTITIES_CHECKED_THIS_FRAME),
+			})
+			Iris.Text({ "Total Client Entities: " .. tostring(ClientStats.TOTAL_CLIENT_ENTITIES) })
 		end
-
+		Iris.End()
+		if Iris.Tree({ "Server Stats" }).state.isUncollapsed.value then
+			Iris.Text({ "Avg Ticker Time Per Frame (ms): " .. tostring(Stats.SERVER.AVG_TICKER_TIME_MS) })
+			Iris.Text({ "Entity Grid Total Update Time (ms): " .. tostring(Stats.SERVER.ENTITY_GRID_UPDATE_TIME_MS) })
+			Iris.Text({
+				"Entity Grid Section Time (ms): "
+					.. tostring(Stats.SERVER.ENTITY_GRID_UPDATE_TIME_MS / Stats.SERVER.GRID_UPDATE_SECTIONS),
+			})
+			Iris.Text({ "Grid Update Sections: " .. tostring(Stats.SERVER.GRID_UPDATE_SECTIONS) })
+			Iris.Text({ "Number of Entities: " .. tostring(Stats.SERVER.NUMBER_OF_ENTITIES) })
+			Iris.Text({ "Entities Non-Ticked: " .. tostring(Stats.SERVER.NON_TICKED) })
+			Iris.Text({ "Entities Full-Ticked: " .. tostring(Stats.SERVER.ENTITIES_FULL_TICKED) })
+			Iris.Text({ "Entities Half-Ticked: " .. tostring(Stats.SERVER.ENTITIES_HALF_TICKED) })
+			Iris.Text({
+				"Bytes Received (Non-Compressed): " .. tostring(Stats.SERVER.BYTES_RECEIVED_PER_SEC / 1000) .. " KB/s",
+			})
+			Iris.Text({ "Bytes Sent (Non-Compressed): " .. tostring(Stats.SERVER.BYTES_SENT_PER_SEC / 1000) .. " KB/s" })
+			Iris.Text({ "Packets Sent: " .. tostring(Stats.SERVER.PACKETS_SENT_PER_SEC) .. "/s" })
+			Iris.Text({ "Replicate Player Time (ms): " .. tostring(Stats.SERVER.REPLICATE_PLAYER_TIME_MS) })
+		end
+		Iris.End()
 		Iris.End()
 	end
 end)

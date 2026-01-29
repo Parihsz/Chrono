@@ -24,10 +24,10 @@
 --   stravant - July 31st, 2021 - Created the file.                           --
 --------------------------------------------------------------------------------
 
-export type Signal<T...> = {
+export type Signal<fx, T...> = {
 	Fire: (self: any, T...) -> (),
 	DisconnectAll: (self: any) -> (),
-	Event: Event<T...>,
+	Event: Event<fx, T...>,
 }
 
 export type Connection = {
@@ -35,9 +35,9 @@ export type Connection = {
 	Connected: boolean,
 }
 
-export type Event<T...> = {
-	Connect: (self: any, FN: (T...) -> ()) -> Connection,
-	Once: (self: any, FN: (T...) -> ()) -> Connection,
+export type Event<fx, T...> = {
+	Connect: (self: any, FN: fx) -> Connection,
+	Once: (self: any, FN: fx) -> Connection,
 	Wait: (self: any) -> T...,
 }
 
@@ -83,6 +83,7 @@ function Connection.new(signal, fn, defer)
 		_fn = fn,
 		_next = false,
 		_defer = defer or false,
+		_binCleanup = Connection.Disconnect,
 	}, Connection)
 end
 
@@ -126,8 +127,8 @@ function Event.new()
 	}, Event)
 end
 
-function Event:Connect(fn)
-	local connection = Connection.new(self, fn)
+function Event:Connect(fn, defer)
+	local connection = Connection.new(self, fn, defer)
 	if self._handlerListHead then
 		connection._next = self._handlerListHead
 		self._handlerListHead = connection
@@ -135,12 +136,6 @@ function Event:Connect(fn)
 		self._handlerListHead = connection
 	end
 	return connection
-end
-
--- Disconnect all handlers. Since we use a linked list it suffices to clear the
--- reference to the head handler.
-function Event:DisconnectAll()
-	self._handlerListHead = false
 end
 
 -- Implement Signal:Wait() in terms of a temporary connection using
@@ -176,6 +171,7 @@ function Signal.new()
 	return setmetatable({
 		_type_ = "Signal",
 		Event = Event.new(),
+		_binCleanup = Signal.DisconnectAll,
 	}, Signal)
 end
 
@@ -191,6 +187,7 @@ end
 -- over by Roblox scheduling, meaning we have to make a new coroutine runner.
 function Signal:Fire(...)
 	local item = self.Event._handlerListHead
+	debug.profilebegin("Signal.Fire")
 	while item do
 		if item.Connected then
 			if item._defer then
@@ -206,6 +203,7 @@ function Signal:Fire(...)
 		end
 		item = item._next
 	end
+	debug.profileend()
 end
 
 -- Make signal strict

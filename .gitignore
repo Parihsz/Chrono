@@ -10,3 +10,5 @@ node_modules/
 
 # Development
 DevPackages
+.venv
+site

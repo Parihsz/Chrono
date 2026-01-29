@@ -16,7 +16,6 @@
             },
 
             "DevPackages": { "$path": "DevPackages"},
-            "Benches": { "$path": "benchmarks"},
 
             "$path": "test"
         }

@@ -1,578 +1,216 @@
-local Players = game:GetService("Players")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Shared = script.Parent.Parent.Shared
 local RunService = game:GetService("RunService")
+local ApplyMounts = require(script.Parent.Parent.Shared.ApplyMounts)
+local RenderCache = require(script.Parent.ClientClock)
+local Entity = require(Shared.Entity)
+local Holder = require(Shared.Holder)
+local Config = require(Shared.Config)
+local Types = require(Shared.Types)
+local Sender = require(script.Parent.Sender)
+local Stats = require(Shared.Stats).CLIENT
+require(script.Parent.Player)
+require(script.Parent.Receiver)
 
-local Config = require(script.Parent.Parent.Shared.Config)
-local Snapshots = require(script.Parent.Parent.Shared.Snapshots)
-local Events = require(script.Parent.Parent.Events.Client)
-local InterpolationBuffer = require(script.Parent.InterpolationBuffer)
-local Networkables = require(script.Parent.Parent.Shared.MakeNetworkable)
-local RenderCache = require(script.Parent.RenderCache)
-local Rig = require(script.Parent.Parent.Shared.Rigs.CreateCharacter)
-local Character = require(script.Parent.Parent.Shared.Character)
-local InterpolationMath = require(script.Parent.Parent.Shared.InterpolationMath)
+local idMap = Holder.idMap
 
-local CUSTOM_CHARACTERS = Config.ENABLE_CUSTOM_CHARACTERS
-local MAX_UNRELIABLE_BYTES = 900
-local SNAPSHOT_SIZE = if Config.SEND_FULL_ROTATION then 24 else 20
-local HEADER_SIZE = 2
-local MAX_AWAITING_TIME = 2 --seconds
-local MAX_BATCH = (MAX_UNRELIABLE_BYTES - HEADER_SIZE) // SNAPSHOT_SIZE
+local FrustumLookVector = vector.create(0, 0, -1)
+local FrustumRightVector = vector.create(1, 0, 0)
+local FrustumUpVector = vector.create(0, 1, 0)
+local FrustumPosition = vector.create(0, 0, 0)
+local TanHorizontal = 0
+local TanVertical = 0
 
-local outgoingSnapshots = {} :: { { timestamp: number, cframe: CFrame, id: number } }
+local function PrepareFrustumCheck()
+	local cframe: CFrame = workspace.CurrentCamera.CFrame
+	FrustumLookVector = cframe.LookVector :: any
+	FrustumRightVector = cframe.RightVector :: any
+	FrustumUpVector = cframe.UpVector :: any
 
-local ClientReplicateCFrame: UnreliableRemoteEvent = ReplicatedStorage:WaitForChild("ClientReplicateCFrame") :: any
-local ServerReplicateCFrame: UnreliableRemoteEvent = ReplicatedStorage:WaitForChild("ServerReplicateCFrame") :: any
-local DeathEvent: RemoteEvent = ReplicatedStorage:WaitForChild("DeathEvent") :: any
+	FrustumPosition = cframe.Position :: any
 
-local idMap = {} :: {
-	[number]: {
-		networkOwner: boolean?,
-		snapshot: Snapshots.Snapshot<CFrame, Vector3>,
-		character: Model?,
-		lastCFrame: CFrame?,
-		lastSent: number?,
-
-		isNPC: boolean?,
-		npcType: string?,
-
-		player: Player?,
-		_characterAdded: RBXScriptConnection?,
-	},
-}
-
-local awaitingSnapshots = {} :: { [number]: { timestamp: number, cframe: CFrame, clock: number } }
-
-local clientOwnerShip: {}
-
-task.defer(function()
-	local NpcRegistry = (require)(script.Parent.Parent.Shared.NpcRegistry)
-	clientOwnerShip = NpcRegistry._ClientOwners
-end)
-
-local playerToId = {} :: { [Player]: number }
-local player = Players.LocalPlayer
-local characters = {} :: { [Player]: Model }
-local playerTickRates = {} :: { [number]: number }
-local pausedPlayers = {} :: { [number]: boolean }
-
-local bufferTracker = InterpolationBuffer(Config.MIN_BUFFER, Config.MAX_BUFFER, 0.1)
-RenderCache.Init({
-	playerTickRates = playerTickRates,
-	bufferTracker = bufferTracker,
-})
-
-local function GetCharacter(player: Player): Model?
-	if CUSTOM_CHARACTERS then
-		return Character.GetCharacter(player)
-	else
-		return player.Character
-	end
+	local cam = workspace.CurrentCamera
+	local halfFov = math.rad(cam.FieldOfView / 2)
+	local aspectRatio = cam.ViewportSize.X / cam.ViewportSize.Y
+	TanHorizontal = math.tan(halfFov) * aspectRatio
+	TanVertical = math.tan(halfFov)
 end
 
-local function WaitForCharacter(player: Player): Model
-	if CUSTOM_CHARACTERS then
-		local _player, character
-		repeat
-			_player, character = Character.CharacterAdded:Wait()
-		until _player == player
-		return character
-	else
-		return player.CharacterAdded:Wait()
-	end
-end
+local function CheckPointInFrustum(pos: vector)
+	local diff = pos - FrustumPosition
 
-local playerNetworkId = 300
+	local magnitude = vector.magnitude(diff)
 
-local Hermite = InterpolationMath.Hermite
-local VelocityAt = InterpolationMath.VelocityAt
-
-local function UnpackSnapshotData(snapshotBuffer: buffer, offset: number): any
-	local value = {}
-	value.timestamp = buffer.readf32(snapshotBuffer, offset + 0)
-
-	local x = buffer.readf32(snapshotBuffer, offset + 4)
-	local y = buffer.readf32(snapshotBuffer, offset + 8)
-	local z = buffer.readf32(snapshotBuffer, offset + 12)
-
-	if Config.SEND_FULL_ROTATION then
-		local mappedX = buffer.readu16(snapshotBuffer, offset + 16)
-		local mappedY = buffer.readu16(snapshotBuffer, offset + 18)
-		local mappedZ = buffer.readu16(snapshotBuffer, offset + 20)
-
-		local rx = math.map(mappedX, 0, 2 ^ 16 - 1, -1, 1)
-		local ry = math.map(mappedY, 0, 2 ^ 16 - 1, -1, 1)
-		local rz = math.map(mappedZ, 0, 2 ^ 16 - 1, -1, 1)
-
-		value.cframe = Networkables.DecodeCFrame({
-			Position = vector.create(x, y, z) :: any,
-			Rotation = { x = rx, y = ry, z = rz },
-		})
-		value.id = buffer.readu16(snapshotBuffer, offset + 22)
-	else
-		local rotationY = buffer.readu16(snapshotBuffer, offset + 16)
-		local remappedRotationY = math.map(rotationY, 0, 2 ^ 16 - 1, -math.pi, math.pi)
-		value.cframe = Networkables.DecodeYawCFrame({
-			Position = vector.create(x, y, z) :: any,
-			RotationY = remappedRotationY,
-		})
-		value.id = buffer.readu16(snapshotBuffer, offset + 18)
+	if magnitude == 0 then
+		return true
 	end
 
-	return value
-end
+	local forwardDis = vector.dot(diff, FrustumLookVector)
 
-local function PackSnapshotData(snapshotBuffer: buffer, offset: number, timestamp: number, cframe: CFrame, id: number)
-	buffer.writef32(snapshotBuffer, offset + 0, timestamp)
-	buffer.writef32(snapshotBuffer, offset + 4, cframe.Position.X)
-	buffer.writef32(snapshotBuffer, offset + 8, cframe.Position.Y)
-	buffer.writef32(snapshotBuffer, offset + 12, cframe.Position.Z)
-
-	if Config.SEND_FULL_ROTATION then
-		local networkable = Networkables.MakeNetworkable(cframe)
-
-		local mappedX = math.map(networkable.Rotation.x, -1, 1, 0, 2 ^ 16 - 1)
-		local mappedY = math.map(networkable.Rotation.y, -1, 1, 0, 2 ^ 16 - 1)
-		local mappedZ = math.map(networkable.Rotation.z, -1, 1, 0, 2 ^ 16 - 1)
-
-		buffer.writeu16(snapshotBuffer, offset + 16, mappedX)
-		buffer.writeu16(snapshotBuffer, offset + 18, mappedY)
-		buffer.writeu16(snapshotBuffer, offset + 20, mappedZ)
-		buffer.writeu16(snapshotBuffer, offset + 22, id)
-	else
-		local networkable = Networkables.MakeYawNetworkable(cframe)
-		local mappedRotationY = math.map(networkable.RotationY, -math.pi, math.pi, 0, 2 ^ 16 - 1)
-		buffer.writeu16(snapshotBuffer, offset + 16, mappedRotationY)
-		buffer.writeu16(snapshotBuffer, offset + 18, id)
+	local forwardDot = forwardDis / magnitude
+	if forwardDot < 0 then
+		return false
 	end
-end
+	if forwardDis < 1 then
+		return true
+	end
+	local unit = diff / magnitude
+	local rightDot = vector.dot(unit, FrustumRightVector)
 
-local function Flush()
-	local count = math.min(#outgoingSnapshots, MAX_BATCH)
-	if count == 0 then
+	if math.abs(rightDot) > forwardDot * TanHorizontal then
 		return false
 	end
 
-	local offset = 0
-	local snapshotBuffer = buffer.create(count * SNAPSHOT_SIZE)
-	for i = 1, count do
-		local snapshot = outgoingSnapshots[#outgoingSnapshots]
-		outgoingSnapshots[#outgoingSnapshots] = nil
-		PackSnapshotData(snapshotBuffer, offset, snapshot.timestamp, snapshot.cframe, snapshot.id)
-		offset += SNAPSHOT_SIZE
+	local upDot = vector.dot(unit, FrustumUpVector)
+	if math.abs(upDot) > forwardDot * TanVertical then
+		return false
 	end
-
-	ClientReplicateCFrame:FireServer(snapshotBuffer)
-	Flush()
-
 	return true
 end
 
-local function RegisterClientNPC(id: number, model: Model, npcType: string?)
-	if not idMap[id] then
-		npcType = npcType or "DEFAULT"
-		idMap[id] = {
-			snapshot = Snapshots(Hermite),
-			character = nil,
-			lastCFrame = nil,
-			isNPC = true,
-			npcType = npcType,
-		}
-		RenderCache.Add(id, true, npcType)
+local function CheckBroadPhaseInFrustum(center: vector, size: vector)
+	if size == vector.zero then
+		return CheckPointInFrustum(center)
 	end
+	local halfSize = size * 0.5
+	local halfX = halfSize.x
+	local halfY = halfSize.y
+	local halfZ = halfSize.z
+	local negX = -halfX
+	local negY = -halfY
+	local negZ = -halfZ
 
-	if clientOwnerShip[id] and clientOwnerShip[id] ~= true then
-		local now = os.clock()
-		local latest = idMap[id].snapshot:GetLatest()
-		local velocity = VelocityAt(latest, now, clientOwnerShip[id])
-		idMap[id].snapshot:Push(now, clientOwnerShip[id], velocity)
-		clientOwnerShip[id] = true
-	end
-
-	idMap[id].character = model
-
-	if npcType then
-		idMap[id].npcType = npcType
-	end
+	return CheckPointInFrustum(center + vector.create(halfX, halfY, halfZ))
+		or CheckPointInFrustum(center + vector.create(negX, halfY, halfZ))
+		or CheckPointInFrustum(center + vector.create(halfX, negY, halfZ))
+		or CheckPointInFrustum(center + vector.create(negX, negY, halfZ))
+		or CheckPointInFrustum(center + vector.create(halfX, halfY, negZ))
+		or CheckPointInFrustum(center + vector.create(negX, halfY, negZ))
+		or CheckPointInFrustum(center + vector.create(halfX, negY, negZ))
+		or CheckPointInFrustum(center + vector.create(negX, negY, negZ))
 end
+local Ticks = 4
+local OutOfBroadPhaseTick = 0
+local CurrentTick = 0
+local TotalInterpolationTime = 0
+local AmtInterpolations = 0
 
-local function UnregisterNPC(id: number): Model?
-	local data = idMap[id]
-	if not data then
-		return nil
-	end
+local CheckedThisFrame = 0
+local TotalCulled = 0
+local MovedThisFrame = 0
 
-	bufferTracker.Remove(id)
-
-	idMap[id] = nil
-	return data.character
-end
-
-local function NewCharacter(idData: typeof(idMap[1]))
-	local player = idData.player
-	if not player then
+local function Interpolate(entity: Types.Entity)
+	if entity.entityConfig.CUSTOM_INTERPOLATION then
 		return
 	end
+	local primaryPart = Entity.GetPrimaryPart(entity)
 
-	local initializedCharacter = GetCharacter(player) or WaitForCharacter(player)
-	if not initializedCharacter.Parent then
-		initializedCharacter = WaitForCharacter(player)
-	end
-
-	local old = characters[player]
-	if old and old ~= initializedCharacter then
-		pcall(old.Destroy, old)
-	end
-
-	local primaryPart = initializedCharacter.PrimaryPart :: BasePart
-
-	task.spawn(function()
-		if not Config.DISABLE_DEFAULT_REPLICATION then
-			return
-		end
-		if not primaryPart then
-			task.wait(1) -- for some reason primary part didn't exist immediately?
-			primaryPart = initializedCharacter.PrimaryPart :: BasePart
-		end
-		if not primaryPart then
-			warn("Player has no primary part", player, initializedCharacter)
-			return
-		end
-		primaryPart.Anchored = false
-
-		primaryPart:GetPropertyChangedSignal("Anchored"):Connect(function()
-			primaryPart.Anchored = false
-		end)
-
-		local humanoid = initializedCharacter:FindFirstChild("Humanoid") :: Humanoid
-		if not humanoid then
-			return
-		end
-
-		humanoid.Died:Connect(function()
-			DeathEvent:FireServer()
-		end)
-	end)
-
-	characters[player] = initializedCharacter
-
-	local initialCFrame = CFrame.identity
-
-	if characters[player] and characters[player].PrimaryPart then
-		initialCFrame = (characters[player] :: any).PrimaryPart.CFrame
-	end
-
-	idData.character = initializedCharacter
-	idData.lastCFrame = initialCFrame
-end
-
-local function PlayerAdded(player: Player, id: number)
-	local registeredSnapshots = Snapshots(Hermite)
-	playerToId[player] = id
-	idMap[id] = {
-		player = player,
-		snapshot = registeredSnapshots,
-		character = nil,
-		lastCFrame = CFrame.identity,
-	}
-
-	RenderCache.Add(id)
-
-	if not CUSTOM_CHARACTERS then
-		idMap[id]._characterAdded = player.CharacterAdded:Connect(function(char)
-			NewCharacter(idMap[id])
-		end)
-	end
-
-	NewCharacter(idMap[id])
-end
-
-Events.InitializePlayer.On(function(data)
-	local playerInstance = Players[data.player]
-
-	if playerInstance then
-		PlayerAdded(playerInstance, data.id)
-	end
-end)
-
-Events.InitializeExistingPlayers.On(function(data)
-	for _, playerData in data do
-		local playerInstance = Players[playerData.player]
-
-		if playerInstance then
-			PlayerAdded(playerInstance, playerData.id)
-		end
-	end
-end)
-
-local lastSent = os.clock()
-
-Events.TickRateChanged.On(function(data)
-	playerTickRates[data.id] = data.tickRate
-end)
-
-Events.TogglePlayerReplication.On(function(data)
-	if data.on then
-		pausedPlayers[data.id] = nil
-	else
-		pausedPlayers[data.id] = true
-	end
-end)
-
-local function HandleReplicatedData(clientLastTicks, cframes)
-	for id, serverTime in clientLastTicks do
-		if idMap[id] and not idMap[id].isNPC then
-			bufferTracker.RegisterPacket(id, serverTime, playerTickRates[id] or Config.TICK_RATE)
-		end
-	end
-
-	RenderCache.OnSnapshotUpdate(clientLastTicks)
-
-	for id, cframe in cframes do
-		local entry = idMap[id]
-		local targetTime = RenderCache.GetTargetRenderTime(id)
-		if not entry then
-			continue
-		elseif entry.isNPC and entry.npcType and not targetTime then
-			RenderCache.Add(id, true, entry.npcType)
-		end
-
-		local latest = entry.snapshot:GetLatest()
-		if latest and clientLastTicks[id] - latest.t < 5 and targetTime then
-			if math.abs(targetTime - latest.t) > 5 then
-				entry.snapshot:Clear()
-				warn(`Clearing Snapshot due to large time difference during ownership changes`)
-			end
-		end
-		--cframes are already decoded when unpacking, so we push directly
-		entry.snapshot:Push(clientLastTicks[id], cframe, VelocityAt(latest, clientLastTicks[id], cframe))
-	end
-end
-
-ServerReplicateCFrame.OnClientEvent:Connect(function(snapshotBuffer)
-	local cframes = {}
-	local timestamps = {}
-	local count, offset = buffer.len(snapshotBuffer) // SNAPSHOT_SIZE, 0
-
-	for i = 1, count do
-		local snapshot = UnpackSnapshotData(snapshotBuffer, offset)
-		offset += SNAPSHOT_SIZE
-
-		local id = snapshot.id
-		if not idMap[id] then
-			if awaitingSnapshots[id] and awaitingSnapshots[id].timestamp > snapshot.timestamp then
-				continue
-			end
-			awaitingSnapshots[id] = { timestamp = snapshot.timestamp, cframe = snapshot.cframe, clock = os.clock() }
-			continue
-		end
-		cframes[id] = snapshot.cframe
-		timestamps[id] = snapshot.timestamp
-	end
-
-	HandleReplicatedData(timestamps, cframes)
-end)
-
-RunService.PreRender:Connect(function(deltaTime: number)
-	RenderCache.Update(deltaTime)
-	debug.profilebegin("Calculate CFrames")
-	for id, data in idMap do
-		if not data.character or data.character == (GetCharacter(player)) then
-			continue
-		end
-
-		if pausedPlayers[id] then
-			continue
-		end
-
-		local primaryPart = data.character.PrimaryPart
-		if not primaryPart then
-			continue
-		end
-
-		debug.profilebegin("Get Target CFrame")
-		local targetRenderTime = RenderCache.GetTargetRenderTime(id)
-		local targetCFrame = data.snapshot:GetAt(targetRenderTime)
-		debug.profileend()
-
-		if clientOwnerShip[id] and (data :: any).initializedCFrame then
-			continue
-		end
-		if clientOwnerShip[id] then
-			local latest = data.snapshot:GetLatest()
-			if not latest then
-				continue
-			end
-
-			targetCFrame = latest.value;
-			(data :: any).initializedCFrame = true
-		end
-
-		debug.profilebegin("Prepare CFrame")
-		if targetCFrame then
-			--data.lastCFrame = targetCFrame
-			primaryPart.CFrame = targetCFrame
-		end
-		debug.profileend()
-	end
-	debug.profileend()
-end)
-
-local function CheckCFrameChanges(cframe: CFrame, last: CFrame)
-	local changed = (last.Position - cframe.Position).Magnitude >= 0.05
-		or not last.Rotation:FuzzyEq(cframe.Rotation, 0.0001)
-	return changed
-end
-
-local lastSentCFrame = CFrame.identity
-
-local function HandleNpcs()
-	local now = os.clock()
-	local npcConfigs = Config.NPC_TYPES
-
-	for i: any in clientOwnerShip do
-		local data = idMap[i]
-		--The client has to atleast received one snapshot before we start sending updates
-		if not data or not data.snapshot:GetLatest() then
-			continue
-		end
-
-		local tickRate = npcConfigs[data.npcType or "DEFAULT"].TICK_RATE
-		if now - (data.lastSent or 0) < tickRate then
-			continue
-		end
-
-		data.lastSent = now
-		if not data.character then
-			continue
-		end
-
-		local character = data.character
-		local primaryPart = character.PrimaryPart
-		if not primaryPart then
-			continue
-		end
-
-		local currentCFrame = primaryPart.CFrame
-		local changed = CheckCFrameChanges(currentCFrame, data.lastCFrame or CFrame.identity)
-		if not changed then
-			continue
-		end
-
-		data.lastCFrame = currentCFrame
-		table.insert(outgoingSnapshots, {
-			timestamp = os.clock(),
-			cframe = currentCFrame,
-			id = i + 1,
-		})
-	end
-end
-
-local function HandleCharacter()
-	if os.clock() - lastSent < (playerTickRates[playerNetworkId] or Config.TICK_RATE) then
-		return
-	end
-
-	lastSent = os.clock()
-
-	local character = GetCharacter(player)
-	if not character then
-		return
-	end
-
-	local primaryPart = character.PrimaryPart
 	if not primaryPart then
 		return
 	end
-
-	local currentCFrame = primaryPart.CFrame
-
-	local changed = CheckCFrameChanges(currentCFrame, lastSentCFrame)
-
-	lastSentCFrame = currentCFrame
-
-	if not changed then
+	if entity.isContextOwner then
 		return
 	end
 
-	table.insert(outgoingSnapshots, {
-		timestamp = os.clock(),
-		cframe = currentCFrame,
-		id = 0,
-	})
-end
+	local currentEntityTick = entity._outofBroadPhaseTick
+	if currentEntityTick and currentEntityTick ~= CurrentTick then
+		return
+	end
 
-local function HandleAwaitingSnapshots()
-	local now = os.clock()
-	for id, snapshot in awaitingSnapshots do
-		if now - snapshot.clock < MAX_AWAITING_TIME then
-			if idMap[id] then
-				HandleReplicatedData({ [id] = snapshot.timestamp }, { [id] = snapshot.cframe })
-				awaitingSnapshots[id] = nil
+	local snapshot = entity.snapshot
+	if not snapshot then
+		warn("No snapshot for entity", entity)
+		return
+	end
+	CheckedThisFrame += 1
+	debug.profilebegin("Get Render CFrame")
+	local targetTime = Entity.GetTargetRenderTime(entity)
+	local targetCFrame = snapshot:GetAt(targetTime)
+	debug.profileend()
+	if not targetCFrame then
+		return
+	end
+	local broadPhase: vector? = entity.broadPhase
+
+	if broadPhase then
+		local toCheck = targetCFrame :: any
+		local lastCheckedCFrame = entity.lastCheckedCFrame
+		debug.profilebegin("Prepare Frustum")
+		local passed = CheckBroadPhaseInFrustum(toCheck.Position, broadPhase)
+		debug.profileend()
+		if not passed then
+			if lastCheckedCFrame and lastCheckedCFrame.Position ~= toCheck.Position then
+				debug.profilebegin("Check Last CFrame")
+				local passLast = CheckBroadPhaseInFrustum(lastCheckedCFrame.Position :: any, broadPhase)
+				debug.profileend()
+				if not passLast then
+					TotalCulled += 1
+					return
+				end
+			else
+				if not lastCheckedCFrame then
+					entity.lastCheckedCFrame = toCheck
+				end
+				if not entity._outofBroadPhaseTick then
+					entity._outofBroadPhaseTick = OutOfBroadPhaseTick
+					OutOfBroadPhaseTick += 1
+					if OutOfBroadPhaseTick % Ticks == 0 then
+						OutOfBroadPhaseTick = 0
+					end
+				end
+				TotalCulled += 1
+				return
 			end
-		else
-			awaitingSnapshots[id] = nil
 		end
+		entity.lastCheckedCFrame = nil
+		entity._outofBroadPhaseTick = nil
 	end
+	debug.profilebegin("Set CFrame")
+	primaryPart.CFrame = targetCFrame
+	MovedThisFrame += 1
+	debug.profileend()
 end
 
-RunService.PostSimulation:Connect(function()
-	HandleAwaitingSnapshots()
-	HandleCharacter()
-	HandleNpcs()
-	Flush()
-end)
-
-Players.PlayerRemoving:Connect(function(player)
-	local idToRemove = playerToId[player]
-	playerToId[player] = nil
-
-	if idToRemove then
-		RenderCache.Remove(idToRemove)
-		local data = idMap[idToRemove]
-		if data and data._characterAdded then
-			data._characterAdded:Disconnect()
+Config._WaitForLock(function()
+	RunService.Heartbeat:Connect(function(deltaTime: number)
+		CurrentTick += 1
+		if CurrentTick % Ticks == 0 then -- Runs every 4 frames at 60hz this is 15hz
+			Stats.TOTAL_ENTITIES_CULLED = TotalCulled
+			TotalCulled = 0
+			CurrentTick = 0
 		end
-		idMap[idToRemove] = nil
-	end
-
-	local character = characters[player]
-	characters[player] = nil
-
-	if character then
-		pcall(character.Destroy, character)
-	end
-end)
-
-Character.CharacterAdded:Connect(function(player, character)
-	local id = playerToId[player]
-	if not id then
-		return
-	end
-	local data = idMap[id]
-	if not data then
-		return
-	end
-	if data.character then
-		character:PivotTo(data.character:GetPivot())
-	end
-	data.character = character
-	characters[player] = character
-end)
-
-return {
-	idMap = idMap,
-	playerTickRates = playerTickRates,
-	BufferTracker = bufferTracker,
-
-	RegisterClientNPC = RegisterClientNPC,
-	UnregisterNPC = UnregisterNPC,
-
-	GetAllNetworkIds = function()
-		local ids = {}
-		for id, _ in idMap do
-			table.insert(ids, id)
+		RenderCache.UpdateAll(deltaTime)
+		PrepareFrustumCheck()
+		local total = 0
+		local startTime = os.clock()
+		for _, entity in idMap do
+			if entity.destroyed then
+				continue
+			end
+			if entity.mountParentId then
+				continue
+			end
+			total += 1
+			Interpolate(entity)
 		end
-		return ids
-	end,
-}
+		local endTime = os.clock()
+		TotalInterpolationTime += (endTime - startTime)
+		AmtInterpolations += 1
+
+		ApplyMounts()
+		Stats.TOTAL_CLIENT_ENTITIES_CHECKED_THIS_FRAME = total
+		Stats.ENTITIES_MOVED_THIS_FRAME = MovedThisFrame
+		Stats.TOTAL_CLIENT_ENTITIES = total
+		Stats.AVG_INTERPOLATION_TIME_MS = (TotalInterpolationTime / AmtInterpolations) * 1000
+		MovedThisFrame = 0
+		CheckedThisFrame = 0
+		if AmtInterpolations > 60 then
+			TotalInterpolationTime = 0
+			AmtInterpolations = 0
+		end
+	end)
+	RunService.Heartbeat:Connect(Sender.Update)
+
+	Shared.Remotes.ClientLoaded:FireServer()
+end)
+
+return nil

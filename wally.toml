@@ -1,7 +1,7 @@
 [package]
 name = "parihsz/chrono"
 description = "Custom Character Replication"
-version = "1.4.0"
+version = "2.0.0-experimental"
 registry = "https://github.com/UpliftGames/wally-index"
 exclude = [
      ".vscode",

@@ -1,4 +1,4 @@
-local Snapshots = require(script.Parent.Snapshots)
+local Types = require(script.Parent.Types)
 
 local function Hermite(p0: Vector3, p1: Vector3, v0: Vector3, v1: Vector3, t: number, dt: number): Vector3
 	v0 = v0 or Vector3.zero
@@ -17,7 +17,7 @@ local function Hermite(p0: Vector3, p1: Vector3, v0: Vector3, v1: Vector3, t: nu
 	return p0 * h00 + v0 * dt * h10 + p1 * h01 + v1 * dt * h11
 end
 
-local function VelocityAt(latest: Snapshots.SnapshotData<CFrame, Vector3>?, t: number, cframe: CFrame): Vector3
+local function VelocityAt(latest: Types.SnapshotData<CFrame, Vector3>?, t: number, cframe: CFrame): Vector3
 	if not latest then
 		return Vector3.zero
 	end
