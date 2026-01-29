@@ -6,6 +6,9 @@ hide:
 ---
 
 # Chrono v2  
+!!! warning "Docs under active development"
+    These documentation pages are **not finished yet**.  Please visit the v1 tab for documentation on Chrono v1.
+
 ### Drop-in custom physics replication solution for Roblox!
 
 Chrono provides full control over replication and physics while remaining compatible with Roblox’s networking model.

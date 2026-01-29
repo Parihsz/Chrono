@@ -4,8 +4,8 @@ registry = "test"
 
 [[package]]
 name = "parihsz/chrono"
-version = "1.2.4"
-dependencies = [["iris", "sirmallard/iris@2.5.0"]]
+version = "2.0.0-experimental"
+dependencies = [["chrono", "parihsz/chrono@2.0.0-experimental"], ["iris", "sirmallard/iris@2.5.0"]]
 
 [[package]]
 name = "sirmallard/iris"
