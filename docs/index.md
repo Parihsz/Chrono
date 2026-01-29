@@ -21,24 +21,24 @@ If you like Chrono, consider [starring the repo⭐](https://github.com/Parihsz/c
 
 ### 1. Fixed replication rate
 
-Roblox replication is capped at *20 Hz*.  
+Roblox replication rate is not configurable.
 
-Chrono uses a **dynamic tick rate** instead. Tick rate scales from "default" -> "half" -> "not replicated" based on user provided distances!
+Chrono uses a *dynamic tick rate* instead with user provided bounds that scale based on proximity. 
 
 ---
 
 ### 2. Forced interpolation delay
 
-When someone moves, it takes x ms to reach the server and then another x ms to reach another client and then another **200-500**ms (or something around that, we're not too sure) to interpolate.
+Roblox's interpolation buffer varies between 200-500ms.
 
-Chrono lets the developer, control the minimum and maximum delay (or u can use a static delay!). You can
-introspect it in realtime so lag compensation becomes much nicer :3
+Chrono lets the developer control the minimum and maximum delay (or u can use a static delay!). You can
+introspect it in realtime so lag compensation becomes much nicer.
 
 ---
 
 ### 3. No usable historical state
 
-Roblox doesn’t store ur snapshots. Chrono does (and has lagcomp api using serverclock).
+Roblox doesn’t store ur snapshots. Chrono does (and has a built-in lagcomp api using serverclock).
 
 ---
 
