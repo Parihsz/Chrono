@@ -78,7 +78,7 @@ Config._WaitForLock(function()
 			return
 		end
 
-		if entity.networkOwner ~= plr or entity.modelReplicationMode == "NATIVE" then
+		if entity.networkOwner ~= plr then
 			return
 		end
 		if ReplicateMode == "PLAYER_CHARACTERS" and not entity._player then
@@ -87,11 +87,17 @@ Config._WaitForLock(function()
 
 		local model = entity.model
 		if model then
-			local humanoid = model:FindFirstChildWhichIsA("Humanoid")
-			if humanoid then
+			local humanoid: Humanoid? = model:FindFirstChildWhichIsA("Humanoid")
+			task.wait()
+			if humanoid and humanoid:GetState() ~= Enum.HumanoidStateType.Dead then
 				humanoid.Health = 0
-				humanoid.Health = 10
-				humanoid.Health = 0
+				task.delay(0, function()
+					if humanoid:GetState() ~= Enum.HumanoidStateType.Dead then
+						humanoid.Health = 0
+						humanoid.Health = 10
+						humanoid.Health = 0
+					end
+				end)
 			end
 		end
 		deathRemote:FireAllClients(id)

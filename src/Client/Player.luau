@@ -96,8 +96,9 @@ DeathRemote.OnClientEvent:Connect(function(id)
 
 	local model = entity.model
 	if model then
+		task.wait()
 		local humanoid = model:FindFirstChildWhichIsA("Humanoid")
-		if humanoid then
+		if humanoid and humanoid:GetState() ~= Enum.HumanoidStateType.Dead then
 			humanoid.Health = 0
 			humanoid.Health = 10
 			humanoid.Health = 0
