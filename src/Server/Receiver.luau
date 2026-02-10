@@ -92,7 +92,6 @@ local function HandleEntity(player: Player, id: number, clock: number, cframe: C
 	if FireMiddleMans(player, entity, cframe, clock) then
 		return
 	end
-
 	if Entity.Push(entity, clock, cframe) then
 		task.spawn(function()
 			RunService.PreAnimation:Wait()

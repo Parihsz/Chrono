@@ -24,6 +24,7 @@ local function RegisterPlayer(
 	local config = configuration.config or "PLAYER"
 	local modelRepMode = configuration.modelRepMode
 	character.Archivable = true
+
 	local newEntity = Entity.new(config, character, modelRepMode :: any)
 	Holder.SetAsCharacter(player, newEntity)
 	Entity.SetNetworkOwner(newEntity, player)

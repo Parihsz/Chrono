@@ -3,11 +3,37 @@ local Chrono = ReplicatedStorage.Packages.chrono
 local Shared = Chrono.Shared
 local Config = require(Shared.Config)
 local Stats = require(Shared.Stats)
+local Types = require(Shared.Types)
 local Iris = require(ReplicatedStorage.DevPackages.iris)
 
 local ClientStats = Stats.CLIENT
 
 Iris.Init()
+
+local function displayServerEntityStats(entity: Types.ServerEntitiesStats)
+	Iris.Text({ "ID: " .. tostring(entity.id) })
+	Iris.Text({ "Network Owner: " .. tostring(entity.networkOwner) })
+	Iris.Text({ "Is Character: " .. tostring(entity.isCharacter) })
+	Iris.Text({ "Config: " .. tostring(entity.config) })
+	Iris.Text({ "Tick Rate: " .. tostring(entity.tickRate) })
+	Iris.Text({ "Last Ticked: " .. tostring(entity.lastTicked) })
+	Iris.Text({ "Last Position: " .. tostring(entity.lastPosition) })
+end
+
+local function displayClientEntityStats(entity: Types.ClientEntitiesStats)
+	Iris.Text({ "ID: " .. tostring(entity.id) })
+	Iris.Text({ "Network Owner: " .. tostring(entity.networkOwner) })
+	Iris.Text({ "Is Character: " .. tostring(entity.isCharacter) })
+	Iris.Text({ "Config: " .. tostring(entity.config) })
+
+	Iris.Text({ "Last Received Time: " .. tostring(entity.lastReceivedTime) })
+	Iris.Text({ "Last Replicated Time: " .. tostring(entity.lastReplicatedTime) })
+
+	Iris.Text({ "Average Latency: " .. tostring(entity.averageLatency) })
+	Iris.Text({ "Target Time: " .. tostring(entity.targetTime) })
+	Iris.Text({ "Deviation: " .. tostring(entity.deviation) })
+	Iris.Text({ "Buffered Time: " .. tostring(entity.bufferedTime) })
+end
 
 Iris:Connect(function()
 	if Iris.Window({ "Replication Debug" }) then
@@ -18,6 +44,17 @@ Iris:Connect(function()
 			Iris.Text({ "Entities Added: " .. tostring(ClientStats.NEW_ENTITIES_PER_SEC) .. "/s" })
 			Iris.Text({ "Entity Changes: " .. tostring(ClientStats.ENTITY_CHANGES_PER_SEC) .. "/s" })
 			Iris.Text({ "Entity Removals: " .. tostring(ClientStats.ENTITY_REMOVALS_PER_SEC) .. "/s" })
+
+			Iris.Tree({ "Client Entities" })
+			do
+				for _, entity in Stats.CLIENT.CLIENT_ENTITIES do
+					if Iris.Tree({ "Entity " .. tostring(entity.id) }).state.isUncollapsed.value then
+						displayClientEntityStats(entity)
+					end
+					Iris.End()
+				end
+			end
+			Iris.End()
 		end
 		Iris.End()
 		if Iris.Tree({ "Client Render Stats" }).state.isUncollapsed.value then
@@ -49,6 +86,16 @@ Iris:Connect(function()
 			Iris.Text({ "Bytes Sent (Non-Compressed): " .. tostring(Stats.SERVER.BYTES_SENT_PER_SEC / 1000) .. " KB/s" })
 			Iris.Text({ "Packets Sent: " .. tostring(Stats.SERVER.PACKETS_SENT_PER_SEC) .. "/s" })
 			Iris.Text({ "Replicate Player Time (ms): " .. tostring(Stats.SERVER.REPLICATE_PLAYER_TIME_MS) })
+			Iris.Tree({ "Server Entities" })
+			do
+				for _, entity in Stats.SERVER.SERVER_ENTITIES do
+					if Iris.Tree({ "Entity " .. tostring(entity.id) }).state.isUncollapsed.value then
+						displayServerEntityStats(entity)
+					end
+					Iris.End()
+				end
+			end
+			Iris.End()
 		end
 		Iris.End()
 		Iris.End()

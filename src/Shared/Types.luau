@@ -11,6 +11,29 @@ export type Signal<fx, T...> = {
 	Event: Event<fx, T...>,
 }
 
+export type ClientEntitiesStats = {
+	id: number,
+	networkOwner: Player?,
+	isCharacter: boolean,
+	config: string,
+	lastReceivedTime: number?,
+	lastReplicatedTime: number?,
+
+	averageLatency: number?,
+	targetTime: number?,
+	deviation: number?,
+	bufferedTime: number?,
+}
+
+export type ServerEntitiesStats = {
+	id: number,
+	networkOwner: Player?,
+	isCharacter: boolean,
+	config: string,
+	tickRate: number?,
+	lastTicked: number?,
+	lastPosition: Vector3,
+}
 export type Connection = {
 	Disconnect: (self: any) -> (),
 	Connected: boolean,

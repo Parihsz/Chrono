@@ -1,6 +1,7 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
+local Types = require(script.Parent.Types)
 
 local Stats = {
 	REPLICATE_PERMISSIONS = {
@@ -19,9 +20,12 @@ local Stats = {
 		NEW_ENTITIES_PER_SEC = 0,
 		ENTITY_CHANGES_PER_SEC = 0,
 		ENTITY_REMOVALS_PER_SEC = 0,
+
+		CLIENT_ENTITIES = {} :: { [number]: Types.ClientEntitiesStats },
 	},
 	--// Server
 	SERVER = {
+		_SHOULD_REPLICATE = false,
 		AVG_TICKER_TIME_MS = 0,
 		ENTITY_GRID_UPDATE_TIME_MS = 0,
 		GRID_UPDATE_SECTIONS = 0,
@@ -34,6 +38,8 @@ local Stats = {
 		BYTES_RECEIVED_PER_SEC = 0,
 		BYTES_SENT_PER_SEC = 0,
 		PACKETS_SENT_PER_SEC = 0,
+
+		SERVER_ENTITIES = {} :: { [number]: Types.ServerEntitiesStats },
 	},
 }
 
@@ -42,10 +48,12 @@ if RunService:IsServer() then
 	replicateStatsRemote.Name = "ReplicateStats"
 	RunService.Heartbeat:Connect(function()
 		if not Stats.REPLICATE_PERMISSIONS then
+			Stats.SERVER._SHOULD_REPLICATE = true
 			replicateStatsRemote:FireAllClients(Stats.SERVER)
 		elseif next(Stats.REPLICATE_PERMISSIONS) then
 			for i, v in Players:GetPlayers() do
 				if Stats.REPLICATE_PERMISSIONS[v.UserId] then
+					Stats.SERVER._SHOULD_REPLICATE = true
 					replicateStatsRemote:FireClient(v, Stats.SERVER)
 				end
 			end

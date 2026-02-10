@@ -158,6 +158,7 @@ Config._WaitForLock(function()
 end)
 
 return {
+	_getBuffer = GetBuffer,
 	new = new,
 	clientClocks = ClientClocks,
 	UpdateAll = UpdateAll,

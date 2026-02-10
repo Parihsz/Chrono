@@ -222,6 +222,47 @@ local function UpdatePlayerPositions()
 	end
 end
 
+local function updateEntityStats()
+	local hasOwned = Stats._SHOULD_REPLICATE
+	if not hasOwned then
+		Stats.SERVER_ENTITIES = {}
+		return
+	end
+	local entities: { Types.ServerEntitiesStats } = {}
+
+	for _, entity in Holder.idMap do
+		local networkOwner = entity.networkOwner
+		local isCharacter = entity._player ~= nil
+		local config = entity.entityConfig
+		local configName = config and config.NAME or "DEFAULT"
+		local configTickRate = 1 / config.TICK_RATE
+		local isHalfTicked = entity.isHalfTicked
+		local tickRate = configTickRate
+		local lastPosition = entity.latestCFrame and entity.latestCFrame.Position or nil
+		if isHalfTicked == true then
+			tickRate = tickRate / 2
+		elseif isHalfTicked == nil then
+			tickRate = 0
+		end
+		tickRate //= 1
+		if tickRate ~= tickRate or tickRate == math.huge then
+			tickRate = 0
+		end
+		local lastTicked = entity.latestTime
+		local data = {
+			id = entity.id,
+			networkOwner = networkOwner,
+			isCharacter = isCharacter,
+			config = configName,
+			tickRate = tickRate,
+			lastTicked = lastTicked,
+			lastPosition = lastPosition,
+		}
+		table.insert(entities, data)
+	end
+	Stats.SERVER_ENTITIES = entities
+end
+
 local function Update()
 	EntityGrid.Update()
 	UpdatePlayerPositions()
@@ -234,6 +275,7 @@ local function Update()
 		entity._changes = nil
 	end
 	table.clear(Changes)
+	updateEntityStats()
 end
 
 local function HandleEntity(plr, entity: Types.Entity)

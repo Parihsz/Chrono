@@ -170,6 +170,56 @@ local function Interpolate(entity: Types.Entity)
 	debug.profileend()
 end
 
+local function updateEntityStats()
+	local entities = {}
+	for _, entity in idMap do
+		local id = entity.id
+		local config = entity.entityConfig
+		local configName = config and config.NAME or "DEFAULT"
+		local networkOwner = entity.networkOwner
+		local isCharacter = entity._player ~= nil
+
+		local lastRecvTime = entity.latestTime or 0
+		local lastReplicatedTime = entity.lastReplicatedTime or 0
+
+		local renderCache = entity._clientClock
+
+		if not renderCache then
+			local RenderCaches = entity.entityConfig.CLIENT_CLOCK
+			if RenderCaches then
+				renderCache = entity.isHalfTicked and RenderCaches.HALF or RenderCaches.NORMAL
+			end
+		end
+
+		local targetRender = 0
+		local averageLatency = 0
+		local deviation = 0
+		local bufferedTime = 0
+		if renderCache then
+			targetRender = renderCache:GetTargetRenderTime()
+			local interpolationBuff = renderCache.buffer
+			if interpolationBuff then
+				averageLatency = interpolationBuff.averageLatency
+				deviation = interpolationBuff.deviation
+				bufferedTime = RenderCache._getBuffer(renderCache)
+			end
+		end
+		local data = {
+			id = id,
+			networkOwner = networkOwner,
+			isCharacter = isCharacter,
+			config = configName,
+			lastReceivedTime = lastRecvTime,
+			lastReplicatedTime = lastReplicatedTime,
+			targetTime = targetRender,
+			averageLatency = averageLatency,
+			deviation = deviation,
+			bufferedTime = bufferedTime,
+		}
+		table.insert(entities, data)
+	end
+	Stats.CLIENT_ENTITIES = entities
+end
 Config._WaitForLock(function()
 	RunService.Heartbeat:Connect(function(deltaTime: number)
 		CurrentTick += 1
@@ -179,6 +229,7 @@ Config._WaitForLock(function()
 			CurrentTick = 0
 		end
 		RenderCache.UpdateAll(deltaTime)
+		updateEntityStats()
 		PrepareFrustumCheck()
 		local total = 0
 		local startTime = os.clock()
