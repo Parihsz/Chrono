@@ -38,6 +38,7 @@ end
 
 Iris:Connect(function()
 	if Iris.Window({ "Replication Debug" }) then
+		Iris.Text({ "Version: " .. tostring(Config._GetConfig("__VERSION")) })
 		if Iris.Tree({ "Client Network Stats" }).state.isUncollapsed.value then
 			Iris.Text({
 				"Received (Non-Compressed): " .. tostring(ClientStats.BYTES_RECEIVED_PER_SEC / 1000) .. " KB/s",
