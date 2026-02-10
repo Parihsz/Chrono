@@ -44,7 +44,7 @@ local Stats = {
 }
 
 if RunService:IsServer() then
-	local replicateStatsRemote = Instance.new("UnreliableRemoteEvent", script)
+	local replicateStatsRemote = Instance.new("RemoteEvent", script)
 	replicateStatsRemote.Name = "ReplicateStats"
 	RunService.Heartbeat:Connect(function()
 		if not Stats.REPLICATE_PERMISSIONS then
