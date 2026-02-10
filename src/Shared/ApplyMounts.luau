@@ -2,13 +2,13 @@
 local Entity = require(script.Parent.Entity)
 local Holder = require(script.Parent.Holder)
 local Types = require(script.Parent.Types)
-local FastStack = require(script.Parent.FastStackPlus)
-local new = FastStack("create")
 
 local timestamp = 0
 local visited = {} :: { [Types.Entity]: number }
 local dp = {} :: { [Types.Entity]: number }
 local world = {} :: { [Types.Entity]: CFrame }
+
+local path = {} :: { Types.Entity }
 
 local function ResolveWorldCFrame(entity: Types.Entity): CFrame
 	local currentTime = timestamp
@@ -16,7 +16,7 @@ local function ResolveWorldCFrame(entity: Types.Entity): CFrame
 		return world[entity]
 	end
 
-	local path = new()
+	local n = 0
 	local current = entity
 	local rootCFrame = CFrame.identity
 
@@ -33,6 +33,7 @@ local function ResolveWorldCFrame(entity: Types.Entity): CFrame
 				or CFrame.identity
 			dp[current] = currentTime
 			world[current] = rootCFrame
+			Entity._SetPartCFrame(current, rootCFrame)
 			break
 		end
 
@@ -45,6 +46,7 @@ local function ResolveWorldCFrame(entity: Types.Entity): CFrame
 				or CFrame.identity
 			dp[current] = currentTime
 			world[current] = rootCFrame
+			Entity._SetPartCFrame(current, rootCFrame)
 			break
 		end
 
@@ -55,25 +57,29 @@ local function ResolveWorldCFrame(entity: Types.Entity): CFrame
 				or CFrame.identity
 			dp[current] = currentTime
 			world[current] = rootCFrame
+			Entity._SetPartCFrame(current, rootCFrame)
 			break
 		end
 
-		path(current)
+		n += 1
+		path[n] = current
 		current = parent
 	end
 
 	local out = rootCFrame or CFrame.identity
-	local packed = table.pack(path())
-	for i = 1, packed.n do
-		local child = packed[i] :: Types.Entity
+	for i = n, 1, -1 do
+		local child = path[i]
 		out = out * (child.mountOffset or CFrame.identity)
 		dp[child] = currentTime
 		world[child] = out
+		Entity._SetPartCFrame(child, out)
+		path[i] = nil
 	end
 
 	if dp[entity] ~= currentTime then
 		dp[entity] = currentTime
 		world[entity] = out
+		Entity._SetPartCFrame(entity, out)
 	end
 
 	return world[entity]
@@ -81,15 +87,24 @@ end
 
 return function()
 	timestamp += 1
-	for _, entity: Types.Entity in Holder.idMap do
-		if entity.destroyed then
-			continue
-		end
-		if not entity.mountParentId then
+
+	for _, entity in Holder.idMap do
+		if entity.destroyed or entity.mountParentId then
 			continue
 		end
 
-		local newCFrame = ResolveWorldCFrame(entity)
-		Entity._SetPartCFrame(entity, newCFrame)
+		local cframe = Entity.GetAt(entity, Entity.GetTargetRenderTime(entity)) or entity.latestCFrame
+		if cframe then
+			Entity._SetPartCFrame(entity, cframe)
+			dp[entity] = timestamp
+			world[entity] = cframe
+		end
+	end
+
+	for _, entity in Holder.idMap do
+		if entity.destroyed or not entity.mountParentId or dp[entity] == timestamp then
+			continue
+		end
+		ResolveWorldCFrame(entity)
 	end
 end

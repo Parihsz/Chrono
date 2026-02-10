@@ -1,8 +1,8 @@
 local RunService = game:GetService("RunService")
 
-type tests = "" | "testPart" | "testChar" | "largeCharTest"
+type tests = "" | "testPart" | "testChar" | "largeCharTest" | "testMount"
 
-local test: tests = ""
+local test: tests = "testMount"
 if test == "" then
 	return nil
 end
