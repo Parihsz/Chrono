@@ -736,6 +736,25 @@ function Entity.UnlockNativeServerCFrameReplication(self: Entity)
 	end
 end
 
+
+--[=[
+	Returns the current model replication type of the entity, which can be "NATIVE", "CUSTOM", or "NATIVE_WITH_LOCK".
+	NATIVE_WITH_LOCK may appear as native on the client.	
+]=]
+function Entity.GetModelReplicationType(self: Entity): "NATIVE" | "CUSTOM" | "NATIVE_WITH_LOCK"
+	local mode = self.modelReplicationMode
+	if not mode then
+		mode = self.entityConfig.MODEL_REPLICATION_MODE
+	end
+	if mode == "NATIVE" then
+		if self._lockedCFReplication then
+			return "NATIVE_WITH_LOCK"
+		end
+		return "NATIVE"
+	end
+	return "CUSTOM"
+end
+
 --[=[
 	Destroys the entity, unregistering it and cleaning up resources.
 ]=]

@@ -257,6 +257,7 @@ local function updateEntityStats()
 			tickRate = tickRate,
 			lastTicked = lastTicked,
 			lastPosition = lastPosition,
+			modelType = Entity.GetModelReplicationType(entity),
 		}
 		table.insert(entities, data)
 	end

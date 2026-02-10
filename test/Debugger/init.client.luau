@@ -4,7 +4,7 @@ local Shared = Chrono.Shared
 local Config = require(Shared.Config)
 local Stats = require(Shared.Stats)
 local Types = require(Shared.Types)
-local Iris = require(ReplicatedStorage.DevPackages.iris)
+local Iris = require(script.iris)
 
 local ClientStats = Stats.CLIENT
 
@@ -18,6 +18,7 @@ local function displayServerEntityStats(entity: Types.ServerEntitiesStats)
 	Iris.Text({ "Tick Rate: " .. tostring(entity.tickRate) })
 	Iris.Text({ "Last Ticked: " .. tostring(entity.lastTicked) })
 	Iris.Text({ "Last Position: " .. tostring(entity.lastPosition) })
+	Iris.Text({ "Model Type: " .. tostring(entity.modelType) })
 end
 
 local function displayClientEntityStats(entity: Types.ClientEntitiesStats)

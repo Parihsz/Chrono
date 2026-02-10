@@ -33,6 +33,7 @@ export type ServerEntitiesStats = {
 	tickRate: number?,
 	lastTicked: number?,
 	lastPosition: Vector3,
+	modelType: string?,
 }
 export type Connection = {
 	Disconnect: (self: any) -> (),
