@@ -41,12 +41,17 @@ local function ResolveWorldCFrame(entity: Types.Entity): CFrame
 
 		local parentId = current.mountParentId
 		if not parentId then
-			rootCFrame = Entity.GetAt(current, Entity.GetTargetRenderTime(current))
-				or current.latestCFrame
-				or CFrame.identity
+			if current.isContextOwner then
+				local part = Entity.GetPrimaryPart(current)
+				rootCFrame = if part then part.CFrame else (current.latestCFrame or CFrame.identity)
+			else
+				rootCFrame = Entity.GetAt(current, Entity.GetTargetRenderTime(current))
+					or current.latestCFrame
+					or CFrame.identity
+				Entity._SetPartCFrame(current, rootCFrame)
+			end
 			dp[current] = currentTime
 			world[current] = rootCFrame
-			Entity._SetPartCFrame(current, rootCFrame)
 			break
 		end
 
@@ -90,6 +95,13 @@ return function()
 
 	for _, entity in Holder.idMap do
 		if entity.destroyed or entity.mountParentId then
+			continue
+		end
+
+		if entity.isContextOwner then
+			dp[entity] = timestamp
+			local part = Entity.GetPrimaryPart(entity)
+			world[entity] = if part then part.CFrame else (entity.latestCFrame or CFrame.identity)
 			continue
 		end
 
