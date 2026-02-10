@@ -4,7 +4,7 @@ local Shared = Chrono.Shared
 local Config = require(Shared.Config)
 local Stats = require(Shared.Stats)
 local Types = require(Shared.Types)
-local Iris = require(script.iris)
+local Iris = require(ReplicatedStorage.DevPackages.iris)
 
 local ClientStats = Stats.CLIENT
 
