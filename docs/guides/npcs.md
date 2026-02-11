@@ -125,7 +125,7 @@ If set to false, you must manually call `Entity.Push` whenever the entity's posi
 
 `Entity.SetCFrame` will set the CFrame of the entity's model on the server and if the entity is client-owned, it will also teleport the client model to that CFrame. While `Entity.Push` is ment to be used for non-teleporting movement where you want the server to replicate the movement.
 
-### Distance-based tick rate
+## Distance-based tick rate
 
 Entities automatically adjust their update frequency based on distance to nearby players, reducing network traffic for distant entities.
 
