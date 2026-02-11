@@ -1,31 +1,44 @@
-local offsets = {} :: { [Player]: number }
+local ServerClockData = {} :: { [Player]: {
+	clockOffset: number,
+	oneWayDelay: number,
+} }
 
-local function Store(player: Player, clientClockTime: number)
-	local offset = os.clock() - clientClockTime
-
-	local current = offsets[player]
-	if current then
-		offsets[player] = current + 0.2 * (offset - current)
-	else
-		offsets[player] = offset
+local function Store(player: Player, clientClockTime: number, clientServerTimeNow: number?)
+	local data = ServerClockData[player]
+	if not data then
+		data = { clockOffset = 0, oneWayDelay = 0.05 }
+		ServerClockData[player] = data
 	end
+
+	if clientServerTimeNow then
+		local latency = workspace:GetServerTimeNow() - clientServerTimeNow
+		if latency > 0 and latency <= player:GetNetworkPing() + 0.05 then
+			data.oneWayDelay = latency
+		end
+	end
+
+	local measuredClockOffset = os.clock()
+		- clientClockTime
+		- math.clamp(data.oneWayDelay, 0, player:GetNetworkPing() + 0.05)
+
+	data.clockOffset = data.clockOffset + 0.2 * (measuredClockOffset - data.clockOffset)
 end
 
 local function ConvertTo(player: Player, clock: number, environment: "Server" | "Client")
-	local offset = offsets[player]
-	if not offset then
+	local data = ServerClockData[player]
+	if not data then
 		return clock
 	end
 
 	if environment == "Server" then
-		return clock + offset
+		return clock + data.clockOffset
 	else
-		return clock - offset
+		return clock - data.clockOffset
 	end
 end
 
 local function Remove(player: Player)
-	offsets[player] = nil
+	ServerClockData[player] = nil
 end
 
 return {
