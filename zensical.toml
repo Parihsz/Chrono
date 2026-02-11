@@ -55,12 +55,9 @@ nav = [
   ]},
 
   { Guides = [
-      { Overview = "guides/index.md" },
-      { "All modes explained" = "guides/all-modes-explained.md" },
-      { "Custom character controllers" = "guides/custom-character-controllers.md" },
-      { "Custom animation replication" = "guides/custom-animation-replication.md" },
-      { "Setting up players" = "guides/setting-up-players.md" },
-      { "Setting up NPCs" = "guides/setting-up-npcs.md" },
+      { "Mounting" = "guides/mounting.md" },
+      { "Ragdolls" = "guides/ragdolls.md" },
+      { "Teleportation" = "guides/teleportation.md" },
   ]},
 
   { Reference = [

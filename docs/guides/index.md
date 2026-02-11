@@ -1,3 +1,0 @@
-```lua
-chrono.Start()
-```
