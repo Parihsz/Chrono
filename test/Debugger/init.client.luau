@@ -1,10 +1,12 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local UserInputService = game:GetService("UserInputService")
 local Chrono = ReplicatedStorage.Packages.chrono
 local Shared = Chrono.Shared
 local Config = require(Shared.Config)
 local Stats = require(Shared.Stats)
 local Types = require(Shared.Types)
 local Iris = require(ReplicatedStorage.DevPackages.iris)
+local PAUSE_KEY = Enum.KeyCode.E
 
 local ClientStats = Stats.CLIENT
 
@@ -21,6 +23,22 @@ local function displayServerEntityStats(entity: Types.ServerEntitiesStats)
 	Iris.Text({ "Model Type: " .. tostring(entity.modelType) })
 end
 
+local function displayVector3(vec: Vector3)
+	return string.format("X: %.2f, Y: %.2f, Z: %.2f", vec.X, vec.Y, vec.Z)
+end
+
+local function cframeToString(cf: CFrame)
+	local rx, ry, rz = cf:ToEulerAnglesXYZ()
+	rx, ry, rz = math.deg(rx), math.deg(ry), math.deg(rz)
+	return displayVector3(cf.Position) ..` | rot: {displayVector3(Vector3.new(rx, ry, rz))}`
+end
+local function displaySnapShots(snapshots: { t: number, value: CFrame, velocity: Vector3 })
+	Iris.Text({ "Snapshots:" })
+	for _, snap in snapshots do
+		Iris.Text({ `t: {snap.t}, value: {snap.value and cframeToString(snap.value)} | velocity: {snap.velocity and displayVector3(snap.velocity)}` })
+	end
+end
+
 local function displayClientEntityStats(entity: Types.ClientEntitiesStats)
 	Iris.Text({ "ID: " .. tostring(entity.id) })
 	Iris.Text({ "Network Owner: " .. tostring(entity.networkOwner) })
@@ -29,16 +47,33 @@ local function displayClientEntityStats(entity: Types.ClientEntitiesStats)
 
 	Iris.Text({ "Last Received Time: " .. tostring(entity.lastReceivedTime) })
 	Iris.Text({ "Last Replicated Time: " .. tostring(entity.lastReplicatedTime) })
+	Iris.Text({ "Current Position: " .. tostring(entity.currentPosition) })
 
 	Iris.Text({ "Average Latency: " .. tostring(entity.averageLatency) })
 	Iris.Text({ "Target Time: " .. tostring(entity.targetTime) })
 	Iris.Text({ "Deviation: " .. tostring(entity.deviation) })
 	Iris.Text({ "Buffered Time: " .. tostring(entity.bufferedTime) })
+	if Iris.Tree({ "Snapshots" }).state.isUncollapsed.value then
+		displaySnapShots(entity.snapshots)
+	end
+	Iris.End()
 end
+
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+	if gameProcessed then
+		return
+	end
+	if input.KeyCode == PAUSE_KEY then
+		Stats.CLIENT._PAUSE = not Stats.CLIENT._PAUSE
+	end
+end)
 
 Iris:Connect(function()
 	if Iris.Window({ "Replication Debug" }) then
 		Iris.Text({ "Version: " .. tostring(Config._GetConfig("__VERSION")) })
+		if Iris.Button({ Stats.CLIENT._PAUSE and "Unpause" or "Pause" }).clicked() then
+			Stats.CLIENT._PAUSE = not Stats.CLIENT._PAUSE
+		end
 		if Iris.Tree({ "Client Network Stats" }).state.isUncollapsed.value then
 			Iris.Text({
 				"Received (Non-Compressed): " .. tostring(ClientStats.BYTES_RECEIVED_PER_SEC / 1000) .. " KB/s",

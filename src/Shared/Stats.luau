@@ -10,6 +10,7 @@ local Stats = {
 
 	--// Client
 	CLIENT = {
+		_PAUSE = false,
 		TOTAL_ENTITIES_CULLED = 0,
 		ENTITIES_MOVED_THIS_FRAME = 0,
 		TOTAL_CLIENT_ENTITIES_CHECKED_THIS_FRAME = 0,
@@ -62,6 +63,9 @@ if RunService:IsServer() then
 else
 	local remote = script:WaitForChild("ReplicateStats") :: RemoteEvent
 	remote.OnClientEvent:Connect(function(serverStats: any)
+		if Stats.CLIENT._PAUSE then
+			return
+		end
 		for statName, value in serverStats do
 			Stats.SERVER[statName] = value
 		end

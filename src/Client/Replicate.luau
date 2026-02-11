@@ -1,5 +1,7 @@
 local Shared = script.Parent.Parent.Shared
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
+local StatsALL = require(ReplicatedStorage.Packages.chrono.Shared.Stats)
 local ApplyMounts = require(script.Parent.Parent.Shared.ApplyMounts)
 local RenderCache = require(script.Parent.ClientClock)
 local Entity = require(Shared.Entity)
@@ -171,6 +173,9 @@ local function Interpolate(entity: Types.Entity)
 end
 
 local function updateEntityStats()
+	if not StatsALL.SERVER._SHOULD_REPLICATE or Stats._PAUSE then
+		return
+	end
 	local entities = {}
 	for _, entity in idMap do
 		local id = entity.id
@@ -204,6 +209,18 @@ local function updateEntityStats()
 				bufferedTime = RenderCache._getBuffer(renderCache)
 			end
 		end
+		local primaryPart = Entity.GetPrimaryPart(entity)
+		local snapshot = entity.snapshot
+		local currentPosition = primaryPart and primaryPart.Position
+		local snapshots = {}
+		if snapshot then
+			for _, snap in snapshot.cache do
+				table.insert(snapshots, { t = snap.t, value = snap.value ,velocity = snap.velocity})
+			end
+			table.sort(snapshots, function(a, b)
+				return a.t > b.t
+			end)
+		end
 		local data = {
 			id = id,
 			networkOwner = networkOwner,
@@ -215,6 +232,8 @@ local function updateEntityStats()
 			averageLatency = averageLatency,
 			deviation = deviation,
 			bufferedTime = bufferedTime,
+			currentPosition = currentPosition,
+			snapshots = snapshots,
 		}
 		table.insert(entities, data)
 	end
@@ -229,7 +248,7 @@ Config._WaitForLock(function()
 			CurrentTick = 0
 		end
 		RenderCache.UpdateAll(deltaTime)
-		updateEntityStats()
+
 		PrepareFrustumCheck()
 		local total = 0
 		local startTime = os.clock()
@@ -244,14 +263,17 @@ Config._WaitForLock(function()
 			Interpolate(entity)
 		end
 		local endTime = os.clock()
+		updateEntityStats()
 		TotalInterpolationTime += (endTime - startTime)
 		AmtInterpolations += 1
 
 		ApplyMounts()
-		Stats.TOTAL_CLIENT_ENTITIES_CHECKED_THIS_FRAME = total
-		Stats.ENTITIES_MOVED_THIS_FRAME = MovedThisFrame
-		Stats.TOTAL_CLIENT_ENTITIES = total
-		Stats.AVG_INTERPOLATION_TIME_MS = (TotalInterpolationTime / AmtInterpolations) * 1000
+		if not Stats._PAUSE then
+			Stats.TOTAL_CLIENT_ENTITIES_CHECKED_THIS_FRAME = total
+			Stats.ENTITIES_MOVED_THIS_FRAME = MovedThisFrame
+			Stats.TOTAL_CLIENT_ENTITIES = total
+			Stats.AVG_INTERPOLATION_TIME_MS = (TotalInterpolationTime / AmtInterpolations) * 1000
+		end
 		MovedThisFrame = 0
 		CheckedThisFrame = 0
 		if AmtInterpolations > 60 then

@@ -287,10 +287,12 @@ ReliableEvent.OnClientEvent:Connect(HandleReliable)
 local lastByteCheckTime = 0
 RunService.Heartbeat:Connect(function()
 	if os.clock() - lastByteCheckTime > 1 then
-		Stats.BYTES_RECEIVED_PER_SEC = BytesReceived
-		Stats.NEW_ENTITIES_PER_SEC = NewPerSec
-		Stats.ENTITY_REMOVALS_PER_SEC = RemovedPerSec
-		Stats.ENTITY_CHANGES_PER_SEC = ChangesPerSec
+		if not Stats._PAUSE then
+			Stats.BYTES_RECEIVED_PER_SEC = BytesReceived
+			Stats.NEW_ENTITIES_PER_SEC = NewPerSec
+			Stats.ENTITY_CHANGES_PER_SEC = ChangesPerSec
+			Stats.ENTITY_REMOVALS_PER_SEC = RemovedPerSec
+		end
 		NewPerSec = 0
 		RemovedPerSec = 0
 		ChangesPerSec = 0

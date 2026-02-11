@@ -23,6 +23,12 @@ export type ClientEntitiesStats = {
 	targetTime: number?,
 	deviation: number?,
 	bufferedTime: number?,
+	currentPosition: Vector3?,
+	snapshots: {
+		t: number,
+		value: CFrame,
+	}
+	
 }
 
 export type ServerEntitiesStats = {
