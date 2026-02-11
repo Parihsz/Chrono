@@ -176,17 +176,19 @@ function Receiver.UnregisterMiddleMan(name: string)
 		return a.priority > b.priority
 	end)
 end
-local lastByteCheckTime = 0
-RunService.Heartbeat:Connect(function(a0: number)
-	table.clear(TotalBytes)
+if RunService:IsServer() then
+	local lastByteCheckTime = 0
+	RunService.Heartbeat:Connect(function(a0: number)
+		table.clear(TotalBytes)
 
-	if os.clock() - lastByteCheckTime > 1 then
-		Stats.BYTES_RECEIVED_PER_SEC = BytesReceived
-		BytesReceived = 0
-		lastByteCheckTime = os.clock()
-	end
-end)
-UnreliableEvent.OnServerEvent:Connect(OnReceive)
+		if os.clock() - lastByteCheckTime > 1 then
+			Stats.BYTES_RECEIVED_PER_SEC = BytesReceived
+			BytesReceived = 0
+			lastByteCheckTime = os.clock()
+		end
+	end)
+	UnreliableEvent.OnServerEvent:Connect(OnReceive)
+end
 
 Config._WaitForLock(function()
 	MAX_TOTAL_BYTES_PER_FRAME_PER_PLAYER = Config._GetConfig("MAX_TOTAL_BYTES_PER_FRAME_PER_PLAYER")

@@ -348,8 +348,12 @@ local function HandleCFrameSetters()
 end
 
 Config._WaitForLock(function()
+	if not RunService:IsServer() then
+		return
+	end
+	HandleCFrameSetters()
 	RunService.PreSimulation:Connect(Update)
 end)
-HandleCFrameSetters()
+
 
 return nil

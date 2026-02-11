@@ -1,5 +1,6 @@
 --!native
 local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
 local ReplicationRules = require(script.Parent.Parent.Shared.ReplicationRules)
 local Stats = require(script.Parent.Parent.Shared.Stats)
 --[[
@@ -259,18 +260,19 @@ local function PlayerAdded(player: Player)
 	playerToHolder[player] = t
 	playerTablePositionPair[t] = vector.zero
 end
+if RunService:IsServer() then
+	Shared.Remotes.ClientLoaded.OnServerEvent:Connect(PlayerAdded)
 
+	Players.PlayerRemoving:Connect(function(player: Player)
+		local holder = playerToHolder[player]
+		if not holder then
+			return
+		end
+		playerTablePositionPair[holder] = nil
+		playerToHolder[player] = nil
+	end)
+end
 -- Players.PlayerAdded:Connect(PlayerAdded)
-Shared.Remotes.ClientLoaded.OnServerEvent:Connect(PlayerAdded)
-
-Players.PlayerRemoving:Connect(function(player: Player)
-	local holder = playerToHolder[player]
-	if not holder then
-		return
-	end
-	playerTablePositionPair[holder] = nil
-	playerToHolder[player] = nil
-end)
 
 return {
 	Update = Update,

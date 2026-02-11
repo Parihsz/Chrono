@@ -3,6 +3,15 @@ local RunService = game:GetService("RunService")
 local IS_SERVER = RunService:IsServer()
 local Config = require(script.Shared.Config)
 local HTTPS = game:GetService("HttpService")
+local Stats = game:GetService("Stats")
+local Player = require(script.Server.Player)
+local Receiver = require(script.Server.Receiver)
+local ServerClock = require(script.Server.ServerClock)
+local Entity = require(script.Shared.Entity)
+local Events = require(script.Shared.Events)
+local Holder = require(script.Shared.Holder)
+local ReplicationRules = require(script.Shared.ReplicationRules)
+local Snapshots = require(script.Shared.Snapshots)
 
 local function CheckVersion()
 	task.spawn(function()
@@ -49,4 +58,20 @@ return {
 			CheckVersion()
 		end
 	end,
+
+	Holder = Holder,
+	Entity = Entity,
+	Stats = Stats,
+	Config = Config,
+	ReplicationRules = ReplicationRules,
+	Events = Events,
+	Snapshots = Snapshots,
+
+
+	ServerClock = ServerClock,
+	Player = Player,
+	ServerReceiver = Receiver
+
+
+
 }

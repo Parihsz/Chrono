@@ -1,5 +1,6 @@
 --!native
 local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
 local Config = require(script.Parent.Parent.Shared.Config)
 local Entity = require(script.Parent.Parent.Shared.Entity)
 local Holder = require(script.Parent.Parent.Shared.Holder)
@@ -62,6 +63,9 @@ local function OnPlayerAdded(player: Player)
 end
 
 Config._WaitForLock(function()
+	if not RunService:IsServer() then
+		return
+	end
 	if Config._GetConfig("PLAYER_REPLICATION") ~= "AUTOMATIC" then
 		if Config._GetConfig("SHOW_WARNINGS") then
 			warn("automatic player replication is disabled")
