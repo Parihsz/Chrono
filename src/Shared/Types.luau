@@ -156,6 +156,7 @@ export type EntityReceivePacket = {
 	mountParentId: number?,
 	mountOffset: CFrame?,
 	broadPhase: vector?,
+	_modelMetaData:string?
 }
 
 export type Entity = {

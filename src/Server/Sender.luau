@@ -135,6 +135,8 @@ local function GetEntityFullData(player: Player, entity: Types.Entity): Types.En
 		config = configName,
 
 		model = modelData,
+		_modelMetaData = modelData and type(modelData) ~= 'string' and modelData.Name or nil,
+
 		paused = entity.paused,
 		isHalfTicked = entity.isHalfTicked,
 		_data = entity._data,

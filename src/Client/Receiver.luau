@@ -103,7 +103,8 @@ local function HandleChanges(changes: { id: number, data: { { any } } })
 	if not entity then
 		return
 	end
-
+	local hasMetadata 
+	local hadModel = false
 	for _, pair in changes.data do
 		local key = pair[1]
 		local value = pair[2]
@@ -111,10 +112,15 @@ local function HandleChanges(changes: { id: number, data: { { any } } })
 		local handler = ValueChanges[key]
 		if handler then
 			handler(entity, value)
+		elseif key == "_modelMetaData" then
+			hasMetadata = value
 		elseif key == "model" then
 			local model, modelType = ModelHelper.CreateModelFromData(value)
 			Entity.SetModel(entity, model, modelType :: any)
 			entity.modelReplicationMode = modelType :: any
+			if model then
+				hadModel = true
+			end
 		elseif key == "_player" then
 			if value then
 				Holder.SetAsCharacter(value, entity)
@@ -131,11 +137,17 @@ local function HandleChanges(changes: { id: number, data: { { any } } })
 			warn("Unhandled entity change key:", key)
 		end
 	end
+	if not hadModel and hasMetadata then
+		warn("Failed to find model for entity with metadata:", hasMetadata)
+	end
 end
 
 local function HandleNewEntity(data: Types.EntityReceivePacket)
 	local model, modelType = ModelHelper.CreateModelFromData(data.model)
 	local entity = Entity._new(data.config, model, nil, data.cframe)
+	if not model and data._modelMetaData then
+		warn("Failed to find entity model:", data._modelMetaData)
+	end
 	entity.id = data.id
 	entity._player = data._player
 	entity.paused = data.paused or false
