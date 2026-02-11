@@ -55,6 +55,7 @@ nav = [
   ]},
 
   { Guides = [
+    { "Entities" = "guides/npcs.md" },
       { "Mounting" = "guides/mounting.md" },
       { "Ragdolls" = "guides/ragdolls.md" },
   ]},

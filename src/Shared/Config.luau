@@ -43,7 +43,7 @@ local BASE_CONFIG = {
 	DEFAULT_NORMAL_TICK_DISTANCE = 50,
 	DEFAULT_HALF_TICK_DISTANCE = 100, -- Anything beyond this distance will not be replicated
 
-	REPLICATE_DEATHS = "PLAYER_ENTITIES",
+	REPLICATE_DEATHS = "PLAYER_CHARACTERS",
 	--[[
 		- This requires PLAYER_REPLICATION to be set to AUTOMATIC
 		-NONE = No deaths are replicated
