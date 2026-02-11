@@ -91,13 +91,12 @@ local function ResolveWorldCFrame(entity: Types.Entity): CFrame
 	return world[entity]
 end
 
-Events.EntityRemoved:Connect(function(entity: Types.Entity)  
+Events.EntityRemoved:Connect(function(entity: Types.Entity)
 	dp[entity] = nil
 	world[entity] = nil
 end)
 
 return function()
-	timestamp += 1
 	local hasChildMount = {}
 	for _, entity in Holder.idMap do
 		if entity.destroyed or not entity.mountParentId or dp[entity] == timestamp then
@@ -106,6 +105,7 @@ return function()
 		hasChildMount[entity.mountParentId] = true
 		ResolveWorldCFrame(entity)
 	end
+	timestamp += 1
 
 	for _, entity in Holder.idMap do
 		if entity.destroyed or entity.mountParentId or not hasChildMount[entity.id] then
