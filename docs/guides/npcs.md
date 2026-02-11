@@ -157,6 +157,9 @@ local myNPC = Entity.new("NPC",...)
 
 Chrono can reduce rendering costs on the client by not updating the CFrames if the entities are not in the player's viewport. To enable culling for an entity you can passing in a third parameter to `Config.RegisterEntityModel` which specifies the broad phase size of the hitbox for culling. If the vector is zero then only a point check is done from the center of the primary part. Otherwise 8 corner points of a box will be checked. If the parameter is not passed then no culling will be done. Another way to is via `Entity.SetBroadPhase` which allows you to change the broad phase size dynamically as well.
 
+!!! warning
+    We do not recommend adding a broad phase for a large hitbox due to the fact that we do corner checks to see if an entity should be on screen and a large hitbox would potentially be marked as off screen even if it should be on screen because all the corner points are off screen.
+
 ## Changing models
 
 You can change a entity's model by calling `Entity.SetModel` you can also use this method to change the entities replication mode by passing in a model with a different replication mode registered to it. If a replication mode is not specified for the model then it will use the current replication mode of the entity.
