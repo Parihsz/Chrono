@@ -248,10 +248,12 @@ Config._WaitForLock(function()
 			CurrentTick = 0
 		end
 		RenderCache.UpdateAll(deltaTime)
-
+		debug.profilebegin("Prepare Frustum Check")
 		PrepareFrustumCheck()
+		debug.profileend()
 		local total = 0
 		local startTime = os.clock()
+		debug.profilebegin("Interpolate Entities")
 		for _, entity in idMap do
 			if entity.destroyed then
 				continue
@@ -262,12 +264,17 @@ Config._WaitForLock(function()
 			total += 1
 			Interpolate(entity)
 		end
+		debug.profileend()
 		local endTime = os.clock()
+		debug.profilebegin("Update Entity Stats")
 		updateEntityStats()
+		debug.profileend()
 		TotalInterpolationTime += (endTime - startTime)
 		AmtInterpolations += 1
 
+		debug.profilebegin("Apply Mounts")
 		ApplyMounts()
+		debug.profileend()
 		if not Stats._PAUSE then
 			Stats.TOTAL_CLIENT_ENTITIES_CHECKED_THIS_FRAME = total
 			Stats.ENTITIES_MOVED_THIS_FRAME = MovedThisFrame

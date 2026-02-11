@@ -29,6 +29,7 @@ return {
 			FULL_ROTATION = false,
 			BUFFER = 0.1,
 			MODEL_REPLICATION_MODE = "CUSTOM",
+			HALF_TICK_DISTANCE = math.huge,
 		})
 	end,
 	server = function()
