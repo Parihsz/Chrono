@@ -1,5 +1,6 @@
 --!native
 local Entity = require(script.Parent.Entity)
+local Events = require(script.Parent.Events)
 local Holder = require(script.Parent.Holder)
 local Types = require(script.Parent.Types)
 
@@ -90,11 +91,24 @@ local function ResolveWorldCFrame(entity: Types.Entity): CFrame
 	return world[entity]
 end
 
+Events.EntityRemoved:Connect(function(entity: Types.Entity)  
+	dp[entity] = nil
+	world[entity] = nil
+end)
+
 return function()
 	timestamp += 1
+	local hasChildMount = {}
+	for _, entity in Holder.idMap do
+		if entity.destroyed or not entity.mountParentId or dp[entity] == timestamp then
+			continue
+		end
+		hasChildMount[entity.mountParentId] = true
+		ResolveWorldCFrame(entity)
+	end
 
 	for _, entity in Holder.idMap do
-		if entity.destroyed or entity.mountParentId then
+		if entity.destroyed or entity.mountParentId or not hasChildMount[entity.id] then
 			continue
 		end
 
@@ -107,16 +121,9 @@ return function()
 
 		local cframe = Entity.GetAt(entity, Entity.GetTargetRenderTime(entity)) or entity.latestCFrame
 		if cframe then
-			Entity._SetPartCFrame(entity, cframe)
+			--Entity._SetPartCFrame(entity, cframe)
 			dp[entity] = timestamp
 			world[entity] = cframe
 		end
-	end
-
-	for _, entity in Holder.idMap do
-		if entity.destroyed or not entity.mountParentId or dp[entity] == timestamp then
-			continue
-		end
-		ResolveWorldCFrame(entity)
 	end
 end
