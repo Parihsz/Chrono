@@ -57,7 +57,6 @@ nav = [
   { Guides = [
       { "Mounting" = "guides/mounting.md" },
       { "Ragdolls" = "guides/ragdolls.md" },
-      { "Teleportation" = "guides/teleportation.md" },
   ]},
 
   { Reference = [
