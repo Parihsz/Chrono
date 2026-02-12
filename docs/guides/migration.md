@@ -63,7 +63,7 @@ v2 allows replication mode configuration per entity instead of globally.
 | v1                                    | v2                 | Description                                                 |
 | ------------------------------------- | ------------------ | ----------------------------------------------------------- |
 | `ENABLE_CUSTOM_CHARACTERS = true`     | `CUSTOM`           | Server and client create separate models                    |
-| `DISABLE_DEFAULT_REPLICATION = true`  | `NATIVE_WITH_LOCK` | Disables replication while maintaining server-side movement |
+| `DISABLE_DEFAULT_REPLICATION = true`  | `NATIVE_WITH_LOCK` | Disables replication while maintaining client-side movement |
 | `DISABLE_DEFAULT_REPLICATION = false` | `NATIVE`           | Roblox native replication without modification              |
 
 !!! info
