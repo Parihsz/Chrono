@@ -130,7 +130,7 @@ Characters.SetCharacter(player, newModel)
 
 ```lua
 -- v2
-local playerEntity = Holder.GetCharacter(player)
+local playerEntity = Holder.GetEntityFromPlayer(player)
 Entity.SetModel(playerEntity, newModel)
 ```
 
