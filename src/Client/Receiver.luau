@@ -103,7 +103,7 @@ local function HandleChanges(changes: { id: number, data: { { any } } })
 	if not entity then
 		return
 	end
-	local hasMetadata 
+	local hasMetadata
 	local hadModel = false
 	for _, pair in changes.data do
 		local key = pair[1]

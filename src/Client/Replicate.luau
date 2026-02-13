@@ -255,7 +255,7 @@ Config._WaitForLock(function()
 		local startTime = os.clock()
 		debug.profilebegin("Interpolate Entities")
 		for _, entity in idMap do
-			if entity.destroyed then
+			if entity.destroyed or entity.paused then
 				continue
 			end
 			if entity.mountParentId then
