@@ -30,7 +30,7 @@ Events.PlayerCharacterRegistered:Connect(function(player: Player, entity: Types.
 			return
 		end
 		if Entity.GetModelReplicationType(entity) ~= "CUSTOM" then
-			return end 
+			return
 		end
 		LocalPlayer.Character = entity.model
 		local cf = workspace.CurrentCamera.CFrame
