@@ -29,13 +29,16 @@ Events.PlayerCharacterRegistered:Connect(function(player: Player, entity: Types.
 			warn(`Model for {player} is not a Model instance.`)
 			return
 		end
+		if Entity.GetModelReplicationType(entity) ~= "CUSTOM" then
+			return end 
+		end
 		LocalPlayer.Character = entity.model
 		local cf = workspace.CurrentCamera.CFrame
 		workspace.CurrentCamera.CameraSubject = entity.model:FindFirstChildWhichIsA("Humanoid")
 			or entity.model.PrimaryPart
 		workspace.CurrentCamera.CFrame = cf
 		for i, v in model:QueryDescendants("LocalScript") do
-			if v:IsA("LocalScript") then
+			if v:IsA("LocalScript") and v.Disabled == false then
 				v.Disabled = true
 				v.Disabled = false
 			end

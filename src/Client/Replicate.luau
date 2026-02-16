@@ -1,7 +1,7 @@
 local Shared = script.Parent.Parent.Shared
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
 local RunService = game:GetService("RunService")
-local StatsALL = require(ReplicatedStorage.Packages.chrono.Shared.Stats)
+local StatsALL = require(script.Parent.Parent.Shared.Stats)
 local ApplyMounts = require(script.Parent.Parent.Shared.ApplyMounts)
 local RenderCache = require(script.Parent.ClientClock)
 local Entity = require(Shared.Entity)
