@@ -250,6 +250,7 @@ local function updateEntityStats()
 		end
 		local lastTicked = entity.latestTime
 		local data = {
+			isPaused = entity.paused,
 			id = entity.id,
 			networkOwner = networkOwner,
 			isCharacter = isCharacter,

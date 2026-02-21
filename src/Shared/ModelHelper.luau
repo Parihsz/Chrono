@@ -3,13 +3,32 @@ local Holder = require(Shared.Holder)
 local Config = require(Shared.Config)
 local Types = require(Shared.Types)
 
-local function ReadyModelFromRep(entity: Types.Entity, playerSpecific: Player?): Model | string | BasePart?
+local TAG = "CHRONO_MODEL_REPLICATOR"
+local CHRONO_ATTRIBUTE = "CHRONO_MODEL_META"
+
+local ids = 0
+local function ReadyModelFromRep(entity: Types.Entity, playerSpecific: Player?): (Model | string | BasePart?, string?)
 	local model = entity.model
 	local modelString = entity.modelString
 	local replicationMode: "NATIVE" | "CUSTOM" = (entity.modelReplicationMode or "NATIVE") :: any
 
-	if replicationMode == "NATIVE" then
-		return model
+	if replicationMode == "NATIVE" and model then
+		local metaString = `{ids}|{entity.id}`
+		model:AddTag(TAG)
+		local old = model:GetAttribute(CHRONO_ATTRIBUTE) :: string
+		if old then
+			local entityFromOld = tonumber(old:split("|")[2])
+			if entityFromOld ~= entity.id then
+				old = nil
+			end
+		end
+		if not old then
+			ids += 1
+			model:SetAttribute(CHRONO_ATTRIBUTE, metaString)
+		else
+			metaString = old
+		end
+		return model, metaString
 	elseif replicationMode == "CUSTOM" then
 		if modelString then
 			return modelString
@@ -42,10 +61,10 @@ local function ReadyModelFromRep(entity: Types.Entity, playerSpecific: Player?):
 			end)
 			return modelClone
 		end
-	else
+	elseif modelString then
 		warn(`{modelString} is not a valid model string for entity {entity.id}`)
 	end
-	return nil
+	return nil, nil
 end
 
 local function CreateTempModel(): (Model, string)
@@ -94,6 +113,8 @@ local function CreateModelFromData(model: Model | string | BasePart?): (Model | 
 end
 
 return {
+	TAG = TAG,
+	CHRONO_ATTRIBUTE = CHRONO_ATTRIBUTE,
 	ReadyModelFromRep = ReadyModelFromRep,
 	CreateModelFromData = CreateModelFromData,
 }

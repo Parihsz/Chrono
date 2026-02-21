@@ -119,7 +119,7 @@ local function GetEntityFullData(player: Player, entity: Types.Entity): Types.En
 	if entity.destroyed then
 		return nil
 	end
-	local modelData = ModelHelper.ReadyModelFromRep(entity, player)
+	local modelData,metaData = ModelHelper.ReadyModelFromRep(entity, player)
 
 	local configName: string? = entity.entityConfig.NAME
 	if configName == "DEFAULT" then
@@ -135,7 +135,7 @@ local function GetEntityFullData(player: Player, entity: Types.Entity): Types.En
 		config = configName,
 
 		model = modelData,
-		_modelMetaData = modelData and type(modelData) ~= 'string' and modelData.Name or nil,
+		_modelMetaData = metaData,
 
 		paused = entity.paused,
 		isHalfTicked = entity.isHalfTicked,

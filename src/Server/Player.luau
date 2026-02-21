@@ -23,8 +23,23 @@ local function RegisterPlayer(
 	end
 
 	local config = configuration.config or "PLAYER"
-	local modelRepMode = configuration.modelRepMode
+	local modelRepMode: Types.MODEL_REPLICATION_MODE? = configuration.modelRepMode
+	local configData = Config._EntityConfigs[config] or {}::any
+	modelRepMode = modelRepMode or configData.MODEL_REPLICATION_MODE
 	character.Archivable = true
+
+	local humanoid = character:FindFirstChildWhichIsA("Humanoid")
+	local hrp = character:FindFirstChild("HumanoidRootPart")
+	if humanoid and hrp  then
+		local rigType = humanoid.RigType
+		if rigType == Enum.HumanoidRigType.R6 and character.PrimaryPart == character:FindFirstChild("Head") then
+			if modelRepMode ~= "CUSTOM" then
+				character = hrp
+			else
+				warn(`Using CUSTOM with R6's PrimaryPart set to Head may cause Issues, Recommend to change PrimaryPart to HumanoidRootPart`)
+			end
+		end
+	end
 
 	local newEntity = Entity.new(config, character, modelRepMode :: any)
 	Holder.SetAsCharacter(player, newEntity)

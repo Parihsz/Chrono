@@ -1,5 +1,7 @@
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
+local Entity = require(script.Parent.Entity)
+local Holder = require(script.Parent.Holder)
 local Types = require(script.Parent.Types)
 
 local Stats = {
@@ -59,6 +61,32 @@ if RunService:IsServer() then
 			end
 		end
 	end)
+	replicateStatsRemote.OnServerEvent:Connect(function(plr, type: string, id: number, ...)
+		if Stats.REPLICATE_PERMISSIONS and not Stats.REPLICATE_PERMISSIONS[plr.UserId] then
+			return
+		end
+		local entity = Holder.GetEntityFromId(id)
+		if not entity then
+			return
+		end
+		if type == "CHANGE_NATIVE" then
+			local mode = Entity.GetModelReplicationType(entity)
+			if mode == "NATIVE" then
+				Entity.LockNativeServerCFrameReplication(entity)
+			elseif mode == "NATIVE_WITH_LOCK" then
+				Entity.UnlockNativeServerCFrameReplication(entity)
+			end
+		elseif type == "TOGGLE_PAUSE" then
+			if entity.paused then
+				Entity.ResumeReplication(entity)
+			else
+				Entity.PauseReplication(entity)
+			end
+		elseif type == "CHANGE_CONFIG" then
+			local configName = ...
+			Entity.SetConfig(entity, configName)
+		end
+	end)
 else
 	local remote = script:WaitForChild("ReplicateStats") :: RemoteEvent
 	remote.OnClientEvent:Connect(function(serverStats: any)
@@ -69,6 +97,9 @@ else
 			Stats.SERVER[statName] = value
 		end
 	end)
+	Stats._fireClientStatsEvent = function(...)
+		remote:FireServer(...)
+	end
 end
 
 return Stats

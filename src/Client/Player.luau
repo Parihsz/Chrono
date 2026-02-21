@@ -10,6 +10,10 @@ Events.PlayerCharacterRegistered:Connect(function(player: Player, entity: Types.
 	if Config._GetConfig("PLAYER_REPLICATION") ~= "AUTOMATIC" then
 		return
 	end
+
+	if Entity.GetModelReplicationType(entity) ~= "CUSTOM" then
+		return
+	end
 	if not entity.model then
 		return warn(`No model found for {player}`)
 	end
@@ -27,9 +31,6 @@ Events.PlayerCharacterRegistered:Connect(function(player: Player, entity: Types.
 		end
 		if not model:IsA("Model") then
 			warn(`Model for {player} is not a Model instance.`)
-			return
-		end
-		if Entity.GetModelReplicationType(entity) ~= "CUSTOM" then
 			return
 		end
 		LocalPlayer.Character = entity.model

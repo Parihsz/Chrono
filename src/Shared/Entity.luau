@@ -299,6 +299,7 @@ local function SetModel(
 		if replicationMode == "CUSTOM" then
 			_model.Parent = Holder.GetEntityStorageInstance()
 		end
+		
 	end
 	if not primaryPart then
 		return
@@ -312,7 +313,7 @@ local function SetModel(
 	if self.latestCFrame then
 		primaryPart.CFrame = self.latestCFrame
 	end
-	if locked then
+	if locked and IS_SERVER then
 		LockCFReplication(primaryPart)
 	end
 end
@@ -388,9 +389,9 @@ function Entity.SetModel(
 	local old = self.model
 	SetModel(self, model, modelReplicationMode, noDestroy)
 	if IS_SERVER then
-		local toReplicate = ModelHelper.ReadyModelFromRep(self, nil)
+		local toReplicate, metaData = ModelHelper.ReadyModelFromRep(self, nil)
 		SetValue(self, "model", self.model, true, toReplicate)
-		SetValue(self, "_modelMetaData", nil, true, self.model and self.model.Name)
+		SetValue(self, "_modelMetaData", nil, true, metaData)
 		CheckNetworkOwner(self, self.networkOwner)
 	end
 	FireEvent(self, "ModelChanged", self.model, old)
@@ -737,7 +738,6 @@ function Entity.UnlockNativeServerCFrameReplication(self: Entity)
 	end
 end
 
-
 --[=[
 	Returns the current model replication type of the entity, which can be "NATIVE", "CUSTOM", or "NATIVE_WITH_LOCK".
 	NATIVE_WITH_LOCK may appear as native on the client.	
@@ -747,13 +747,13 @@ function Entity.GetModelReplicationType(self: Entity): "NATIVE" | "CUSTOM" | "NA
 	if not mode then
 		mode = self.entityConfig.MODEL_REPLICATION_MODE
 	end
-	if mode == "NATIVE" then
-		if self._lockedCFReplication then
-			return "NATIVE_WITH_LOCK"
-		end
-		return "NATIVE"
+	if mode == "CUSTOM" then
+		return "CUSTOM"
 	end
-	return "CUSTOM"
+	if self._lockedCFReplication then
+		return "NATIVE_WITH_LOCK"
+	end
+	return "NATIVE"
 end
 
 --[=[

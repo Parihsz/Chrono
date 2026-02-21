@@ -16,11 +16,38 @@ local function displayServerEntityStats(entity: Types.ServerEntitiesStats)
 	Iris.Text({ "ID: " .. tostring(entity.id) })
 	Iris.Text({ "Network Owner: " .. tostring(entity.networkOwner) })
 	Iris.Text({ "Is Character: " .. tostring(entity.isCharacter) })
-	Iris.Text({ "Config: " .. tostring(entity.config) })
 	Iris.Text({ "Tick Rate: " .. tostring(entity.tickRate) })
 	Iris.Text({ "Last Ticked: " .. tostring(entity.lastTicked) })
 	Iris.Text({ "Last Position: " .. tostring(entity.lastPosition) })
-	Iris.Text({ "Model Type: " .. tostring(entity.modelType) })
+	do
+		Iris.SameLine()
+		Iris.Text({ "Is Paused: " .. tostring(entity.isPaused) })
+		if Iris.Button({ entity.isPaused and "Unpause" or "Pause" }).clicked() then
+			Stats._fireClientStatsEvent("TOGGLE_PAUSE", entity.id)
+		end
+		Iris.End()
+	end
+	do
+		Iris.SameLine()
+		Iris.Text({ "Model Type: " .. tostring(entity.modelType) })
+		if entity.modelType == "NATIVE" or entity.modelType == "NATIVE_WITH_LOCK" then
+			if Iris.Button({ "Change Model Types" }).clicked() then
+				Stats._fireClientStatsEvent("CHANGE_NATIVE", entity.id)
+			end
+		end
+		Iris.End()
+	end
+	do
+		Iris.Text({ "Config: " .. tostring(entity.config) })
+		if Iris.Tree({ "Configs" }).state.isUncollapsed.value then
+			for configName, config in Config._EntityConfigs do
+				if Iris.Button({ "Change to " .. configName }).clicked() then
+					Stats._fireClientStatsEvent("CHANGE_CONFIG", entity.id, configName)
+				end
+			end
+		end
+		Iris.End()
+	end
 end
 
 local function displayVector3(vec: Vector3)
@@ -30,12 +57,16 @@ end
 local function cframeToString(cf: CFrame)
 	local rx, ry, rz = cf:ToEulerAnglesXYZ()
 	rx, ry, rz = math.deg(rx), math.deg(ry), math.deg(rz)
-	return displayVector3(cf.Position) ..` | rot: {displayVector3(Vector3.new(rx, ry, rz))}`
+	return displayVector3(cf.Position) .. ` | rot: {displayVector3(Vector3.new(rx, ry, rz))}`
 end
 local function displaySnapShots(snapshots: { t: number, value: CFrame, velocity: Vector3 })
 	Iris.Text({ "Snapshots:" })
 	for _, snap in snapshots do
-		Iris.Text({ `t: {snap.t}, value: {snap.value and cframeToString(snap.value)} | velocity: {snap.velocity and displayVector3(snap.velocity)}` })
+		Iris.Text({
+			`t: {snap.t}, value: {snap.value and cframeToString(snap.value)} | velocity: {snap.velocity and displayVector3(
+				snap.velocity
+			)}`,
+		})
 	end
 end
 
@@ -53,6 +84,7 @@ local function displayClientEntityStats(entity: Types.ClientEntitiesStats)
 	Iris.Text({ "Target Time: " .. tostring(entity.targetTime) })
 	Iris.Text({ "Deviation: " .. tostring(entity.deviation) })
 	Iris.Text({ "Buffered Time: " .. tostring(entity.bufferedTime) })
+
 	if Iris.Tree({ "Snapshots" }).state.isUncollapsed.value then
 		displaySnapShots(entity.snapshots)
 	end

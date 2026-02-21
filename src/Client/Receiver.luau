@@ -1,10 +1,11 @@
+local CollectionService = game:GetService("CollectionService")
 local RunService = game:GetService("RunService")
 local Shared = script.Parent.Parent.Shared
 
-local Holder = require(Shared.Holder)
 local Entity = require(Shared.Entity)
-local Types = require(Shared.Types)
+local Holder = require(Shared.Holder)
 local ModelHelper = require(Shared.ModelHelper)
+local Types = require(Shared.Types)
 local Stats = require(Shared.Stats).CLIENT
 
 local BytesReceived = 0
@@ -98,6 +99,10 @@ local ValueChanges = {
 	broadPhase = Entity.SetBroadPhase,
 }
 
+local waitingForModel = setmetatable({} :: { [string]: Types.Entity }, {
+	__mode = "vs",
+})
+
 local function HandleChanges(changes: { id: number, data: { { any } } })
 	local entity = Holder.GetEntityFromId(changes.id)
 	if not entity then
@@ -139,6 +144,7 @@ local function HandleChanges(changes: { id: number, data: { { any } } })
 	end
 	if not hadModel and hasMetadata then
 		warn("Failed to find model for entity with metadata:", hasMetadata)
+		waitingForModel[hasMetadata._modelMetaData] = entity
 	end
 end
 
@@ -146,7 +152,9 @@ local function HandleNewEntity(data: Types.EntityReceivePacket)
 	local model, modelType = ModelHelper.CreateModelFromData(data.model)
 	local entity = Entity._new(data.config, model, nil, data.cframe)
 	if not model and data._modelMetaData then
-		warn("Failed to find entity model:", data._modelMetaData)
+		local hasMetadata = data._modelMetaData
+		warn("Failed to find model for new entity with metadata:", hasMetadata)
+		waitingForModel[hasMetadata] = entity
 	end
 	entity.id = data.id
 	entity._player = data._player
@@ -297,6 +305,7 @@ UnreliableEvent.OnClientEvent:Connect(HandleUnreliable)
 ReliableEvent.OnClientEvent:Connect(HandleReliable)
 
 local lastByteCheckTime = 0
+local checked = {}
 RunService.Heartbeat:Connect(function()
 	if os.clock() - lastByteCheckTime > 1 then
 		if not Stats._PAUSE then
@@ -310,6 +319,25 @@ RunService.Heartbeat:Connect(function()
 		ChangesPerSec = 0
 		BytesReceived = 0
 		lastByteCheckTime = os.clock()
+		checked = {}
+	end
+	if not next(waitingForModel) then
+		return
+	end
+	for _, v in CollectionService:GetTagged(ModelHelper.TAG) do
+		if checked[v] then
+			continue
+		end
+		checked[v] = true
+		local metaString: string = v:GetAttribute(ModelHelper.CHRONO_ATTRIBUTE) :: any
+		if metaString then
+			local hasWaiting = waitingForModel[metaString]
+			if hasWaiting then
+				waitingForModel[metaString] = nil
+				Entity.SetModel(hasWaiting, v)
+			end
+		end
 	end
 end)
+
 return nil

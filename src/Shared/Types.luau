@@ -33,6 +33,7 @@ export type ClientEntitiesStats = {
 
 export type ServerEntitiesStats = {
 	id: number,
+	isPaused: boolean,
 	networkOwner: Player?,
 	isCharacter: boolean,
 	config: string,
