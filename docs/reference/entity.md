@@ -107,12 +107,13 @@ Pauses replication for this entity.
 
 Resumes replication for this entity.
 
-### `Push(self: Entity, time: number, value: CFrame) -> boolean`
+### `Push(self: Entity, time: number, value: CFrame, velocity: Vector3?) -> boolean`
 
 Pushes a new snapshot value for this entity at the given time. Returns true if it is the latest snapshot.
 
 - `time` - The timestamp of the snapshot.
 - `value` - The CFrame value of the snapshot.
+- `velocity` - The velocity of the snapshot. If nil, velocity will be calculated based on the previous snapshot.
 
 ### `GetAtTime(self: Entity, time: number) -> CFrame?`
 

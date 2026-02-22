@@ -299,7 +299,6 @@ local function SetModel(
 		if replicationMode == "CUSTOM" then
 			_model.Parent = Holder.GetEntityStorageInstance()
 		end
-		
 	end
 	if not primaryPart then
 		return
@@ -580,10 +579,11 @@ end
 
 	@param time The time associated with the CFrame value.
 	@param value The CFrame value to push.
+	@param velocity Optional velocity to push with the snapshot. If not provided, will be calculated based on the latest snapshot value.
 
 	@return Whether the pushed value is the newest.
 ]=]
-function Entity.Push(self: Entity, time: number, value: CFrame): boolean
+function Entity.Push(self: Entity, time: number, value: CFrame, velocity: Vector3?): boolean
 	local snapshot = self.snapshot
 	local newer = not self.latestTime or time > self.latestTime
 	if newer then
@@ -601,7 +601,7 @@ function Entity.Push(self: Entity, time: number, value: CFrame): boolean
 				end
 			end
 		end
-		snapshot:Push(time, value, VelocityAt(snapshot:GetLatest(), time, value))
+		snapshot:Push(time, value, velocity or VelocityAt(snapshot:GetLatest(), time, value))
 	end
 	FireEvent(self, "PushedSnapShot", time, value, newer)
 	return newer
