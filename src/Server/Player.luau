@@ -33,11 +33,7 @@ local function RegisterPlayer(
 	if humanoid and hrp  then
 		local rigType = humanoid.RigType
 		if rigType == Enum.HumanoidRigType.R6 and character.PrimaryPart == character:FindFirstChild("Head") then
-			if modelRepMode ~= "CUSTOM" then
-				character = hrp
-			else
-				warn(`Using CUSTOM with R6's PrimaryPart set to Head may cause Issues, Recommend to change PrimaryPart to HumanoidRootPart`)
-			end
+			Entity.setModelPrimaryForChrono(character, "HumanoidRootPart")
 		end
 	end
 

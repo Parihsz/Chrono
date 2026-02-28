@@ -19,6 +19,8 @@ local clientOwned = Holder._clientOwned
 local IS_SERVER = RunService:IsServer()
 local LOCAL_PLAYER = if IS_SERVER then nil else Players.LocalPlayer
 
+local CHRONO_PRIMARY = "__CHRONO_PRIMARY"
+
 local CENTER_PART = Instance.new("Part")
 CENTER_PART.Size = Vector3.new(0.1, 0.1, 0.1)
 CENTER_PART.Name = "__CHRONO_CENTER"
@@ -114,7 +116,8 @@ local function UnlockCFReplication(part: BasePart?)
 	end
 end
 
-local function GetPart(model: Model | BasePart?): BasePart?
+local function GetPart(self: Types.Entity): BasePart?
+	local model = self.model
 	if not model then
 		return nil
 	end
@@ -122,7 +125,21 @@ local function GetPart(model: Model | BasePart?): BasePart?
 		return model
 	end
 	if model:IsA("Model") then
-		return model.PrimaryPart
+		local chronoPrimary = self._chronoPrimary
+		if chronoPrimary then
+			local primary = model:FindFirstChild(chronoPrimary)
+			if primary and primary:IsA("BasePart") then
+				return primary
+			else
+				warn(
+					`Chrono primary part {chronoPrimary} not found or not a BasePart in model {model:GetFullName()} for entity id {self.id}. Falling back to default PrimaryPart.`
+				)
+			end
+		end
+		local primaryPart = model.PrimaryPart
+		if primaryPart then
+			return primaryPart
+		end
 	end
 	return nil
 end
@@ -159,7 +176,7 @@ local function CheckNetworkOwner(self: Entity, prev: Player?)
 		self.latestTime = 0
 	end
 	if IS_SERVER then
-		local part = GetPart(self.model)
+		local part = GetPart(self)
 		if part then
 			local locked = self._lockedCFReplication
 
@@ -251,7 +268,6 @@ local function SetModel(
 	end
 	local locked = self._lockedCFReplication
 	local modelString
-	local initCFrame
 	if type(model) == "string" then
 		modelString = model
 		model = Config._GetEntityModel(model :: string)
@@ -262,23 +278,9 @@ local function SetModel(
 		if model then
 			(model :: any).Parent = workspace
 		end
-	elseif typeof(model) == "Instance" and (model:IsA("Model") or model:IsA("BasePart")) then
-		local part = GetPart(model :: Model | BasePart)
-		if part then
-			initCFrame = part.CFrame
-		end
 	end
 	local _model: Model? = model :: any
-	local primaryPart = GetPart(_model)
 	local broadPhase = Config._GetBroadPhase(modelString :: string)
-	if _model and not primaryPart then
-		warn(`{_model:GetFullName()} must have a PrimaryPart set for things like autoReplication and movement.`)
-	elseif _model and not _model.Archivable then
-		warn(
-			`{_model:GetFullName()} is not Archivable. It is recommended to set Archivable to true for entity models to prevent potential issues when cloning. Archivable has been set to true automatically.`
-		)
-		_model.Archivable = true
-	end
 
 	local replicationMode: "NATIVE" | "CUSTOM" = CheckModelReplicationMode(self, modelReplicationMode)
 	self.modelString = modelString
@@ -288,21 +290,35 @@ local function SetModel(
 		self.broadPhase = broadPhase
 	end
 
-	if _model and not primaryPart then
-		warn("No primary part found for entity model.", _model:GetFullName())
-		return
-	end
-
 	if _model then
 		self.modelReplicationMode = replicationMode
 
 		if replicationMode == "CUSTOM" then
 			_model.Parent = Holder.GetEntityStorageInstance()
 		end
+
+		local chronoPrimary = _model:GetAttribute(CHRONO_PRIMARY)
+		if chronoPrimary and type(chronoPrimary) == "string" then
+			self._chronoPrimary = chronoPrimary
+		end
 	end
+
+	local primaryPart = GetPart(self)
+	if _model and not primaryPart then
+		warn(`{_model:GetFullName()} must have a PrimaryPart set for things like autoReplication and movement.`)
+	elseif _model and not _model.Archivable then
+		warn(
+			`{_model:GetFullName()} is not Archivable. It is recommended to set Archivable to true for entity models to prevent potential issues when cloning. Archivable has been set to true automatically.`
+		)
+		_model.Archivable = true
+	end
+
 	if not primaryPart then
 		return
 	end
+
+	local initCFrame = primaryPart.CFrame
+
 	if not IS_SERVER and not self.isContextOwner and replicationMode == "CUSTOM" then
 		primaryPart.Anchored = true
 	end
@@ -659,7 +675,7 @@ end
 	@return The current CFrame of the entity.
 ]=]
 function Entity.GetCFrame(self: Entity): CFrame?
-	local part = GetPart(self.model)
+	local part = GetPart(self)
 	return self.latestCFrame or (part and part.CFrame)
 end
 
@@ -685,7 +701,7 @@ end
 ]=]
 function Entity.GetPrimaryPart(self: Entity): BasePart?
 	if self.model then
-		return GetPart(self.model)
+		return GetPart(self)
 	end
 	return nil
 end
@@ -706,7 +722,7 @@ function Entity.LockNativeServerCFrameReplication(self: Entity)
 			return
 		end
 		self._lockedCFReplication = true
-		local part = GetPart(self.model)
+		local part = GetPart(self)
 		LockCFReplication(part)
 		FireEvent(self, "LockChanged", true)
 	else
@@ -730,7 +746,7 @@ function Entity.UnlockNativeServerCFrameReplication(self: Entity)
 			return
 		end
 		self._lockedCFReplication = false
-		local part = GetPart(self.model)
+		local part = GetPart(self)
 		UnlockCFReplication(part)
 		FireEvent(self, "LockChanged", false)
 	else
@@ -769,7 +785,7 @@ function Entity.Destroy(self: Entity)
 	FireEvent(self, "Destroying")
 	if not IS_SERVER then
 		local modeType = self.modelReplicationMode
-		local primaryPat = GetPart(self.model)
+		local primaryPat = GetPart(self)
 		if modeType == "CUSTOM" then
 			SafeDestroy(self.model)
 		elseif primaryPat then
@@ -783,6 +799,10 @@ function Entity.Destroy(self: Entity)
 		signal:DisconnectAll()
 	end
 	--//TODO: add more
+end
+
+function Entity.setModelPrimaryForChrono(model: Model, primaryName: string)
+	model:SetAttribute(CHRONO_PRIMARY, primaryName)
 end
 
 --[=[

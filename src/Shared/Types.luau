@@ -204,6 +204,7 @@ export type Entity = {
 	_changes: { { string | any } }?,
 	_events: { [string]: Signal<any, any> }?,
 	_lastId: number?,
+	_chronoPrimary: string?,
 
 	mountParentId: number?,
 	mountOffset: CFrame?,
