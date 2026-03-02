@@ -57,6 +57,8 @@ return {
 		if IS_SERVER and Config._GetConfig("CHECK_NEW_VERSION") then
 			CheckVersion()
 		end
+		local currentVersion = Config._GetConfig("__VERSION")
+		print(`Chrono {currentVersion} Started.`)
 	end,
 
 	Holder = Holder,

@@ -80,6 +80,7 @@ end
 
 local function SetPartCFrame(entity, cframe: CFrame)
 	local primaryPart = Entity.GetPrimaryPart(entity)
+	
 	if not primaryPart then
 		return
 	end

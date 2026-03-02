@@ -58,7 +58,7 @@ local function UnregisterPlayer(player: Player)
 end
 
 local function OnCharacterAdded(character: Model, player: Player)
-	task.wait()
+	task.wait(.1)
 	RegisterPlayer(player, character, {
 		config = "PLAYER",
 	})
