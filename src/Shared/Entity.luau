@@ -64,7 +64,7 @@ local function LockCFReplication(part: BasePart?)
 	end
 	local camera = Instance.new("Camera", part)
 	camera.Name = "__CHRONO_LOCKER"
-	local weld = Instance.new("Motor6D", camera)
+	local weld = Instance.new("Weld", camera)
 	weld.Name = "__CHRONO_WELD"
 	local aPart = Instance.new("Part", camera)
 	aPart.Name = "__CHRONO_LOCKER_PART"
@@ -772,6 +772,7 @@ function Entity.GetModelReplicationType(self: Entity): "NATIVE" | "CUSTOM" | "NA
 	end
 	return "NATIVE"
 end
+
 
 --[=[
 	Destroys the entity, unregistering it and cleaning up resources.
