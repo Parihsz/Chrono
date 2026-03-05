@@ -99,17 +99,13 @@ local ValueChanges = {
 	broadPhase = Entity.SetBroadPhase,
 }
 
-local waitingForModel = setmetatable({} :: { [string]: Types.Entity }, {
-	__mode = "vs",
-})
-
 local function HandleChanges(changes: { id: number, data: { { any } } })
 	local entity = Holder.GetEntityFromId(changes.id)
 	if not entity then
 		return
 	end
 	local hasMetadata
-	local hadModel = false
+	local modelData
 	for _, pair in changes.data do
 		local key = pair[1]
 		local value = pair[2]
@@ -120,12 +116,7 @@ local function HandleChanges(changes: { id: number, data: { { any } } })
 		elseif key == "_modelMetaData" then
 			hasMetadata = value
 		elseif key == "model" then
-			local model, modelType = ModelHelper.CreateModelFromData(value)
-			Entity.SetModel(entity, model, modelType :: any)
-			entity.modelReplicationMode = modelType :: any
-			if model then
-				hadModel = true
-			end
+			modelData = value
 		elseif key == "_player" then
 			if value then
 				Holder.SetAsCharacter(value, entity)
@@ -142,22 +133,22 @@ local function HandleChanges(changes: { id: number, data: { { any } } })
 			warn("Unhandled entity change key:", key)
 		end
 	end
-	if not hadModel and hasMetadata then
-		warn("Failed to find model for entity with metadata:", hasMetadata)
-		waitingForModel[hasMetadata._modelMetaData] = entity
+
+	if modelData ~= nil then
+		local model, modelType = ModelHelper.CreateModelFromData(modelData)
+		Entity.SetModel(entity, model, modelType :: any)
+		entity.modelReplicationMode = modelType :: any
+		entity._modelMetaData = hasMetadata
 	end
 end
 
 local function HandleNewEntity(data: Types.EntityReceivePacket)
 	local model, modelType = ModelHelper.CreateModelFromData(data.model)
 	local entity = Entity._new(data.config, model, nil, data.cframe)
-	if not model and data._modelMetaData then
-		local hasMetadata = data._modelMetaData
-		warn("Failed to find model for new entity with metadata:", hasMetadata)
-		waitingForModel[hasMetadata] = entity
-	end
+
 	entity.id = data.id
 	entity._player = data._player
+	entity._modelMetaData = data._modelMetaData
 	entity.paused = data.paused or false
 	entity.isHalfTicked = data.isHalfTicked
 	entity._data = data._data
@@ -305,7 +296,6 @@ UnreliableEvent.OnClientEvent:Connect(HandleUnreliable)
 ReliableEvent.OnClientEvent:Connect(HandleReliable)
 
 local lastByteCheckTime = 0
-local checked = {}
 RunService.Heartbeat:Connect(function()
 	if os.clock() - lastByteCheckTime > 1 then
 		if not Stats._PAUSE then
@@ -319,24 +309,6 @@ RunService.Heartbeat:Connect(function()
 		ChangesPerSec = 0
 		BytesReceived = 0
 		lastByteCheckTime = os.clock()
-		checked = {}
-	end
-	if not next(waitingForModel) then
-		return
-	end
-	for _, v in CollectionService:GetTagged(ModelHelper.TAG) do
-		if checked[v] then
-			continue
-		end
-		checked[v] = true
-		local metaString: string = v:GetAttribute(ModelHelper.CHRONO_ATTRIBUTE) :: any
-		if metaString then
-			local hasWaiting = waitingForModel[metaString]
-			if hasWaiting then
-				waitingForModel[metaString] = nil
-				Entity.SetModel(hasWaiting, v)
-			end
-		end
 	end
 end)
 

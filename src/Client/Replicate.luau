@@ -4,15 +4,17 @@ local RunService = game:GetService("RunService")
 local StatsALL = require(script.Parent.Parent.Shared.Stats)
 local ApplyMounts = require(script.Parent.Parent.Shared.ApplyMounts)
 local RenderCache = require(script.Parent.ClientClock)
+local ModelResolver = require(script.Parent.ModelResolver)
 local Entity = require(Shared.Entity)
 local Holder = require(Shared.Holder)
 local Config = require(Shared.Config)
 local Types = require(Shared.Types)
 local Sender = require(script.Parent.Sender)
+local receiver = require(script.Parent.Receiver)
 local Stats = require(Shared.Stats).CLIENT
 require(script.Parent.Player)
 require(script.Parent.Receiver)
-
+ 
 local idMap = Holder.idMap
 
 local FrustumLookVector = vector.create(0, 0, -1)
@@ -255,6 +257,7 @@ Config._WaitForLock(function()
 		local startTime = os.clock()
 		debug.profilebegin("Interpolate Entities")
 		for _, entity in idMap do
+			ModelResolver(entity)
 			if entity.destroyed or entity.paused then
 				continue
 			end

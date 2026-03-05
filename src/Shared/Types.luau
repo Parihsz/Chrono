@@ -164,6 +164,7 @@ export type Entity = {
 	--Client
 	-- this is for non server owned
 	_clientClock: ClientClock?,
+	_modelMetaData: string?,
 	broadPhase: vector?,
 	_outofBroadPhaseTick: number?,
 	--Server

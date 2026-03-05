@@ -406,8 +406,8 @@ function Entity.SetModel(
 	SetModel(self, model, modelReplicationMode, noDestroy)
 	if IS_SERVER then
 		local toReplicate, metaData = ModelHelper.ReadyModelFromRep(self, nil)
-		SetValue(self, "model", self.model, true, toReplicate)
-		SetValue(self, "_modelMetaData", nil, true, metaData)
+		SetValue(self, "model", self.model, true, toReplicate or false)
+		SetValue(self, "_modelMetaData", metaData, true, metaData)
 		CheckNetworkOwner(self, self.networkOwner)
 	end
 	FireEvent(self, "ModelChanged", self.model, old)

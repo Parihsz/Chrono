@@ -34,7 +34,7 @@ export type SetConfig =
 
 local LOCKED = false
 local BASE_CONFIG = {
-	__VERSION = "2.0.1",
+	__VERSION = "2.1.0",
 	CHECK_NEW_VERSION = true,
 	MAX_TOTAL_BYTES_PER_FRAME_PER_PLAYER = 3000,
 	MIN_BUFFER = 0.09,
