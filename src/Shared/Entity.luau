@@ -779,12 +779,13 @@ end
 ]=]
 function Entity.Destroy(self: Entity)
 	self.destroyed = true
+ FireEvent(self, "Destroying")
 	Holder.UnregisterEntity(self)
 
 	if self._clientClock then
 		self._clientClock:Destroy()
 	end
-	FireEvent(self, "Destroying")
+	
 	if not IS_SERVER then
 		local modeType = self.modelReplicationMode
 		local primaryPat = GetPart(self)
