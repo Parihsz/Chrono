@@ -538,9 +538,7 @@ Entity["设置网络主控玩家"] = function(self: Entity, player: Player?)
 		local prev = self.networkOwner
 		SetValue(self, "networkOwner", player)
 		CheckNetworkOwner(self, prev)
-		if self.snapshot then
-			self.snapshot:Clear()
-		end
+		Entity.Clear(self)
 	end
 	self.lastCheckedCFrame = nil
 	if not IS_SERVER and self.modelReplicationMode == "CUSTOM" then
