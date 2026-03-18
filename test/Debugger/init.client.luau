@@ -7,10 +7,40 @@ local Stats = require(Shared.Stats)
 local Types = require(Shared.Types)
 local Iris = require(ReplicatedStorage.DevPackages.iris)
 local PAUSE_KEY = Enum.KeyCode.E
+local Flags = Config.FLAGS
 
 local ClientStats = Stats.CLIENT
 
 Iris.Init()
+
+local function displayFlagEditor(name,value)
+	local type = typeof(value)
+	if type == "boolean" then
+		Iris.SameLine()
+		Iris.Text({ name .. ": " .. tostring(value) })
+		if Iris.Button({ value and "Disable " or "Enable " .. name }).clicked() then
+			Flags[name] = not value
+		end
+		Iris.End()
+	elseif type == "number" then
+		local newValue = value
+		Iris.SameLine()
+		Iris.Text({ name .. ": " .. tostring(value) })
+		newValue = Iris.Input({ tostring(value) }).value
+		if newValue and tonumber(newValue) and tonumber(newValue) ~= value then
+			Flags[name] = tonumber(newValue)
+		end
+		Iris.End()
+	end
+end
+
+local function displayFlags()
+	Iris.Tree({ "Flags" })
+	for flagName, flagValue in Flags do
+		displayFlagEditor(flagName, flagValue)
+	end
+	Iris.End()
+end
 
 local function displayServerEntityStats(entity: Types.ServerEntitiesStats)
 	Iris.Text({ "ID: " .. tostring(entity.id) })
@@ -103,6 +133,7 @@ end)
 Iris:Connect(function()
 	if Iris.Window({ "Replication Debug" }) then
 		Iris.Text({ "Version: " .. tostring(Config._GetConfig("__VERSION")) })
+		displayFlags()
 		if Iris.Button({ Stats.CLIENT._PAUSE and "Unpause" or "Pause" }).clicked() then
 			Stats.CLIENT._PAUSE = not Stats.CLIENT._PAUSE
 		end

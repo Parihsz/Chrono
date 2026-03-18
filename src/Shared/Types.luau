@@ -27,8 +27,7 @@ export type ClientEntitiesStats = {
 	snapshots: {
 		t: number,
 		value: CFrame,
-	}
-	
+	},
 }
 
 export type ServerEntitiesStats = {
@@ -63,6 +62,14 @@ export type Snapshot<Value, Velocity> = {
 	Lerp: (p0: Vector3, p1: Vector3, v0: Velocity, v1: Velocity, t: number, dt: number) -> Vector3,
 
 	Push: (self: Snapshot<Value, Velocity>, t: number, value: Value, velocity: Velocity) -> (),
+	PushWithCheck: (
+		self: Snapshot<Value, Velocity>,
+		t: number,
+		value: Value,
+		velocity: Velocity,
+		tickrate: number
+	) -> (),
+
 	GetLatest: (self: Snapshot<Value, Velocity>) -> SnapshotData<Value, Velocity>?,
 	GetAt: (self: Snapshot<Value, Velocity>, t: number, bypassLock: boolean?) -> Value?,
 	Clear: (self: Snapshot<Value, Velocity>) -> (),
@@ -157,7 +164,7 @@ export type EntityReceivePacket = {
 	mountParentId: number?,
 	mountOffset: CFrame?,
 	broadPhase: vector?,
-	_modelMetaData:string?
+	_modelMetaData: string?,
 }
 
 export type Entity = {

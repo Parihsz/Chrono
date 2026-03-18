@@ -205,6 +205,9 @@ return {
 	SetConfig = SetConfig,
 	RegisterEntityType = RegisterEntityType,
 	RegisterEntityModel = RegisterEntityModel,
+	FLAGS = {
+		["SNAPSHOT_INTERPOLATION_FIX"] = true,
+	},
 
 	_EntityConfigs = ENTITY_TYPES,
 	_GetEntityType = GetEntityType,

@@ -63,6 +63,15 @@ local function ShiftElementsRight<Value, Velocity>(self: Snapshot<Value, Velocit
 	end
 end
 
+local function GetLatest<Value, Velocity>(self: Snapshot<Value, Velocity>): SnapshotData<Value, Velocity>?
+	if self.count == 0 then
+		return nil
+	end
+
+	local lastIndex = GetBufferIndex(self.head, self.count)
+	return self.cache[lastIndex]
+end
+
 local function Push<Value, Velocity>(self: Snapshot<Value, Velocity>, timeStamp: number, value: Value, velocity: Velocity)
 	local newData = { t = timeStamp, value = value, velocity = velocity }
 
@@ -71,6 +80,7 @@ local function Push<Value, Velocity>(self: Snapshot<Value, Velocity>, timeStamp:
 		self.count = 1
 		return
 	end
+
 
 	local insertionPos = BinarySearchInsertionPoint(self, timeStamp)
 
@@ -102,13 +112,12 @@ local function Push<Value, Velocity>(self: Snapshot<Value, Velocity>, timeStamp:
 	end
 end
 
-local function GetLatest<Value, Velocity>(self: Snapshot<Value, Velocity>): SnapshotData<Value, Velocity>?
-	if self.count == 0 then
-		return nil
+local function PushWithCheck<Value, Velocity>(self: Snapshot<Value, Velocity>, timeStamp: number, value: Value, velocity: Velocity, tickrate:number)
+	local latestData = GetLatest(self)
+	if latestData and timeStamp - latestData.t > tickrate*3 and Config.FLAGS.SNAPSHOT_INTERPOLATION_FIX then
+		Push(self, timeStamp - tickrate, latestData.value, vector.zero, true)
 	end
-
-	local lastIndex = GetBufferIndex(self.head, self.count)
-	return self.cache[lastIndex]
+	Push(self, timeStamp, value, velocity)
 end
 
 local function GetAt<Value, Velocity>(self: Snapshot<Value, Velocity>, at: number, bypassLock: boolean?): Value?
@@ -197,6 +206,7 @@ local function New<Value, Velocity>(
 		Lerp = lerpFunction,
 
 		Push = Push,
+		PushWithCheck = PushWithCheck,
 		GetLatest = GetLatest,
 		GetAt = GetAt,
 		Clear = Clear,

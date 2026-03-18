@@ -618,7 +618,11 @@ function Entity.Push(self: Entity, time: number, value: CFrame, velocity: Vector
 				end
 			end
 		end
-		snapshot:Push(time, value, velocity or VelocityAt(snapshot:GetLatest(), time, value))
+		local tickrate = self.entityConfig.TICK_RATE
+		if self.isHalfTicked then
+			tickrate = tickrate * 2
+		end
+		snapshot:PushWithCheck(time, value, velocity or VelocityAt(snapshot:GetLatest(), time, value, tickrate),tickrate)
 	end
 	FireEvent(self, "PushedSnapShot", time, value, newer)
 	return newer
