@@ -145,7 +145,6 @@ local function CheckEntity(entity: Types.Entity)
 		return
 	end
 
-	entity.lastReplicatedTime = now
 	FireEvent(entity, "Ticked", difference)
 	local primaryPart = Entity.GetPrimaryPart(entity)
 
@@ -156,6 +155,7 @@ local function CheckEntity(entity: Types.Entity)
 	local currentCFrame = entity.latestCFrame
 	local lastCFrame = entity.lastCheckedCFrame
 	if currentCFrame and CFrameChanged(lastCFrame, currentCFrame) then
+		entity.lastReplicatedTime = now
 		local fullCFrame = config.FULL_ROTATION
 		entity.lastCheckedCFrame = currentCFrame
 
