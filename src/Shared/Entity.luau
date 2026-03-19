@@ -80,7 +80,7 @@ end
 
 local function SetPartCFrame(entity, cframe: CFrame)
 	local primaryPart = Entity.GetPrimaryPart(entity)
-	
+
 	if not primaryPart then
 		return
 	end
@@ -365,6 +365,7 @@ function Entity._new(
 	end
 	SetModel(self, model, modelReplicationMode)
 	CheckNetworkOwner(self, nil)
+	warn(self)
 	return self
 end
 
@@ -568,7 +569,7 @@ end
 ]=]
 function Entity.Clear(self: Entity)
 	local snapshot = self.snapshot
-	self.latestCFrame = nil
+	-- self.latestCFrame = nil --< this line
 	self.latestTime = nil
 	if snapshot then
 		snapshot:Clear()
@@ -620,7 +621,12 @@ function Entity.Push(self: Entity, time: number, value: CFrame, velocity: Vector
 		if self.isHalfTicked then
 			tickrate = tickrate * 2
 		end
-		snapshot:PushWithCheck(time, value, velocity or VelocityAt(snapshot:GetLatest(), time, value, tickrate),tickrate)
+		snapshot:PushWithCheck(
+			time,
+			value,
+			velocity or VelocityAt(snapshot:GetLatest(), time, value, tickrate),
+			tickrate
+		)
 	end
 	FireEvent(self, "PushedSnapShot", time, value, newer)
 	return newer
@@ -775,19 +781,18 @@ function Entity.GetModelReplicationType(self: Entity): "NATIVE" | "CUSTOM" | "NA
 	return "NATIVE"
 end
 
-
 --[=[
 	Destroys the entity, unregistering it and cleaning up resources.
 ]=]
 function Entity.Destroy(self: Entity)
 	self.destroyed = true
- FireEvent(self, "Destroying")
+	FireEvent(self, "Destroying")
 	Holder.UnregisterEntity(self)
 
 	if self._clientClock then
 		self._clientClock:Destroy()
 	end
-	
+
 	if not IS_SERVER then
 		local modeType = self.modelReplicationMode
 		local primaryPat = GetPart(self)
