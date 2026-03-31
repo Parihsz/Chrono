@@ -143,8 +143,8 @@ local SetConfig = function(name, value)
 	BASE_CONFIG[name] = value
 end :: SetConfig
 
-local function GetEntityType(name: string): Types.EntityConfig
-	return ENTITY_TYPES[name] or ENTITY_TYPES["DEFAULT"]
+local function GetEntityType(name: string?): Types.EntityConfig
+	return name and ENTITY_TYPES[name] or ENTITY_TYPES["DEFAULT"]
 end
 
 local function GetEntityModel(name: string): Model | BasePart?

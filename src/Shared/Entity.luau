@@ -344,7 +344,7 @@ function Entity._new(
 	modelReplicationMode: Types.MODEL_REPLICATION_MODE?,
 	initCFrame: CFrame?
 ): Entity
-	local config = Config._GetEntityType(entityConfig or "DEFAULT")
+	local config = Config._GetEntityType(entityConfig)
 	if not config then
 		warn(`Entity config {entityConfig} not found. Using DEFAULT config.`)
 		config = Config._GetEntityType("DEFAULT")
