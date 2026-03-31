@@ -365,7 +365,7 @@ function Entity._new(
 	end
 	SetModel(self, model, modelReplicationMode)
 	CheckNetworkOwner(self, nil)
-	warn(self)
+
 	return self
 end
 
