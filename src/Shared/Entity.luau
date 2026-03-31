@@ -236,6 +236,9 @@ end
 
 local function CheckModelReplicationMode(entity: Entity, mode: Types.MODEL_REPLICATION_MODE?): "NATIVE" | "CUSTOM"
 	if not mode then
+		mode = entity.modelReplicationMode
+	end
+	if not mode then
 		local config = entity.entityConfig
 		mode = config.MODEL_REPLICATION_MODE
 	end
@@ -258,6 +261,7 @@ local function SetModel(
 	noDestroy: boolean?
 ): ()
 	local isCustom = self.modelReplicationMode == "CUSTOM"
+
 	if IS_SERVER then
 		if not noDestroy then
 			SafeDestroy(self.model)
