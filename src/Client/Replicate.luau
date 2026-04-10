@@ -14,7 +14,7 @@ local receiver = require(script.Parent.Receiver)
 local Stats = require(Shared.Stats).CLIENT
 require(script.Parent.Player)
 require(script.Parent.Receiver)
- 
+
 local idMap = Holder.idMap
 
 local FrustumLookVector = vector.create(0, 0, -1)
@@ -169,7 +169,9 @@ local function Interpolate(entity: Types.Entity)
 		entity._outofBroadPhaseTick = nil
 	end
 	debug.profilebegin("Set CFrame")
-	primaryPart.CFrame = targetCFrame
+	if targetCFrame == targetCFrame then
+		primaryPart.CFrame = targetCFrame
+	end
 	MovedThisFrame += 1
 	debug.profileend()
 end
@@ -217,7 +219,7 @@ local function updateEntityStats()
 		local snapshots = {}
 		if snapshot then
 			for _, snap in snapshot.cache do
-				table.insert(snapshots, { t = snap.t, value = snap.value ,velocity = snap.velocity})
+				table.insert(snapshots, { t = snap.t, value = snap.value, velocity = snap.velocity })
 			end
 			table.sort(snapshots, function(a, b)
 				return a.t > b.t
