@@ -92,7 +92,6 @@ local ValueChanges = {
 	isHalfTicked = SetTickMode,
 	_data = Entity.SetData,
 	entityConfig = Entity.SetConfig,
-	latestCFrame = Entity.SetCFrame,
 	autoUpdatePos = Entity.SetAutoUpdatePos,
 	mountParentId = SetMountId,
 	mountOffset = SetMountOffset,
@@ -113,6 +112,10 @@ local function HandleChanges(changes: { id: number, data: { { any } } })
 		local handler = ValueChanges[key]
 		if handler then
 			handler(entity, value)
+		elseif key == "latestCFrame" and entity.isContextOwner then
+			Entity.SetCFrame(entity, value)
+			-- don't want to set cframe for non context owner or else it will fight with the client interpolation
+		
 		elseif key == "_modelMetaData" then
 			hasMetadata = value
 		elseif key == "model" then
@@ -208,6 +211,7 @@ local function HandleClientOwned(b: buffer)
 	BytesReceived += buffer.len(b)
 	local bLen = buffer.len(b)
 	local index = 0
+
 	while index < bLen do
 		local time = buffer.readf32(b, index)
 		index += 4
