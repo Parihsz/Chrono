@@ -336,6 +336,11 @@ local function SetModel(
 	if locked and IS_SERVER then
 		LockCFReplication(primaryPart)
 	end
+
+	self.modelReplicationMode = Entity.GetModelReplicationType(self) :: any
+	if self.modelReplicationMode == "NATIVE_WITH_LOCK" then
+		self.modelReplicationMode = "NATIVE"
+	end
 end
 
 function Entity._new(

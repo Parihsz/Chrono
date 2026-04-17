@@ -140,7 +140,6 @@ local function HandleChanges(changes: { id: number, data: { { any } } })
 	if modelData ~= nil then
 		local model, modelType = ModelHelper.CreateModelFromData(modelData)
 		Entity.SetModel(entity, model, modelType :: any)
-		entity.modelReplicationMode = modelType :: any
 		entity._modelMetaData = hasMetadata
 	end
 end
@@ -155,7 +154,6 @@ local function HandleNewEntity(data: Types.EntityReceivePacket)
 	entity.paused = data.paused or false
 	entity.isHalfTicked = data.isHalfTicked
 	entity._data = data._data
-	entity.modelReplicationMode = modelType :: any
 	entity.mountParentId = data.mountParentId
 	entity.mountOffset = data.mountOffset or CFrame.identity
 	entity.broadPhase = data.broadPhase or entity.broadPhase
