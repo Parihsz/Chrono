@@ -21,6 +21,8 @@ local Holder = require(chrono.Shared.Holder)
 Hitbox.OnServerEvent:Connect(function(attacker: Player, target: Player, clientServerTimeNow: number)
 	local latency = workspace:GetServerTimeNow() - clientServerTimeNow
 	local rewindTo = os.clock() - latency
+	--you can also account for interpolation delay as well but you must send it from the client and then clamp it 
+	--should also be validating the timestamps against something like Getnetworkping to prevent exploiters from spoofing it.
 	local attackerWasAt = Entity.GetAt(Holder.GetEntityFromPlayer(attacker), rewindTo)
 	local targetWasAt = Entity.GetAt(Holder.GetEntityFromPlayer(target), rewindTo)
 end)
