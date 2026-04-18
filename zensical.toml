@@ -56,6 +56,7 @@ nav = [
 
   { Guides = [
     {"Migration" = "guides/migration.md"},
+    {"Lag Compensation" = "guides/lag-compensation.md"},
     { "Entities" = "guides/npcs.md" },
       { "Mounting" = "guides/mounting.md" },
       { "Ragdolls" = "guides/ragdolls.md" },

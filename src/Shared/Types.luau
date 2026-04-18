@@ -202,6 +202,7 @@ export type Entity = {
 
 	lastReplicatedTime: number?,
 	arriveFrame: number?, -- This is only for client owned on the server
+	lastClientClock: number?,
 
 	cframeBuffer: buffer?,
 	registered: boolean,

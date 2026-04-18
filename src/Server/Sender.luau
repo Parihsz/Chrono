@@ -119,7 +119,7 @@ local function GetEntityFullData(player: Player, entity: Types.Entity): Types.En
 	if entity.destroyed then
 		return nil
 	end
-	local modelData,metaData = ModelHelper.ReadyModelFromRep(entity, player)
+	local modelData, metaData = ModelHelper.ReadyModelFromRep(entity, player)
 
 	local configName: string? = entity.entityConfig.NAME
 	if configName == "DEFAULT" then
@@ -131,7 +131,7 @@ local function GetEntityFullData(player: Player, entity: Types.Entity): Types.En
 		_player = entity._player,
 		networkOwner = entity.networkOwner,
 		cframe = entity.latestCFrame or CFrame.new(),
-		time = entity.latestTime or 0,
+		time = entity.lastClientClock or 0,
 		config = configName,
 
 		model = modelData,
@@ -177,12 +177,12 @@ local function ReplicatePlayer(player: Player)
 		if entity.networkOwner == player then
 			return
 		end
-		local latestTime = entity.latestTime or 0
-		if not clientOwned[latestTime] then
-			clientOwned[latestTime] = {}
+		local clientTime = entity.lastClientClock or 0
+		if not clientOwned[clientTime] then
+			clientOwned[clientTime] = {}
 		end
 
-		table.insert(clientOwned[latestTime], entity.cframeBuffer :: buffer)
+		table.insert(clientOwned[clientTime], entity.cframeBuffer :: buffer)
 	end
 
 	local function Handle(entity: Types.Entity, isNormal: boolean)

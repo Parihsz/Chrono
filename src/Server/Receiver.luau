@@ -83,21 +83,29 @@ local function DeserializeEntityPacket(b: buffer, index: number): (number, CFram
 	return id, cframe, index
 end
 
-local function HandleEntity(player: Player, id: number, clock: number, cframe: CFrame, copyB: buffer)
+local function HandleEntity(
+	player: Player,
+	id: number,
+	serverClock: number,
+	clientClock: number,
+	cframe: CFrame,
+	copyB: buffer
+)
 	local entity = Holder.GetEntityFromId(id)
 	if not entity or entity.networkOwner ~= player then
 		return
 	end
 
-	if FireMiddleMans(player, entity, cframe, clock) then
+	if FireMiddleMans(player, entity, cframe, serverClock) then
 		return
 	end
-	if Entity.Push(entity, clock, cframe) then
+	if Entity.Push(entity, serverClock, cframe) then
 		task.spawn(function()
 			RunService.PreAnimation:Wait()
 			entity.arriveFrame = time()
 		end)
 
+		entity.lastClientClock = clientClock
 		entity.cframeBuffer = copyB
 		if entity.modelReplicationMode == "NATIVE" and not entity._lockedCFReplication then
 			return
@@ -119,18 +127,19 @@ local function OnReceive(player: Player, data: buffer)
 	end
 	debug.profilebegin("Receiver.OnReceive")
 	local index = 0
-	local clock = buffer.readf32(data, index)
+	local clientClock = buffer.readf32(data, index)
 	index += 4
+	local serverClock = os.clock()
 	local dataLength = buffer.len(data)
 
-	ServerClock.Store(player, clock)
+	ServerClock.Store(player, clientClock)
 
 	while index < dataLength do
 		local id, cframe, newIndex = DeserializeEntityPacket(data, index)
 		local copy = buffer.create(newIndex - index)
 		buffer.copy(copy, 0, data, index, newIndex - index)
 		index = newIndex
-		HandleEntity(player, id, clock, cframe, copy)
+		HandleEntity(player, id, serverClock, clientClock, cframe, copy)
 	end
 	debug.profileend()
 end

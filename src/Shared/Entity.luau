@@ -175,6 +175,7 @@ local function CheckNetworkOwner(self: Entity, prev: Player?)
 	local isSameOwner = self.networkOwner == prev
 	if not isSameOwner then
 		self.latestTime = 0
+		self.lastClientClock = 0
 	end
 	if IS_SERVER then
 		local part = GetPart(self)
@@ -580,6 +581,7 @@ function Entity.Clear(self: Entity)
 	local snapshot = self.snapshot
 	-- self.latestCFrame = nil --< this line
 	self.latestTime = nil
+	self.lastClientClock = nil
 	if snapshot then
 		snapshot:Clear()
 	end
