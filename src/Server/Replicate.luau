@@ -165,7 +165,6 @@ local Changes: { Types.Entity } = {}
 local function CheckEntityChanges()
 	for entity, changes in Entity._Changes do
 		local newChanges = { id = entity.id, data = {} }
-
 		for key, data in changes do
 			data = data or entity[key]
 			table.insert(newChanges.data, { key, data })

@@ -156,7 +156,7 @@ local function SetValue(entity: Entity, key: string, value: any, bypass: boolean
 	if not Changes[entity] then
 		Changes[entity] = {}
 	end
-	Changes[entity][key] = specialValue or false
+	Changes[entity][key] = specialValue or value or false
 end
 
 local function FireEvent(entity: Entity, eventName: string, ...: any)
@@ -368,6 +368,8 @@ function Entity._new(
 
 		entityConfig = config,
 		destroyed = false,
+
+		interpolation = not IS_SERVER and true
 	}
 
 	if LOCAL_PLAYER then
@@ -707,11 +709,21 @@ end
 function Entity.SetCFrame(self: Entity, cframe: CFrame)
 	local latestTime = (self.latestTime or 0) + 0.02
 	if self.snapshot then
-		self.snapshot.lockedTime = latestTime
+		--self.snapshot.lockedTime = latestTime
+	end
+	if Config.FLAGS.SET_CFRAME_FIX and not IS_SERVER  then
+		if self.isContextOwner then
+			self._teleport = true
+		else
+			Entity.Clear(self)
+		end
 	end
 	Entity.Push(self, latestTime, cframe)
 	SetValue(self, "latestCFrame", cframe, true)
-	SetPartCFrame(self, cframe)
+
+	if self.isContextOwner or not IS_SERVER then
+		SetPartCFrame(self, cframe)
+	end
 end
 
 --[=[

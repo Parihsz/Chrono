@@ -173,7 +173,9 @@ export type Entity = {
 	_clientClock: ClientClock?,
 	_modelMetaData: string?,
 	broadPhase: vector?,
+	interpolation: boolean,
 	_outofBroadPhaseTick: number?,
+	_teleport: boolean?,
 	--Server
 	autoUpdatePosition: boolean,
 	replicationRules: { ReplicationRule }?,

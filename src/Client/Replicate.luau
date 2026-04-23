@@ -103,7 +103,7 @@ local TotalCulled = 0
 local MovedThisFrame = 0
 
 local function Interpolate(entity: Types.Entity)
-	if entity.entityConfig.CUSTOM_INTERPOLATION then
+	if not entity.interpolation or entity.entityConfig.CUSTOM_INTERPOLATION then
 		return
 	end
 	local primaryPart = Entity.GetPrimaryPart(entity)

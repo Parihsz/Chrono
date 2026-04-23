@@ -112,8 +112,10 @@ local function HandleChanges(changes: { id: number, data: { { any } } })
 		local handler = ValueChanges[key]
 		if handler then
 			handler(entity, value)
-		elseif key == "latestCFrame" and entity.isContextOwner then
-			Entity.SetCFrame(entity, value)
+		elseif key == "latestCFrame" then
+			if entity.isContextOwner or not entity.networkOwner then
+				Entity.SetCFrame(entity, value)
+			end
 			-- don't want to set cframe for non context owner or else it will fight with the client interpolation
 		
 		elseif key == "_modelMetaData" then
@@ -222,6 +224,7 @@ local function HandleClientOwned(b: buffer)
 			index += 1
 			local isFull = bit32.band(packed, 1) == 1
 			local isHalfTickRate = bit32.band(packed, 2) == 2
+			local teleport = bit32.band(packed, 4) == 4
 			local cf: CFrame
 			if isFull then
 				cf = DeserializeFull(b, index)
@@ -229,6 +232,15 @@ local function HandleClientOwned(b: buffer)
 			else
 				cf = DeserializeYaw(b, index)
 				index += YAW_BYTES
+			end
+			if teleport then
+				local entity = Holder.GetEntityFromId(id)
+				if not entity then
+					warn("Received teleport for non existent entity with id", id)
+					continue
+				end
+				Entity.SetCFrame(entity, cf)
+				continue
 			end
 			PushCFrameFor(id, true, cf, time, isHalfTickRate)
 		end
