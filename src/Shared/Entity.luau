@@ -711,8 +711,10 @@ function Entity.SetCFrame(self: Entity, cframe: CFrame)
 	if self.snapshot then
 		--self.snapshot.lockedTime = latestTime
 	end
-	if Config.FLAGS.SET_CFRAME_FIX and not IS_SERVER  then
-		if self.isContextOwner then
+	if Config.FLAGS.SET_CFRAME_FIX then
+		if IS_SERVER then
+			self._teleport = true
+		elseif self.isContextOwner then
 			self._teleport = true
 		else
 			Entity.Clear(self)

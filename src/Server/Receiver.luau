@@ -64,12 +64,13 @@ local function DeserializeYaw(b: buffer, index: number): CFrame
 	return CFrame.new(x, y, z) * CFrame.fromOrientation(0, ry, 0)
 end
 
-local function DeserializeEntityPacket(b: buffer, index: number): (number, CFrame, number)
+local function DeserializeEntityPacket(b: buffer, index: number): (number, CFrame, number, boolean)
 	local id = buffer.readu16(b, index)
 	index += 2
 	local packed = buffer.readu8(b, index)
 	index += 1
 	local isFull = bit32.band(packed, 1) == 1
+	local isTeleport = bit32.band(packed, 4) == 4
 
 	local cframe: CFrame
 	if isFull then
@@ -80,7 +81,7 @@ local function DeserializeEntityPacket(b: buffer, index: number): (number, CFram
 		index += YAW_BYTES
 	end
 
-	return id, cframe, index
+	return id, cframe, index, isTeleport
 end
 
 local function HandleEntity(
@@ -89,11 +90,21 @@ local function HandleEntity(
 	serverClock: number,
 	clientClock: number,
 	cframe: CFrame,
-	copyB: buffer
+	copyB: buffer,
+	isTeleport: boolean
 )
 	local entity = Holder.GetEntityFromId(id)
 	if not entity or entity.networkOwner ~= player then
 		return
+	end
+
+	if isTeleport then
+		if entity._teleport then
+			entity._teleport = nil
+		else
+			local packed = buffer.readu8(copyB, 2)
+			buffer.writeu8(copyB, 2, bit32.band(packed, bit32.bnot(4)))
+		end
 	end
 
 	if FireMiddleMans(player, entity, cframe, serverClock) then
@@ -135,11 +146,11 @@ local function OnReceive(player: Player, data: buffer)
 	ServerClock.Store(player, clientClock)
 
 	while index < dataLength do
-		local id, cframe, newIndex = DeserializeEntityPacket(data, index)
+		local id, cframe, newIndex, isTeleport = DeserializeEntityPacket(data, index)
 		local copy = buffer.create(newIndex - index)
 		buffer.copy(copy, 0, data, index, newIndex - index)
 		index = newIndex
-		HandleEntity(player, id, serverClock, clientClock, cframe, copy)
+		HandleEntity(player, id, serverClock, clientClock, cframe, copy, isTeleport)
 	end
 	debug.profileend()
 end
