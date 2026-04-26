@@ -713,9 +713,9 @@ function Entity.SetCFrame(self: Entity, cframe: CFrame)
 	end
 	if Config.FLAGS.SET_CFRAME_FIX then
 		if IS_SERVER then
-			self._teleport = true
+			self._teleport = os.clock()
 		elseif self.isContextOwner then
-			self._teleport = true
+			self._teleport = os.clock()
 		else
 			Entity.Clear(self)
 		end

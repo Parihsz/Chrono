@@ -175,7 +175,7 @@ export type Entity = {
 	broadPhase: vector?,
 	interpolation: boolean,
 	_outofBroadPhaseTick: number?,
-	_teleport: boolean?,
+	_teleport: number?,
 	--Server
 	autoUpdatePosition: boolean,
 	replicationRules: { ReplicationRule }?,

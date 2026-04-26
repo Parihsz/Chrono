@@ -18,6 +18,7 @@ local UnreliableEvent = Shared.Remotes.Replicate
 
 local FULL_BYTES = 4 * 3 + 2 * 3
 local YAW_BYTES = 4 * 3 + 2
+local TELEPORT_TIME_THRESHOLD = 0.5 
 
 local function FireMiddleMans(player: Player, entity: Types.Entity, cframe: CFrame, arriveTime: number): boolean
 	if #SortedMiddleMans == 0 then
@@ -99,7 +100,8 @@ local function HandleEntity(
 	end
 
 	if isTeleport then
-		if entity._teleport then
+		local teleportTime = entity._teleport
+		if teleportTime and os.clock() - teleportTime < TELEPORT_TIME_THRESHOLD then
 			entity._teleport = nil
 		else
 			local packed = buffer.readu8(copyB, 2)
