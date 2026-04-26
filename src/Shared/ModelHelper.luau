@@ -13,10 +13,10 @@ local function ReadyModelFromRep(entity: Types.Entity, playerSpecific: Player?):
 	local replicationMode: "NATIVE" | "CUSTOM" = (entity.modelReplicationMode or "NATIVE") :: any
 
 	if replicationMode == "NATIVE" and model then
-		local metaStringValue:string? = model:GetAttribute(CHRONO_META_NAME)::any
+		local metaStringValue: string? = model:GetAttribute(CHRONO_META_NAME) :: any
 		local metaData = metaStringValue
 		if not metaStringValue then
-			metaData = "CHRONO_"..tostring(ids)
+			metaData = "CHRONO_" .. tostring(ids)
 			model:SetAttribute(CHRONO_META_NAME, metaData)
 			model:AddTag(TAG)
 			ids += 1

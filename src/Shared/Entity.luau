@@ -297,8 +297,6 @@ local function SetModel(
 	end
 
 	if _model then
-		self.modelReplicationMode = replicationMode
-
 		if replicationMode == "CUSTOM" then
 			_model.Parent = Holder.GetEntityStorageInstance()
 		end
@@ -308,6 +306,8 @@ local function SetModel(
 			self._chronoPrimary = chronoPrimary
 		end
 	end
+
+	self.modelReplicationMode = replicationMode
 
 	local primaryPart = GetPart(self)
 	if _model and not primaryPart then
@@ -393,7 +393,7 @@ end
 ]=]
 function Entity.new(
 	entityConfig: string?,
-	model: Model | BasePart | string?,
+	model: Model | BasePart | string ?,
 	modelReplicationMode: Types.MODEL_REPLICATION_MODE?,
 	initCFrame: CFrame?
 ): Entity

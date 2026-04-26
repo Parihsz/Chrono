@@ -130,8 +130,8 @@ end
 	@param model The model or part to use for the entity.
 	@param broadPhase Optional broad phase vector or size for frustum culling on the client. If vector is zero then only do 1 check in the center instead of a box check.
 ]=]
-local function RegisterEntityModel(name: string, model: Model | BasePart, broadPhase: vector | Vector3?)
-	if model:IsA("Model") and not model.PrimaryPart then
+local function RegisterEntityModel(name: string, model: Model | BasePart | false, broadPhase: vector | Vector3?)
+	if model ~= false and model:IsA("Model") and not model.PrimaryPart then
 		error(name .. " must have a PrimaryPart to be registered as an entity model.")
 	end
 	ENTITY_MODELS[name] = model
@@ -147,8 +147,8 @@ local function GetEntityType(name: string?): Types.EntityConfig
 	return name and ENTITY_TYPES[name] or ENTITY_TYPES["DEFAULT"]
 end
 
-local function GetEntityModel(name: string): Model | BasePart?
-	if not ENTITY_MODELS[name] then
+local function GetEntityModel(name: string): Model | BasePart | false?
+	if ENTITY_MODELS[name] == nil then
 		warn(`Entity model {name} not found in Config.`)
 		return nil
 	end

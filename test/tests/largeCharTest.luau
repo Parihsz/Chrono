@@ -8,7 +8,7 @@ local Holder = require(Chrono.Shared.Holder)
 local Stats = require(Chrono.Shared.Stats)
 local p = Players:GetPlayers()[1] or Players.PlayerAdded:Wait()
 local char = p.Character or p.CharacterAdded:Wait()
-local AMT = 500
+local AMT = 10
 local SHOW_DEBUG = false
 return {
 	init = function()
@@ -35,7 +35,8 @@ return {
 	server = function()
 		local entities = {}
 		for i = 1, AMT do
-			local custom = Entity.new("TEST", "TestChar", nil, CFrame.new(0, 10, 0))
+			local custom = Entity.new("TEST", nil, nil, CFrame.new(0, 10, 0))
+
 			table.insert(entities, custom)
 			if SHOW_DEBUG then
 				local p = Instance.new("Part")
@@ -52,6 +53,8 @@ return {
 				if part then
 					part.Anchored = true
 					part.CFrame *= CFrame.new(math.random(-1, 1), 0, math.random(-1, 1))
+				else
+					Entity.Push(entity, os.clock(), CFrame.new(math.random(-1, 1), 0, math.random(-1, 1)))
 				end
 				if entity.a then
 					if entity.isHalfTicked == false then
