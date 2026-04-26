@@ -211,12 +211,13 @@ local function UpdateTickers()
 end
 
 local function UpdatePlayerPositions()
-	for _, entity: any in Holder._playerChars do
+	for _, entity: Types.Entity in Holder._playerChars do
 		local player = entity.networkOwner
-		local character = entity.model
+		local primaryPart = Entity.GetPrimaryPart(entity)
+		local cframe = primaryPart and primaryPart.CFrame or entity.latestCFrame
 
-		if player and character then
-			EntityGrid.UpdatePlayerPosition(player, character:GetPivot().Position)
+		if player and cframe then
+			EntityGrid.UpdatePlayerPosition(player, cframe.Position::any)
 		end
 	end
 end
