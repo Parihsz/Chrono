@@ -175,10 +175,14 @@ local ENTITY_TYPES = {
 Entity models define reuseable models with specific replication settings.
 When `MODEL_REPLICATION_MODE` is set to `CUSTOM`, then only the name of the model string is replicated and the client/server create their own copies of the model, Meaning on the server the model could be a part or not even exist physically, but still shows up on the client.
 
-* `RegisterEntityModel(name: string, model: Model|BasePart, broadphase: Vector3?)` - Registers an entity model with the given name, model, and optional broadphase.
+* `RegisterEntityModel(name: string, model: Model|BasePart|false, broadphase: Vector3?)` - Registers an entity model with the given name, model, and optional broadphase.
     * `name` - The unique name for the entity model.
-    * `model` - The model or base part to use for this entity.
+    * `model` - The model or base part to use for this entity. If false then the Entity will have no model registered, this can be useful for entities on the server that are stored as data only.
     * `broadphase` - Optional Vector3 defining the broadphase hitbox size for culling. Culled entities will not be moved on the client. If the vector is zero then only a point check is done. Otherwise a box check is done. If not provided, no culling is done. This can also be updated later using `Entity.SetBroadPhase`.
 !!! info
     Entity models can be registered after Chrono.Start is called.
     Meaning you can dynamically add new entity models during runtime.
+
+#### Model Primary Part
+
+R6 in roblox has the head as the primary part, this would cause issues for Chrono. To resolve this we added a function `Config.SetModelPrimaryForChrono(model: Model, primaryName: string) -> ()` which sets a model attribute that Chrono checks for when determining the primary part of a model. So for R6 models you can call `Config.SetModelPrimaryForChrono(character, "HumanoidRootPart")` to set the primary part to HumanoidRootPart instead of the head.

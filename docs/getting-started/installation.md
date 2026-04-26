@@ -3,7 +3,7 @@ For Rojo users: In your `wally.toml`, add the following line to your dependencie
 
 Use
 ```toml
-chrono = "parihsz/chrono@2.0.0"
+chrono = "parihsz/chrono@2.0.2"
 ```
 to try out v2!
 

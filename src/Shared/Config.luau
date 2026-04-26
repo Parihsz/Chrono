@@ -2,6 +2,7 @@ local Types = require(script.Parent.Types)
 local Ticker = require(script.Parent.Ticker)
 
 local IS_SERVER = game:GetService("RunService"):IsServer()
+local CHRONO_PRIMARY = "__CHRONO_PRIMARY"
 
 export type Configs =
 	"MIN_BUFFER"
@@ -34,7 +35,7 @@ export type SetConfig =
 
 local LOCKED = false
 local BASE_CONFIG = {
-	__VERSION = "v2.0.1",
+	__VERSION = "v2.0.2",
 	CHECK_NEW_VERSION = true,
 	MAX_TOTAL_BYTES_PER_FRAME_PER_PLAYER = 3000,
 	MIN_BUFFER = 0.09,
@@ -217,4 +218,7 @@ return {
 	_Lock = Lock,
 	_WaitForLock = WaitForLock,
 	_GetBroadPhase = GetBroadPhase,
+	SetModelPrimaryForChrono = function(model: Model, primaryName: string)
+		model:SetAttribute(CHRONO_PRIMARY, primaryName)
+	end
 }

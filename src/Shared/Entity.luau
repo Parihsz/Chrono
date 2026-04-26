@@ -836,9 +836,7 @@ function Entity.Destroy(self: Entity)
 	--//TODO: add more
 end
 
-function Entity.setModelPrimaryForChrono(model: Model, primaryName: string)
-	model:SetAttribute(CHRONO_PRIMARY, primaryName)
-end
+
 
 --[=[
 	Gets the event signal for the specified event name.

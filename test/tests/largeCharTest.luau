@@ -17,7 +17,7 @@ return {
 		char.Name = "TestChar"
 
 		if RunService:IsServer() then
-			Config.RegisterEntityModel("TestChar", Instance.new("Part")) -- Dummy part to test server vs client model loading
+			Config.RegisterEntityModel("TestChar", false) -- Dummy part to test server vs client model loading
 		else
 			local char = char:Clone()
 			char.Name = "TestChar"

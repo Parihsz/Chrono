@@ -33,7 +33,7 @@ local function RegisterPlayer(
 	if humanoid and hrp  then
 		local rigType = humanoid.RigType
 		if rigType == Enum.HumanoidRigType.R6 and character.PrimaryPart == character:FindFirstChild("Head") then
-			Entity.setModelPrimaryForChrono(character, "HumanoidRootPart")
+			Config.SetModelPrimaryForChrono(character, "HumanoidRootPart")
 		end
 	end
 
