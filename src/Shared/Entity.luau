@@ -356,6 +356,15 @@ function Entity._new(
 		config = Config._GetEntityType("DEFAULT")
 	end
 
+	-- If the model doesn't exist and there's no init cframe then it won't be able to find a starting cframe
+	if initCFrame == nil and typeof(model) == "string" then
+		local _model = Config._GetEntityModel(model :: string)
+		if _model == false then
+			warn(`Entity's model doesn't exist, initCFrame is required. DEFAULTING to CFrame.new(0, 0, 0)`)
+			initCFrame = CFrame.new(0, 0, 0)
+		end
+	end
+
 	local self: Entity = {
 		id = -1,
 
