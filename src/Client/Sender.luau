@@ -153,7 +153,7 @@ local function CheckEntity(entity: Types.Entity)
 	local primaryPart = Entity.GetPrimaryPart(entity)
 
 	if entity.autoUpdatePosition and primaryPart then
-		entity.latestCFrame = primaryPart.CFrame
+		Entity.Push(entity, now, primaryPart.CFrame)
 	end
 
 	local currentCFrame = entity.latestCFrame
@@ -162,7 +162,7 @@ local function CheckEntity(entity: Types.Entity)
 		entity.lastReplicatedTime = now
 		local fullCFrame = config.FULL_ROTATION
 		entity.lastCheckedCFrame = currentCFrame
-
+  
 		WriteEntity(entity.id, currentCFrame, fullCFrame, entity.isHalfTicked, entity._teleport)
 		entity._teleport = nil
 	end

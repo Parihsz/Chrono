@@ -621,7 +621,7 @@ function Entity.Push(self: Entity, time: number, value: CFrame, velocity: Vector
 	end
 	if snapshot then
 		local latest = snapshot:GetLatest()
-		if not IS_SERVER and newer and latest and time - latest.t < 5 then
+		if not IS_SERVER and newer and latest and time - latest.t < 5 and not self.isContextOwner then
 			local targetTime = Entity.GetTargetRenderTime(self)
 			if math.abs(targetTime - latest.t) > 5 then
 				snapshot:Clear()
