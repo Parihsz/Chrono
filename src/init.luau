@@ -12,6 +12,24 @@ local Events = require(script.Shared.Events)
 local Holder = require(script.Shared.Holder)
 local ReplicationRules = require(script.Shared.ReplicationRules)
 local Snapshots = require(script.Shared.Snapshots)
+local Types = require(script.Shared.Types)
+
+export type SnapshotData<Value, Velocity> = Types.SnapshotData<Value, Velocity>
+export type Signal<fx, T...> = Types.Signal<fx, T...>
+export type ClientEntitiesStats = Types.ClientEntitiesStats
+export type ServerEntitiesStats = Types.ServerEntitiesStats
+export type Connection = Types.Connection
+export type Event<fx, T...> = Types.Event<fx, T...>
+export type Snapshot<Value, Velocity> = Types.Snapshot<Value, Velocity>
+export type MODEL_REPLICATION_MODE = Types.MODEL_REPLICATION_MODE
+export type EntityConfig = Types.EntityConfig
+export type EntityConfigInput = Types.EntityConfigInput
+export type Ticker = Types.Ticker
+export type InterpolationBuffer = Types.InterpolationBuffer
+export type ClientClock = Types.ClientClock
+export type ReplicationRule = Types.ReplicationRule
+export type EntityReceivePacket = Types.EntityReceivePacket
+export type Entity = Types.Entity
 
 local function CheckVersion()
 	task.spawn(function()
