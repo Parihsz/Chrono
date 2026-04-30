@@ -1,11 +1,10 @@
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local Receiver = {}
 
 local MiddleMans = {}
 local SortedMiddleMans = {}
 local Shared = script.Parent.Parent.Shared
-local Warn = require(ReplicatedStorage.Packages.chrono.Shared.Warn)
+local Warn = require(Shared.Warn)
 local ServerClock = require(script.Parent.ServerClock)
 local Types = require(Shared.Types)
 local Holder = require(Shared.Holder)
