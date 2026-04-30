@@ -5,7 +5,8 @@ Use
 ```toml
 chrono = "parihsz/chrono@2.0.5"
 ```
-to try out v2!
+
+For Studio users: Download the latest rbxl file from [Github Releases](https://github.com/Parihsz/Chrono/releases/latest)
 
 If you want to use v1, please download
 ```toml
