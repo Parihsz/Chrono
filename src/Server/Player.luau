@@ -1,6 +1,9 @@
 --!native
 local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
+
+local Warn = require(script.Parent.Parent.Shared.Warn)
 local Config = require(script.Parent.Parent.Shared.Config)
 local Entity = require(script.Parent.Parent.Shared.Entity)
 local Holder = require(script.Parent.Parent.Shared.Holder)
@@ -78,9 +81,7 @@ Config._WaitForLock(function()
 		return
 	end
 	if Config._GetConfig("PLAYER_REPLICATION") ~= "AUTOMATIC" then
-		if Config._GetConfig("SHOW_WARNINGS") then
-			warn("automatic player replication is disabled")
-		end
+		Warn.low("automatic player replication is disabled")
 		return
 	end
 	local deathRemote = script.Parent.Parent.Shared.Remotes.Death

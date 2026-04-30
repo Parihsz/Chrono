@@ -66,8 +66,9 @@ Full rotation packets are slightly larger (**24 bytes**) compared to yaw-only pa
 
 ---
 
-### `SHOW_WARNINGS: boolean`
-If true, enables the display of common warnings in the console.
+### `WARNING_SEVERITY: "NONE" | "LOW" | "MEDIUM" | "HIGH"`
+
+Controls the severity of warnings that Chrono outputs. This can be set to "NONE" to disable warnings, or "LOW", "MEDIUM", "HIGH" to control the severity of warnings that are printed. Default is "MEDIUM". Warnings can be set after Chrono is initialize via `Config.SetWarningSeverity()`.
 
 ---
 

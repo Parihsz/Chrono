@@ -1,6 +1,9 @@
 local Shared = script.Parent.Parent.Shared
 
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
+
+local Warn = require(ReplicatedStorage.Packages.chrono.Shared.Warn)
 local StatsALL = require(script.Parent.Parent.Shared.Stats)
 local ApplyMounts = require(script.Parent.Parent.Shared.ApplyMounts)
 local RenderCache = require(script.Parent.ClientClock)
@@ -122,7 +125,7 @@ local function Interpolate(entity: Types.Entity)
 
 	local snapshot = entity.snapshot
 	if not snapshot then
-		warn("No snapshot for entity", entity)
+		Warn.medium("No snapshot for entity", entity)
 		return
 	end
 	CheckedThisFrame += 1

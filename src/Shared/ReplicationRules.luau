@@ -1,4 +1,5 @@
 local Shared = script.Parent.Parent.Shared
+local Warn = require(script.Parent.Warn)
 local Types = require(Shared.Types)
 local Holder = require(Shared.Holder)
 
@@ -75,7 +76,7 @@ local function SetReplicationRule(
 ): ()
 	local id = GetIdFrom(target)
 	if not id then
-		warn("no id", target)
+		Warn.low("no id", target)
 		return
 	end
 

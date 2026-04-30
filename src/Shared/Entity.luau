@@ -11,6 +11,7 @@ local Holder = require(script.Parent.Holder)
 local Signal = require(script.Parent.Signal)
 local Events = require(script.Parent.Events)
 local ModelHelper = require(script.Parent.ModelHelper)
+local Warn = require(script.Parent.Warn)
 local VelocityAt = InterpolationMath.VelocityAt
 
 local Changes = {}
@@ -132,7 +133,7 @@ local function GetPart(self: Types.Entity): BasePart?
 			if primary and primary:IsA("BasePart") then
 				return primary
 			else
-				warn(
+				Warn.low(
 					`Chrono primary part {chronoPrimary} not found or not a BasePart in model {model:GetFullName()} for entity id {self.id}. Falling back to default PrimaryPart.`
 				)
 			end
@@ -245,7 +246,7 @@ local function CheckModelReplicationMode(entity: Entity, mode: Types.MODEL_REPLI
 	end
 	mode = (mode :: any):upper()
 	if mode ~= "NATIVE" and mode ~= "CUSTOM" and mode ~= "NATIVE_WITH_LOCK" then
-		warn(`Invalid model replication mode {mode} for entity id {entity.id}, defaulting to NATIVE`)
+		Warn.medium(`Invalid model replication mode {mode} for entity id {entity.id}, defaulting to NATIVE`)
 		mode = "NATIVE"
 	end
 	if mode == "NATIVE_WITH_LOCK" then
@@ -311,9 +312,9 @@ local function SetModel(
 
 	local primaryPart = GetPart(self)
 	if _model and not primaryPart then
-		warn(`{_model:GetFullName()} must have a PrimaryPart set for things like autoReplication and movement.`)
+		Warn.medium(`{_model:GetFullName()} must have a PrimaryPart set for things like autoReplication and movement.`)
 	elseif _model and not _model.Archivable then
-		warn(
+		Warn.medium(
 			`{_model:GetFullName()} is not Archivable. It is recommended to set Archivable to true for entity models to prevent potential issues when cloning. Archivable has been set to true automatically.`
 		)
 		_model.Archivable = true
@@ -352,7 +353,7 @@ function Entity._new(
 ): Entity
 	local config = Config._GetEntityType(entityConfig)
 	if not config then
-		warn(`Entity config {entityConfig} not found. Using DEFAULT config.`)
+		Warn.medium(`Entity config {entityConfig} not found. Using DEFAULT config.`)
 		config = Config._GetEntityType("DEFAULT")
 	end
 
@@ -360,7 +361,7 @@ function Entity._new(
 	if initCFrame == nil and typeof(model) == "string" then
 		local _model = Config._GetEntityModel(model :: string)
 		if _model == false then
-			warn(`Entity's model doesn't exist, initCFrame is required. DEFAULTING to CFrame.new(0, 0, 0)`)
+			Warn.medium(`Entity's model doesn't exist, initCFrame is required. DEFAULTING to CFrame.new(0, 0, 0)`)
 			initCFrame = CFrame.new(0, 0, 0)
 		end
 	end
@@ -378,7 +379,7 @@ function Entity._new(
 		entityConfig = config,
 		destroyed = false,
 
-		interpolation = not IS_SERVER and true
+		interpolation = not IS_SERVER and true,
 	}
 
 	if LOCAL_PLAYER then
@@ -402,7 +403,7 @@ end
 ]=]
 function Entity.new(
 	entityConfig: string?,
-	model: Model | BasePart | string ?,
+	model: Model | BasePart | string?,
 	modelReplicationMode: Types.MODEL_REPLICATION_MODE?,
 	initCFrame: CFrame?
 ): Entity
@@ -456,7 +457,7 @@ end
 function Entity.SetConfig(self: Entity, entityConfig: string)
 	local config = Config._GetEntityType(entityConfig)
 	if not config then
-		warn(`Entity config {entityConfig} not found. Using Default config.`)
+		Warn.medium(`Entity config {entityConfig} not found. Using Default config.`)
 		config = Config._GetEntityType("DEFAULT")
 	end
 	SetValue(self, "entityConfig", config, false, config.NAME)
@@ -542,12 +543,12 @@ function Entity.SetMount(self: Entity, parent: Entity?, offset: CFrame?)
 	end
 
 	if self == parent then
-		warn("An entity cannot mount itself")
+		Warn.medium("An entity cannot mount itself")
 		return
 	end
 
 	if not parent.id then
-		warn("Parent entity must be registered before mounting")
+		Warn.high("Parent entity must be registered before mounting")
 		return
 	end
 
@@ -634,9 +635,7 @@ function Entity.Push(self: Entity, time: number, value: CFrame, velocity: Vector
 			local targetTime = Entity.GetTargetRenderTime(self)
 			if math.abs(targetTime - latest.t) > 5 then
 				snapshot:Clear()
-				if Config._GetConfig("SHOW_WARNINGS") then
-					warn(`Clearing Snapshot due to large time difference`)
-				end
+				Warn.low(`Clearing Snapshot due to large time difference`)
 			end
 		end
 		local tickrate = self.entityConfig.TICK_RATE
@@ -844,8 +843,6 @@ function Entity.Destroy(self: Entity)
 	end
 	--//TODO: add more
 end
-
-
 
 --[=[
 	Gets the event signal for the specified event name.

@@ -1,14 +1,12 @@
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
+
+local Warn = require(script.Parent.Parent.Shared.Warn)
 local Config = require(script.Parent.Parent.Shared.Config)
 local Types = require(script.Parent.Parent.Shared.Types)
 local BufferTracker = require(script.Parent.InterpolationBuffer)
 
 local ClientClocks = {}
-
-local SHOW_WARNINGS
-Config._WaitForLock(function()
-	SHOW_WARNINGS = Config._GetConfig("SHOW_WARNINGS")
-end)
 
 local function GetBuffer(clientClock: Types.ClientClock): number
 	if clientClock.buffer then
@@ -30,9 +28,7 @@ end
 
 local function GetTargetRenderTime(clientClock: Types.ClientClock): number
 	if not clientClock.renderAt then
-		if SHOW_WARNINGS then
-			warn("ClientClock: Render time not yet established for", clientClock.name)
-		end
+		Warn.low("ClientClock: Render time not yet established for", clientClock.name)
 		return 0
 	end
 
@@ -41,9 +37,7 @@ end
 
 local function GetEstimatedServerTime(clientClock: Types.ClientClock): number
 	if not clientClock.lastClockAt then
-		if SHOW_WARNINGS then
-			warn("ClientClock: Estimated server time not yet established for", clientClock.name)
-		end
+		Warn.low("ClientClock: Estimated server time not yet established for", clientClock.name)
 		return 0
 	end
 
@@ -147,7 +141,7 @@ Config._WaitForLock(function()
 	for name, config in Config._EntityConfigs do
 		local clientClocks = config.CLIENT_CLOCK
 		if not clientClocks then
-			warn(name, "is missing client clocks")
+			Warn.high("Entity Config", name, "is missing client clocks")
 			return
 		end
 		clientClocks.NORMAL = new(config.TICK_RATE, name .. "_NORMAL", config.BUFFER)

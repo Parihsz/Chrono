@@ -13,6 +13,7 @@ local function popSwap(t, item, index)
 end
 
 local Types = require(script.Parent.Types)
+local Warn = require(script.Parent.Warn)
 type Entity = Types.Entity
 type Ticker = Types.Ticker
 
@@ -52,7 +53,7 @@ end
 function Ticker.Remove(ticker: Ticker, object: Entity)
 	local index = object._tickerIndex
 	if not index then
-		warn("Ticker.remove called on object not in ticker", object.id)
+		Warn.low("Ticker.remove called on object not in ticker", object.id)
 		return
 	end
 

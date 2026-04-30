@@ -7,20 +7,14 @@ type SnapshotData<Value, Velocity> = Types.SnapshotData<Value, Velocity>
 type Snapshot<Value, Velocity> = Types.Snapshot<Value, Velocity>
 
 local Config = require(script.Parent.Config)
+local Warn = require(script.Parent.Warn)
 
 local MAX_LENGTH
-local SHOW_WARNINGS
 
 Config._WaitForLock(function()
 	MAX_LENGTH = Config._GetConfig("MAX_SNAPSHOT_COUNT")
-	SHOW_WARNINGS = Config._GetConfig("SHOW_WARNINGS")
 end)
 
-local function WarnIfEnabled(...)
-	if SHOW_WARNINGS then
-		warn(...)
-	end
-end
 
 local function GetBufferIndex(head: number, relativeIndex: number): number
 	return (head + relativeIndex - 2) % MAX_LENGTH + 1
@@ -175,10 +169,10 @@ local function GetAt<Value, Velocity>(self: Snapshot<Value, Velocity>, at: numbe
 
 		return CFrame.new(position) * rotation
 	elseif beforeData then
-		--WarnIfEnabled("Tried to fetch a time that was ahead of snapshot storage!")
+		Warn.low("Tried to fetch a time that was ahead of snapshot storage!")
 		return beforeData.value
 	elseif afterData then
-		WarnIfEnabled("Tried to fetch a time that was behind snapshot storage!")
+		Warn.low("Tried to fetch a time that was behind snapshot storage!")
 		return afterData.value
 	end
 

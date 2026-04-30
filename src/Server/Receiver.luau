@@ -1,9 +1,11 @@
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local Receiver = {}
 
 local MiddleMans = {}
 local SortedMiddleMans = {}
 local Shared = script.Parent.Parent.Shared
+local Warn = require(ReplicatedStorage.Packages.chrono.Shared.Warn)
 local ServerClock = require(script.Parent.ServerClock)
 local Types = require(Shared.Types)
 local Holder = require(Shared.Holder)
@@ -135,7 +137,7 @@ local function OnReceive(player: Player, data: buffer)
 	TotalBytes[player] = (TotalBytes[player] or 0) + buffer.len(data)
 	BytesReceived += buffer.len(data)
 	if TotalBytes[player] > MAX_TOTAL_BYTES_PER_FRAME_PER_PLAYER then
-		warn("Player", player.Name, "exceeded max bytes per frame:", TotalBytes[player])
+		Warn.medium("Player", player.Name, "exceeded max bytes per frame:", TotalBytes[player],"max:", MAX_TOTAL_BYTES_PER_FRAME_PER_PLAYER)
 		return
 	end
 	debug.profilebegin("Receiver.OnReceive")

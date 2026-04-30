@@ -1,3 +1,6 @@
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local Warn = require(script.Parent.Parent.Shared.Warn)
 local Events = require(script.Parent.Parent.Shared.Events)
 local Entity = require(script.Parent.Parent.Shared.Entity)
 local Holder = require(script.Parent.Parent.Shared.Holder)
@@ -15,12 +18,12 @@ Events.PlayerCharacterRegistered:Connect(function(player: Player, entity: Types.
 		return
 	end
 	if not entity.model then
-		return warn(`No model found for {player}`)
+		return Warn.high(`No model found for {player}`)
 	end
 
 	if entity.model then
 		if not entity.model:IsA("Model") then
-			return warn(`Model for {player} is not a Model instance.`)
+			return Warn.high(`Model for {player} is not a Model instance.`)
 		end
 		player.Character = entity.model
 	end
@@ -30,7 +33,7 @@ Events.PlayerCharacterRegistered:Connect(function(player: Player, entity: Types.
 			return
 		end
 		if not model:IsA("Model") then
-			warn(`Model for {player} is not a Model instance.`)
+			Warn.high(`Model for {player} is not a Model instance.`)
 			return
 		end
 		LocalPlayer.Character = entity.model

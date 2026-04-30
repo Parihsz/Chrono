@@ -1,4 +1,5 @@
 local Types = require(script.Parent.Types)
+local Warn = require(script.Parent.Warn)
 local Signals = require(script.Parent.Events)._Signals
 local IS_SERVER = game:GetService("RunService"):IsServer()
 
@@ -82,7 +83,7 @@ local function RegisterEntity(entity: Types.Entity)
 		error("Cannot register a destroyed entity")
 	end
 	if idMap[entity.id] then
-		warn("Entity is already registered", entity)
+		Warn.medium("Entity is already registered", entity)
 		return
 	end
 	if IS_SERVER then
@@ -95,7 +96,7 @@ local function RegisterEntity(entity: Types.Entity)
 	else
 		local id = entity.id
 		if idMap[id] then
-			warn("Entity ID collision detected for ID:", id)
+			Warn.high("Entity ID collision detected for ID:", id)
 		end
 		idMap[id] = entity
 	end
@@ -103,7 +104,7 @@ local function RegisterEntity(entity: Types.Entity)
 
 	if entity._player then
 		if playerChars[entity._player] then
-			warn("Player already has an entity registered", entity, "overwriting")
+			Warn.medium("Player already has an entity registered", entity, "overwriting")
 		end
 		SetAsCharacter(entity._player, entity)
 	end
@@ -125,7 +126,7 @@ local function UnregisterEntity(entity: Types.Entity)
 		if playerChars[playerObject] == entity then
 			RemovePlayerCharacter(entity)
 		else
-			warn("Entity being unregistered does not match player mapping", entity, "ignoring")
+			Warn.medium("Entity being unregistered does not match player mapping", entity, "ignoring")
 		end
 	end
 	local id = entity.id

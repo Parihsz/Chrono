@@ -1,7 +1,9 @@
 local CollectionService = game:GetService("CollectionService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local Shared = script.Parent.Parent.Shared
 
+local Warn = require(Shared.Warn)
 local Entity = require(Shared.Entity)
 local Holder = require(Shared.Holder)
 local ModelHelper = require(Shared.ModelHelper)
@@ -76,7 +78,7 @@ local function HandleRemoved(id: number)
 		Entity.Destroy(entity)
 		return
 	end
-	warn("Tried to remove non existent entity with id", id)
+	Warn.high("Tried to remove non existent entity with id", id)
 end
 
 local function SetMountId(entity: Types.Entity, mountParentId: number?)
@@ -135,7 +137,7 @@ local function HandleChanges(changes: { id: number, data: { { any } } })
 				Entity.ResumeReplication(entity)
 			end
 		else
-			warn("Unhandled entity change key:", key)
+			Warn.high("Unhandled entity change key:", key)
 		end
 	end
 
@@ -176,7 +178,7 @@ local function PushCFrameFor(
 ): boolean
 	local entity = Holder.GetEntityFromId(id)
 	if not entity then
-		warn("Received update for non existent entity with id", id)
+		Warn.high("Received update for non existent entity with id", id)
 		return false
 	end
 	if clientOwned then
@@ -236,7 +238,7 @@ local function HandleClientOwned(b: buffer)
 			if teleport then
 				local entity = Holder.GetEntityFromId(id)
 				if not entity then
-					warn("Received teleport for non existent entity with id", id)
+					Warn.medium("Received teleport for non existent entity with id", id)
 					continue
 				end
 				Entity.SetCFrame(entity, cf)
@@ -278,7 +280,7 @@ local function HandleUnreliable(id: string, data: buffer)
 	elseif id == "O" then -- Client Owned
 		HandleClientOwned(data)
 	else
-		warn("Unknown unreliable replicate id", id)
+		Warn.high("Unknown unreliable replicate id", id)
 	end
 end
 

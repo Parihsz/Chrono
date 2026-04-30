@@ -25,7 +25,7 @@ Config.NPC_TYPES.NPC = { TICK_RATE = 1 / 30 }
 
 ```lua
 local Config = ...
-Config.SetConfig("SHOW_WARNINGS", false)
+Config.SetConfig("WARNING_SEVERITY", "NONE") --// or Config.SetWarningSeverity("NONE")
 Config.RegisterEntityType("NPC", { TICK_RATE = 1 / 30 })
 ```
 

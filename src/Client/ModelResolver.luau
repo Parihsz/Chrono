@@ -1,13 +1,12 @@
 local CollectionService = game:GetService("CollectionService")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local Warn = require(script.Parent.Parent.Shared.Warn)
 local Config = require(script.Parent.Parent.Shared.Config)
 local Types = require(script.Parent.Parent.Shared.Types)
 local Entity = require(script.Parent.Parent.Shared.Entity)
 local ModelHelper = require(script.Parent.Parent.Shared.ModelHelper)
 local TAG = ModelHelper.TAG
 local CHRONO_META_NAME = ModelHelper.CHRONO_META_NAME
-local warn = Config._GetConfig("SHOW_WARNINGS") and warn or function() end
 
 local RegisteredModels = {}
 
@@ -15,7 +14,7 @@ local function OnInstanceAdded(instance: Instance)
 	local metaStringValue: string? = instance:GetAttribute(CHRONO_META_NAME) :: any
 	if metaStringValue then
 		RegisteredModels[metaStringValue] = instance :: any
-        warn(`Model with meta {metaStringValue} was added to the game. Entities using this model will now be able to resolve it.`)
+        Warn.low(`Model with meta {metaStringValue} was added to the game. Entities using this model will now be able to resolve it.`)
 	end
 end
 
@@ -24,7 +23,7 @@ CollectionService:GetInstanceRemovedSignal(TAG):Connect(function(instance)
 	local attribute: string? = instance:GetAttribute(CHRONO_META_NAME) :: any
 	if attribute then
 		RegisteredModels[attribute] = nil
-        warn(`Model with meta {attribute} was removed from the game. Entities using this model will no longer be able to resolve it.`)
+        Warn.low(`Model with meta {attribute} was removed from the game. Entities using this model will no longer be able to resolve it.`)
 	end
 end)
 for _, instance in CollectionService:GetTagged(TAG) do
@@ -44,6 +43,6 @@ return function(entity: Types.Entity)
 	local registered = RegisteredModels[metaData] :: Model | BasePart?
 	if registered and registered ~= model then
 		Entity.SetModel(entity, registered)
-        warn(`Model with meta {metaData} was resolved for entity {entity.id}.`)
+        Warn.low(`Model with meta {metaData} was resolved for entity {entity.id}.`)
 	end
 end

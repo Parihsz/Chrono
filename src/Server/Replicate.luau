@@ -1,10 +1,12 @@
 --!native
 local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local RunService = game:GetService("RunService")
 
 local Shared = script.Parent.Parent.Shared
 
+local Warn = require(Shared.Warn)
 local Bin = require(Shared.Bin)
 local Holder = require(Shared.Holder)
 local Events = require(Shared.Events)
@@ -25,7 +27,7 @@ Config._WaitForLock(function()
 		if entityConfig.TICKER then
 			table.insert(tickers, entityConfig.TICKER)
 		else
-			warn(entityConfig, "TICKERS not found on server config load")
+			Warn.high(entityConfig, "TICKERS not found on server config load")
 		end
 	end
 end)
@@ -96,7 +98,7 @@ local function PushLatest(entity: Types.Entity, time: number)
 	if entity.autoUpdatePosition and entity.isContextOwner and entity.model then
 		local primaryPart = Entity.GetPrimaryPart(entity)
 		if not primaryPart then
-			warn("Entity", entity, "has no primary part")
+			Warn.medium("Entity", entity, "has no primary part")
 			return
 		end
 		local cframe = primaryPart.CFrame

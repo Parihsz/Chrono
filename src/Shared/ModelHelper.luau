@@ -1,4 +1,5 @@
 local Shared = script.Parent
+local Warn = require(script.Parent.Warn)
 local Holder = require(Shared.Holder)
 local Config = require(Shared.Config)
 local Types = require(Shared.Types)
@@ -40,15 +41,9 @@ local function ReadyModelFromRep(entity: Types.Entity, playerSpecific: Player?):
 			end
 		end
 		if model then
+			model.Archivable = true
 			local modelClone = model:Clone()
-			if not modelClone then
-				warn(`Cloned model for {model:GetFullName()} is not Archivable. Failed to replicate model.`)
-				modelClone = Instance.new("Model")
-				local part = Instance.new("Part")
-				part.Size = Vector3.one;
-				(modelClone :: any).PrimaryPart = part
-			end
-			(modelClone :: any).Parent = ModelReplicator
+			modelClone.Parent = ModelReplicator
 
 			task.delay(2, function()
 				modelClone:Destroy()
@@ -56,7 +51,7 @@ local function ReadyModelFromRep(entity: Types.Entity, playerSpecific: Player?):
 			return modelClone
 		end
 	elseif modelString then
-		warn(`{modelString} is not a valid model string for entity {entity.id}`)
+		Warn.medium(`{modelString} is not a valid model string for entity {entity.id}`)
 	end
 	return nil, nil
 end

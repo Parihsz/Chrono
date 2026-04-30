@@ -1,13 +1,13 @@
 local Types = require(script.Parent.Types)
-local Ticker = require(script.Parent.Ticker)
 
 local IS_SERVER = game:GetService("RunService"):IsServer()
 local CHRONO_PRIMARY = "__CHRONO_PRIMARY"
 
+export type WarningLevels = "NONE" | "LOW" | "MEDIUM" | "HIGH"
+
 export type Configs =
 	"MIN_BUFFER"
 	| "MAX_BUFFER"
-	| "SHOW_WARNINGS"
 	| "MAX_SNAPSHOT_COUNT"
 	| "CHECK_NEW_VERSION"
 	| "DEFAULT_NORMAL_TICK_DISTANCE"
@@ -18,13 +18,13 @@ export type Configs =
 	| "REPLICATE_CFRAME_SETTERS"
 	| "__VERSION"
 	| "MAX_TOTAL_BYTES_PER_FRAME_PER_PLAYER"
+	| "WARNING_SEVERITY"
 
 export type SetConfig =
 	("MIN_BUFFER", number) -> ()
 	& ("MAX_BUFFER", number) -> ()
 	& ("DEFAULT_NORMAL_TICK_DISTANCE", number) -> ()
 	& ("DEFAULT_HALF_TICK_DISTANCE", number) -> ()
-	& ("SHOW_WARNINGS", boolean) -> ()
 	& ("MAX_SNAPSHOT_COUNT", number) -> ()
 	& ("CHECK_NEW_VERSION", boolean) -> ()
 	& ("DEFAULT_MODEL_REPLICATION_MODE", Types.MODEL_REPLICATION_MODE) -> ()
@@ -32,15 +32,16 @@ export type SetConfig =
 	& ("REPLICATE_DEATHS", "NONE" | "PLAYER_ENTITIES" | "PLAYER_CHARACTERS") -> ()
 	& ("REPLICATE_CFRAME_SETTERS", "NONE" | "PLAYER_ENTITIES" | "PLAYER_CHARACTERS") -> ()
 	& ("MAX_TOTAL_BYTES_PER_FRAME_PER_PLAYER", number) -> ()
-
+	& ("WARNING_SEVERITY", WarningLevels) -> ()
 local LOCKED = false
 local BASE_CONFIG = {
-	__VERSION = "v2.0.4",
+	__VERSION = "v2.0.5",
 	CHECK_NEW_VERSION = true,
 	MAX_TOTAL_BYTES_PER_FRAME_PER_PLAYER = 3000,
 	MIN_BUFFER = 0.09,
 	MAX_BUFFER = 0.5,
 
+	WARNING_SEVERITY = "MEDIUM",
 	DEFAULT_NORMAL_TICK_DISTANCE = 50,
 	DEFAULT_HALF_TICK_DISTANCE = 100, -- Anything beyond this distance will not be replicated
 
@@ -84,9 +85,6 @@ local BASE_CONFIG = {
 			- Have to write custom code to replicate stuff like animations
 	]]
 	SEND_FULL_ROTATION = false,
-	--note that warnings are mostly non fatal
-	--this will be set to false to optimize output by default, only enable if you're experiencing bugs with the system
-	SHOW_WARNINGS = false,
 	MAX_SNAPSHOT_COUNT = 30,
 }
 local ENTITY_TYPES: { [string]: Types.EntityConfig } = {
@@ -173,10 +171,16 @@ local function WaitForLock(fx: () -> ())
 	end
 end
 
-local function Lock()
-	if BASE_CONFIG.SHOW_WARNINGS then
-		warn("Config is now locked")
+local function SetWarningSeverity(level: WarningLevels)
+	if level ~= "NONE" and level ~= "LOW" and level ~= "MEDIUM" and level ~= "HIGH" then
+		error("Invalid warning level: " .. tostring(level))
 	end
+	BASE_CONFIG.WARNING_SEVERITY = level
+end
+
+local function Lock()
+	(require)(script.Parent.Warn).low("Config is now locked")
+
 	LOCKED = true
 	local DEFAULT_NORMAL_TICK_DISTANCE = BASE_CONFIG.DEFAULT_NORMAL_TICK_DISTANCE
 	local DEFAULT_HALF_TICK_DISTANCE = BASE_CONFIG.DEFAULT_HALF_TICK_DISTANCE
@@ -190,7 +194,7 @@ local function Lock()
 		cloned.MODEL_REPLICATION_MODE = cloned.MODEL_REPLICATION_MODE
 			or BASE_CONFIG.DEFAULT_MODEL_REPLICATION_MODE :: any
 		if IS_SERVER then
-			cloned.TICKER = Ticker.new(cloned)
+			cloned.TICKER =  (require)(script.Parent.Ticker).new(cloned)
 		else
 			cloned.CLIENT_CLOCK = {} :: any
 		end
@@ -220,5 +224,6 @@ return {
 	_GetBroadPhase = GetBroadPhase,
 	SetModelPrimaryForChrono = function(model: Model, primaryName: string)
 		model:SetAttribute(CHRONO_PRIMARY, primaryName)
-	end
+	end,
+	SetWarningSeverity = SetWarningSeverity,
 }

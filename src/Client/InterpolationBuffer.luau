@@ -1,7 +1,9 @@
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local Warn = require(script.Parent.Parent.Shared.Warn)
 local Config = require(script.Parent.Parent.Shared.Config)
 local Types = require(script.Parent.Parent.Shared.Types)
 
-local SHOW_WARNINGS
 local MIN_BUFFER
 local MAX_BUFFER
 local ALPHA = 0.1
@@ -9,7 +11,6 @@ local ALPHA = 0.1
 Config._WaitForLock(function()
 	MIN_BUFFER = Config._GetConfig("MIN_BUFFER")
 	MAX_BUFFER = Config._GetConfig("MAX_BUFFER")
-	SHOW_WARNINGS = Config._GetConfig("SHOW_WARNINGS")
 end)
 local Buffer = {}
 
@@ -31,9 +32,7 @@ function Buffer.Register(data: Types.InterpolationBuffer, time: number)
 
 	if math.abs(latency) > 1 then
 		clientClock:Clear()
-		if SHOW_WARNINGS then
-			warn(data.clientClock.name, ` latency too high, cleared cache to repredict in case of error:! {latency}`)
-		end
+		Warn.low(data.clientClock.name, ` latency too high, cleared cache to repredict in case of error:! {latency}`)
 	end
 
 	if not data.init then
@@ -67,9 +66,7 @@ function Buffer.GetBuffer(data: Types.InterpolationBuffer, tickRate: number)
 
 	local buffer = if rawBuffer < MIN_BUFFER then MIN_BUFFER + (MIN_BUFFER - rawBuffer) * 0.2 else rawBuffer
 	if buffer > MAX_BUFFER then
-		if SHOW_WARNINGS then
-			warn(`Interpolation buffer exceeded max! Was {buffer}, clamped to {MAX_BUFFER} for`, data.clientClock.name)
-		end
+		Warn.low(`Interpolation buffer exceeded max! Was {buffer}, clamped to {MAX_BUFFER} for`, data.clientClock.name)
 		buffer = MAX_BUFFER
 	end
 
