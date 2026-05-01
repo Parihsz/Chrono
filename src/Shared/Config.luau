@@ -35,7 +35,7 @@ export type SetConfig =
 	& ("WARNING_SEVERITY", WarningLevels) -> ()
 local LOCKED = false
 local BASE_CONFIG = {
-	__VERSION = "v2.0.5",
+	__VERSION = "v2.0.6",
 	CHECK_NEW_VERSION = true,
 	MAX_TOTAL_BYTES_PER_FRAME_PER_PLAYER = 3000,
 	MIN_BUFFER = 0.09,
