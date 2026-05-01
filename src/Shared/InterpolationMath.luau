@@ -18,15 +18,20 @@ local function Hermite(p0: Vector3, p1: Vector3, v0: Vector3, v1: Vector3, t: nu
 	return p0 * h00 + v0 * dt * h10 + p1 * h01 + v1 * dt * h11
 end
 
-local function VelocityAt(latest: Types.SnapshotData<CFrame, Vector3>?, t: number, cframe: CFrame, tickrate: number?): Vector3
+local function VelocityAt(
+	latest: Types.SnapshotData<CFrame, Vector3>?,
+	t: number,
+	cframe: CFrame,
+	tickrate: number?
+): Vector3
 	if not latest then
 		return Vector3.zero
 	end
-	tickrate = tickrate or 1/20
+	tickrate = tickrate or 1 / 20
 	local dt = t - latest.t
 	if dt <= 1e-6 then
 		return Vector3.zero
-	elseif dt > tickrate*3 and Config.FLAGS.SNAPSHOT_INTERPOLATION_FIX then
+	elseif dt > tickrate * 3 and Config.FLAGS.SNAPSHOT_INTERPOLATION_FIX then
 		dt = tickrate
 	end
 	return (cframe.Position - latest.value.Position) / dt

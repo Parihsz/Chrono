@@ -3,7 +3,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
-local Config = require(ReplicatedStorage.Packages.chrono.Shared.Config)
+local Config = require(script.Parent.Parent.Shared.Config)
 local ReplicationRules = require(script.Parent.Parent.Shared.ReplicationRules)
 local Stats = require(script.Parent.Parent.Shared.Stats)
 --[[
@@ -231,11 +231,10 @@ local function Update()
 	end
 	if os.clock() - lastUpdate < UPDATE_INTERVAL then
 		return
-
 	end
 	UPDATE_INTERVAL = Config._GetConfig("GRID_UPDATE_INTERVAL") or UPDATE_INTERVAL
 	MAX_TIME_PER_UPDATE = Config._GetConfig("GRID_MAX_UPDATE_TIME") or MAX_TIME_PER_UPDATE
-	
+
 	lastUpdate = os.clock()
 	task.spawn(DoLoop)
 end

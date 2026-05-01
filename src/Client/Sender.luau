@@ -88,7 +88,7 @@ local function Flush()
 	INDEX = 0
 end
 
-local function WriteEntity(id: number, cf: CFrame, fullCFrame: boolean?, halfTicked: boolean?,teleport: boolean?)
+local function WriteEntity(id: number, cf: CFrame, fullCFrame: boolean?, halfTicked: boolean?, teleport: boolean?)
 	local length = if fullCFrame then FULL_BYTES else YAW_BYTES
 
 	if INDEX + length > MAX_BUFFER_SIZE then
@@ -102,7 +102,7 @@ local function WriteEntity(id: number, cf: CFrame, fullCFrame: boolean?, halfTic
 	if halfTicked then
 		packed += 2
 	end
-	
+
 	if teleport then
 		packed += 4
 	end
@@ -162,7 +162,7 @@ local function CheckEntity(entity: Types.Entity)
 		entity.lastReplicatedTime = now
 		local fullCFrame = config.FULL_ROTATION
 		entity.lastCheckedCFrame = currentCFrame
-  
+
 		WriteEntity(entity.id, currentCFrame, fullCFrame, entity.isHalfTicked, entity._teleport)
 		entity._teleport = nil
 	end

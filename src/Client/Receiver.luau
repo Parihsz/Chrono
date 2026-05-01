@@ -119,7 +119,6 @@ local function HandleChanges(changes: { id: number, data: { { any } } })
 				Entity.SetCFrame(entity, value)
 			end
 			-- don't want to set cframe for non context owner or else it will fight with the client interpolation
-		
 		elseif key == "_modelMetaData" then
 			hasMetadata = value
 		elseif key == "model" then

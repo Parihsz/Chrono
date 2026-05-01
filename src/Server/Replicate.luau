@@ -219,7 +219,7 @@ local function UpdatePlayerPositions()
 		local cframe = primaryPart and primaryPart.CFrame or entity.latestCFrame
 
 		if player and cframe then
-			EntityGrid.UpdatePlayerPosition(player, cframe.Position::any)
+			EntityGrid.UpdatePlayerPosition(player, cframe.Position :: any)
 		end
 	end
 end
@@ -357,6 +357,5 @@ Config._WaitForLock(function()
 	HandleCFrameSetters()
 	RunService.PreSimulation:Connect(Update)
 end)
-
 
 return nil

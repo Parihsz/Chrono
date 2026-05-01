@@ -15,7 +15,6 @@ Config._WaitForLock(function()
 	MAX_LENGTH = Config._GetConfig("MAX_SNAPSHOT_COUNT")
 end)
 
-
 local function GetBufferIndex(head: number, relativeIndex: number): number
 	return (head + relativeIndex - 2) % MAX_LENGTH + 1
 end
@@ -75,7 +74,6 @@ local function Push<Value, Velocity>(self: Snapshot<Value, Velocity>, timeStamp:
 		return
 	end
 
-
 	local insertionPos = BinarySearchInsertionPoint(self, timeStamp)
 
 	if insertionPos > self.count then
@@ -106,9 +104,15 @@ local function Push<Value, Velocity>(self: Snapshot<Value, Velocity>, timeStamp:
 	end
 end
 
-local function PushWithCheck<Value, Velocity>(self: Snapshot<Value, Velocity>, timeStamp: number, value: Value, velocity: Velocity, tickrate:number)
+local function PushWithCheck<Value, Velocity>(
+	self: Snapshot<Value, Velocity>,
+	timeStamp: number,
+	value: Value,
+	velocity: Velocity,
+	tickrate: number
+)
 	local latestData = GetLatest(self)
-	if latestData and timeStamp - latestData.t > tickrate*3 and Config.FLAGS.SNAPSHOT_INTERPOLATION_FIX then
+	if latestData and timeStamp - latestData.t > tickrate * 3 and Config.FLAGS.SNAPSHOT_INTERPOLATION_FIX then
 		Push(self, timeStamp - tickrate, latestData.value, vector.zero, true)
 	end
 	Push(self, timeStamp, value, velocity)

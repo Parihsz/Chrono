@@ -27,13 +27,13 @@ local function RegisterPlayer(
 
 	local config = configuration.config or "PLAYER"
 	local modelRepMode: Types.MODEL_REPLICATION_MODE? = configuration.modelRepMode
-	local configData = Config._EntityConfigs[config] or {}::any
+	local configData = Config._EntityConfigs[config] or {} :: any
 	modelRepMode = modelRepMode or configData.MODEL_REPLICATION_MODE
 	character.Archivable = true
 
 	local humanoid = character:FindFirstChildWhichIsA("Humanoid")
 	local hrp = character:FindFirstChild("HumanoidRootPart")
-	if humanoid and hrp  then
+	if humanoid and hrp then
 		local rigType = humanoid.RigType
 		if rigType == Enum.HumanoidRigType.R6 and character.PrimaryPart == character:FindFirstChild("Head") then
 			Config.SetModelPrimaryForChrono(character, "HumanoidRootPart")
@@ -61,7 +61,7 @@ local function UnregisterPlayer(player: Player)
 end
 
 local function OnCharacterAdded(character: Model, player: Player)
-	task.wait(.1)
+	task.wait(0.1)
 	RegisterPlayer(player, character, {
 		config = "PLAYER",
 	})

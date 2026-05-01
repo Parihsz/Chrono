@@ -70,7 +70,6 @@ local function displayServerEntityStats(entity: Types.ServerEntitiesStats)
 		if entity.modelType == "NATIVE" or entity.modelType == "NATIVE_WITH_LOCK" then
 			if Iris.Button({ "Change Model Types" }).clicked() then
 				Stats._fireClientStatsEvent("CHANGE_NATIVE", entity.id)
-
 			end
 		end
 		Iris.End()

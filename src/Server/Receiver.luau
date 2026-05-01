@@ -20,7 +20,7 @@ local UnreliableEvent = Shared.Remotes.Replicate
 
 local FULL_BYTES = 4 * 3 + 2 * 3
 local YAW_BYTES = 4 * 3 + 2
-local TELEPORT_TIME_THRESHOLD = 0.5 
+local TELEPORT_TIME_THRESHOLD = 0.5
 
 local function FireMiddleMans(player: Player, entity: Types.Entity, cframe: CFrame, arriveTime: number): boolean
 	if #SortedMiddleMans == 0 then
@@ -137,7 +137,14 @@ local function OnReceive(player: Player, data: buffer)
 	TotalBytes[player] = (TotalBytes[player] or 0) + buffer.len(data)
 	BytesReceived += buffer.len(data)
 	if TotalBytes[player] > MAX_TOTAL_BYTES_PER_FRAME_PER_PLAYER then
-		Warn.medium("Player", player.Name, "exceeded max bytes per frame:", TotalBytes[player],"max:", MAX_TOTAL_BYTES_PER_FRAME_PER_PLAYER)
+		Warn.medium(
+			"Player",
+			player.Name,
+			"exceeded max bytes per frame:",
+			TotalBytes[player],
+			"max:",
+			MAX_TOTAL_BYTES_PER_FRAME_PER_PLAYER
+		)
 		return
 	end
 	debug.profilebegin("Receiver.OnReceive")

@@ -106,7 +106,7 @@ local ENTITY_TYPES: { [string]: Types.EntityConfig } = {
 		BUFFER = 0.1,
 		FULL_ROTATION = true,
 	},
-	PLAYER = { 
+	PLAYER = {
 		NAME = "PLAYER",
 		MODEL_REPLICATION_MODE = "NATIVE",
 		BUFFER = 0, -- handled dynamically for players
@@ -201,7 +201,7 @@ local function Lock()
 		cloned.MODEL_REPLICATION_MODE = cloned.MODEL_REPLICATION_MODE
 			or BASE_CONFIG.DEFAULT_MODEL_REPLICATION_MODE :: any
 		if IS_SERVER then
-			cloned.TICKER =  (require)(script.Parent.Ticker).new(cloned)
+			cloned.TICKER = (require)(script.Parent.Ticker).new(cloned)
 		else
 			cloned.CLIENT_CLOCK = {} :: any
 		end

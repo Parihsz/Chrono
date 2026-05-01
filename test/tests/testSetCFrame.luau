@@ -37,7 +37,7 @@ return {
 		end)
 		task.spawn(function()
 			while task.wait(2) do
-				Entity.SetCFrame(native, CFrame.new(0,5,0))
+				Entity.SetCFrame(native, CFrame.new(0, 5, 0))
 				Entity.SetCFrame(p, CFrame.new(8, 5, -5))
 				-- paused = true
 				-- task.wait(1)
@@ -45,7 +45,5 @@ return {
 			end
 		end)
 	end,
-	client = function()
-	
-	end,
+	client = function() end,
 }

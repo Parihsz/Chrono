@@ -14,7 +14,9 @@ local function OnInstanceAdded(instance: Instance)
 	local metaStringValue: string? = instance:GetAttribute(CHRONO_META_NAME) :: any
 	if metaStringValue then
 		RegisteredModels[metaStringValue] = instance :: any
-        Warn.low(`Model with meta {metaStringValue} was added to the game. Entities using this model will now be able to resolve it.`)
+		Warn.low(
+			`Model with meta {metaStringValue} was added to the game. Entities using this model will now be able to resolve it.`
+		)
 	end
 end
 
@@ -23,7 +25,9 @@ CollectionService:GetInstanceRemovedSignal(TAG):Connect(function(instance)
 	local attribute: string? = instance:GetAttribute(CHRONO_META_NAME) :: any
 	if attribute then
 		RegisteredModels[attribute] = nil
-        Warn.low(`Model with meta {attribute} was removed from the game. Entities using this model will no longer be able to resolve it.`)
+		Warn.low(
+			`Model with meta {attribute} was removed from the game. Entities using this model will no longer be able to resolve it.`
+		)
 	end
 end)
 for _, instance in CollectionService:GetTagged(TAG) do
@@ -36,13 +40,13 @@ return function(entity: Types.Entity)
 		return
 	end
 	local metaData = entity._modelMetaData
-   
+
 	if not metaData then
 		return
 	end
 	local registered = RegisteredModels[metaData] :: Model | BasePart?
 	if registered and registered ~= model then
 		Entity.SetModel(entity, registered)
-        Warn.low(`Model with meta {metaData} was resolved for entity {entity.id}.`)
+		Warn.low(`Model with meta {metaData} was resolved for entity {entity.id}.`)
 	end
 end

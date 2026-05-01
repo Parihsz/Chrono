@@ -87,11 +87,7 @@ return {
 	Events = Events,
 	Snapshots = Snapshots,
 
-
 	ServerClock = ServerClock,
 	Player = Player,
-	ServerReceiver = Receiver
-
-
-
+	ServerReceiver = Receiver,
 }
