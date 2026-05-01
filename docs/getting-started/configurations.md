@@ -50,6 +50,9 @@ local BASE_CONFIG = {
     MAX_BUFFER = 0.5,
     QUERY_RADIUS = 100,
 
+    GRID_UPDATE_INTERVAL = 0.1,
+    GRID_MAX_UPDATE_TIME = 0.0005,
+
     DEFAULT_NORMAL_TICK_DISTANCE = 50,
     DEFAULT_HALF_TICK_DISTANCE = 100, -- Beyond this distance, entities stop replicating
 
@@ -190,3 +193,7 @@ R6 in roblox has the head as the primary part, this would cause issues for Chron
 ### Warning Severity
 
 Warning severity controls how Chrono outputs warnings. This can be set to "NONE" to disable warnings, or "LOW", "MEDIUM", "HIGH" to control the severity of warnings that are printed. Default is "MEDIUM". Warnings can be set after Chrono is initialize via `Config.SetWarningSeverity()`.
+
+### Grid Update Configurations
+
+The entity grid updates every `GRID_UPDATE_INTERVAL` which defaults to 0.1 seconds. During each update cycle the grid is limited to `GRID_MAX_UPDATE_TIME` per frame which defaults to 0.5 milliseconds. If the grid update takes longer than this, then the operation will be stopped until the next frame to prevent server lag. The grid will continue updating across frames until all entities have been iterated. Lowering `GRID_UPDATE_INTERVAL` will make the grid update more frequently making it more responsive but may cause more server lag, while increasing `GRID_MAX_UPDATE_TIME` will allow the grid to update more entities per cycle but may also cause more server lag.

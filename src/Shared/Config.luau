@@ -19,6 +19,8 @@ export type Configs =
 	| "__VERSION"
 	| "MAX_TOTAL_BYTES_PER_FRAME_PER_PLAYER"
 	| "WARNING_SEVERITY"
+	| "GRID_UPDATE_INTERVAL"
+	| "GRID_MAX_UPDATE_TIME"
 
 export type SetConfig =
 	("MIN_BUFFER", number) -> ()
@@ -33,6 +35,8 @@ export type SetConfig =
 	& ("REPLICATE_CFRAME_SETTERS", "NONE" | "PLAYER_ENTITIES" | "PLAYER_CHARACTERS") -> ()
 	& ("MAX_TOTAL_BYTES_PER_FRAME_PER_PLAYER", number) -> ()
 	& ("WARNING_SEVERITY", WarningLevels) -> ()
+	& ("GRID_UPDATE_INTERVAL", number) -> ()
+	& ("GRID_MAX_UPDATE_TIME", number) -> ()
 local LOCKED = false
 local BASE_CONFIG = {
 	__VERSION = "v2.0.6",
@@ -40,6 +44,9 @@ local BASE_CONFIG = {
 	MAX_TOTAL_BYTES_PER_FRAME_PER_PLAYER = 3000,
 	MIN_BUFFER = 0.09,
 	MAX_BUFFER = 0.5,
+
+	GRID_UPDATE_INTERVAL = 0.1,
+	GRID_MAX_UPDATE_TIME = 0.0005,
 
 	WARNING_SEVERITY = "MEDIUM", -- "NONE", "LOW", "MEDIUM", "HIGH"
 	DEFAULT_NORMAL_TICK_DISTANCE = 50,
@@ -222,6 +229,7 @@ return {
 	_Lock = Lock,
 	_WaitForLock = WaitForLock,
 	_GetBroadPhase = GetBroadPhase,
+	_Base_Config = BASE_CONFIG, --//Modifying this after locking may not change behaviors of some config options.
 	SetModelPrimaryForChrono = function(model: Model, primaryName: string)
 		model:SetAttribute(CHRONO_PRIMARY, primaryName)
 	end,

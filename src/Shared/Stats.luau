@@ -61,6 +61,10 @@ function Stats.HasPermissionToReplicate(userId: number | Player)
 end
 
 function Stats.ReplicateStatsForPlayer(userId: number | Player)
+	if RunService:IsClient() then
+		warn("Stats.ReplicateStatsForPlayer should only be called on the server.")
+		return
+	end
 	if typeof(userId) == "Instance" and userId:IsA("Player") then
 		userId = userId.UserId
 	end
@@ -69,6 +73,10 @@ function Stats.ReplicateStatsForPlayer(userId: number | Player)
 end
 
 function Stats.StopReplicatingStatsForPlayer(userId: number | Player)
+	if RunService:IsClient() then
+		warn("Stats.StopReplicatingStatsForPlayer should only be called on the server.")
+		return
+	end
 	if typeof(userId) == "Instance" and userId:IsA("Player") then
 		userId = userId.UserId
 	end

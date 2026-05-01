@@ -50,3 +50,6 @@ jobs:
 
       - name: Upload asset to GitHub Release
         run: gh release upload "${{ github.event.release.tag_name }}" build.rbxm --clobber
+
+      - name: Upload debugger script to GitHub Release
+        run: gh release upload "${{ github.event.release.tag_name }}" test/Debugger/init.client.luau#debugger.luau --clobber
