@@ -1,19 +1,26 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
-local Chrono = ReplicatedStorage.Packages.chrono
-local Shared = Chrono.Shared
+
+local PAUSE_KEY = Enum.KeyCode.E
+local OPEN_CLOSE_KEY = Enum.KeyCode.F3
+local CHRONO = ReplicatedStorage.Packages.chrono
+local IRIS = ReplicatedStorage.DevPackages.iris
+
+local Shared = CHRONO.Shared
 local Config = require(Shared.Config)
 local Stats = require(Shared.Stats)
 local Types = require(Shared.Types)
-local Iris = require(ReplicatedStorage.DevPackages.iris)
-local PAUSE_KEY = Enum.KeyCode.E
+local Iris = require(IRIS)
 local Flags = Config.FLAGS
 
 local ClientStats = Stats.CLIENT
 
+local localPlayer = game:GetService("Players").LocalPlayer
+local userId = localPlayer.UserId
+
 Iris.Init()
 
-local function displayFlagEditor(name,value)
+local function displayFlagEditor(name, value)
 	local type = typeof(value)
 	if type == "boolean" then
 		Iris.SameLine()
@@ -121,17 +128,32 @@ local function displayClientEntityStats(entity: Types.ClientEntitiesStats)
 	Iris.End()
 end
 
+local windowsOpenState = Iris.State(false)
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
 	if gameProcessed then
+		return
+	end
+	if not Stats.HasPermissionToReplicate(userId) then
 		return
 	end
 	if input.KeyCode == PAUSE_KEY then
 		Stats.CLIENT._PAUSE = not Stats.CLIENT._PAUSE
 	end
+	if input.KeyCode == OPEN_CLOSE_KEY then
+		windowsOpenState:set(not windowsOpenState.value)
+	end
+end)
+
+windowsOpenState:onChange(function(newValue)
+	if newValue then
+		Stats._openedDebugger()
+	else
+		Stats._closedDebugger()
+	end
 end)
 
 Iris:Connect(function()
-	if Iris.Window({ "Replication Debug" }) then
+	if Iris.Window({ "Chrono Debug" }, { isOpened = windowsOpenState }) then
 		Iris.Text({ "Version: " .. tostring(Config._GetConfig("__VERSION")) })
 		displayFlags()
 		if Iris.Button({ Stats.CLIENT._PAUSE and "Unpause" or "Pause" }).clicked() then
