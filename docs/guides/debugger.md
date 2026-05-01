@@ -4,7 +4,7 @@ Chrono includes a client-side debugger script for realtime snapshots, latency da
 
 ## Setup
 
-1. Copy `test/Debugger/init.client.luau` into a client-side script in your game. The source file is available here: [test/Debugger/init.client.luau](https://github.com/Parihsz/Chrono/blob/master/test/Debugger/init.client.luau)
+1. Get the latest version of the debugger from the [releases](https://github.com/Parihsz/Chrono/releases/latest) or copy `test/Debugger/init.client.luau` into a client-side script in your game. The source file is available here: [test/Debugger/init.client.luau](https://github.com/Parihsz/Chrono/blob/master/test/Debugger/init.client.luau)
 2. Install Iris, either through your package manager or by downloading the latest RBXM from [SirMallard/Iris](https://github.com/SirMallard/Iris/releases/latest).
 3. Update the debugger script paths as needed:
 
