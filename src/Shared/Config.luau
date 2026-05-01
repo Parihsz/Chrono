@@ -41,7 +41,7 @@ local BASE_CONFIG = {
 	MIN_BUFFER = 0.09,
 	MAX_BUFFER = 0.5,
 
-	WARNING_SEVERITY = "MEDIUM",
+	WARNING_SEVERITY = "MEDIUM", -- "NONE", "LOW", "MEDIUM", "HIGH"
 	DEFAULT_NORMAL_TICK_DISTANCE = 50,
 	DEFAULT_HALF_TICK_DISTANCE = 100, -- Anything beyond this distance will not be replicated
 
@@ -99,7 +99,7 @@ local ENTITY_TYPES: { [string]: Types.EntityConfig } = {
 		BUFFER = 0.1,
 		FULL_ROTATION = true,
 	},
-	PLAYER = {
+	PLAYER = { 
 		NAME = "PLAYER",
 		MODEL_REPLICATION_MODE = "NATIVE",
 		BUFFER = 0, -- handled dynamically for players

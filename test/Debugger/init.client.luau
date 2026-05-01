@@ -26,7 +26,7 @@ local function displayFlagEditor(name, value)
 		Iris.SameLine()
 		Iris.Text({ name .. ": " .. tostring(value) })
 		if Iris.Button({ value and "Disable " or "Enable " .. name }).clicked() then
-			Flags[name] = not value
+			Stats._updateStat("FFLAG", name, not value)
 		end
 		Iris.End()
 	elseif type == "number" then
@@ -35,7 +35,7 @@ local function displayFlagEditor(name, value)
 		Iris.Text({ name .. ": " .. tostring(value) })
 		newValue = Iris.Input({ tostring(value) }).value
 		if newValue and tonumber(newValue) and tonumber(newValue) ~= value then
-			Flags[name] = tonumber(newValue)
+			Stats._updateStat("FFLAG", name, tonumber(newValue))
 		end
 		Iris.End()
 	end
@@ -70,6 +70,7 @@ local function displayServerEntityStats(entity: Types.ServerEntitiesStats)
 		if entity.modelType == "NATIVE" or entity.modelType == "NATIVE_WITH_LOCK" then
 			if Iris.Button({ "Change Model Types" }).clicked() then
 				Stats._fireClientStatsEvent("CHANGE_NATIVE", entity.id)
+
 			end
 		end
 		Iris.End()
@@ -128,6 +129,22 @@ local function displayClientEntityStats(entity: Types.ClientEntitiesStats)
 	Iris.End()
 end
 
+local function displayLineHeader()
+	local level = Config._GetConfig("WARNING_SEVERITY")
+	if Iris.Button({ Stats.CLIENT._PAUSE and "Unpause" or "Pause" }).clicked() then
+		Stats.CLIENT._PAUSE = not Stats.CLIENT._PAUSE
+	end
+	Iris.SameLine()
+	Iris.Text({ "Warning Severity: " })
+	if Iris.Button({ tostring(level) }).clicked() then
+		local options = { "NONE", "LOW", "MEDIUM", "HIGH" }
+		local currentIndex = table.find(options, level) or 1
+		local newIndex = currentIndex % #options + 1
+		Stats._updateStat("", "WARNING_SEVERITY", options[newIndex])
+	end
+	Iris.End()
+end
+
 local windowsOpenState = Iris.State(false)
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
 	if gameProcessed then
@@ -153,12 +170,10 @@ windowsOpenState:onChange(function(newValue)
 end)
 
 Iris:Connect(function()
-	if Iris.Window({ "Chrono Debug" }, { isOpened = windowsOpenState }) then
+	if Iris.Window({ `Chrono Debug {Stats.CLIENT._PAUSE and " (Paused)" or ""}` }, { isOpened = windowsOpenState }) then
 		Iris.Text({ "Version: " .. tostring(Config._GetConfig("__VERSION")) })
-		displayFlags()
-		if Iris.Button({ Stats.CLIENT._PAUSE and "Unpause" or "Pause" }).clicked() then
-			Stats.CLIENT._PAUSE = not Stats.CLIENT._PAUSE
-		end
+
+		displayLineHeader()
 		if Iris.Tree({ "Client Network Stats" }).state.isUncollapsed.value then
 			Iris.Text({
 				"Received (Non-Compressed): " .. tostring(ClientStats.BYTES_RECEIVED_PER_SEC / 1000) .. " KB/s",
@@ -220,6 +235,7 @@ Iris:Connect(function()
 			Iris.End()
 		end
 		Iris.End()
+		displayFlags()
 		Iris.End()
 	end
 end)
