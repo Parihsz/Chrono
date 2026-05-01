@@ -186,3 +186,7 @@ When `MODEL_REPLICATION_MODE` is set to `CUSTOM`, then only the name of the mode
 #### Model Primary Part
 
 R6 in roblox has the head as the primary part, this would cause issues for Chrono. To resolve this we added a function `Config.SetModelPrimaryForChrono(model: Model, primaryName: string) -> ()` which sets a model attribute that Chrono checks for when determining the primary part of a model. So for R6 models you can call `Config.SetModelPrimaryForChrono(character, "HumanoidRootPart")` to set the primary part to HumanoidRootPart instead of the head.
+
+### Warning Severity
+
+Warning severity controls how Chrono outputs warnings. This can be set to "NONE" to disable warnings, or "LOW", "MEDIUM", "HIGH" to control the severity of warnings that are printed. Default is "MEDIUM". Warnings can be set after Chrono is initialize via `Config.SetWarningSeverity()`.
