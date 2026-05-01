@@ -39,7 +39,7 @@ export type SetConfig =
 	& ("GRID_MAX_UPDATE_TIME", number) -> ()
 local LOCKED = false
 local BASE_CONFIG = {
-	__VERSION = "v2.0.6",
+	__VERSION = "v2.0.7",
 	CHECK_NEW_VERSION = true,
 	MAX_TOTAL_BYTES_PER_FRAME_PER_PLAYER = 3000,
 	MIN_BUFFER = 0.09,
