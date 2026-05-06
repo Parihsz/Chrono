@@ -68,12 +68,19 @@ local function OnCharacterAdded(character: Model, player: Player)
 end
 
 local function OnPlayerAdded(player: Player)
-	player.CharacterAdded:Connect(function(character: Model)
+	local connection = player.CharacterAdded:Connect(function(character: Model)
 		OnCharacterAdded(character, player)
 	end)
 	if player.Character then
 		OnCharacterAdded(player.Character, player)
 	end
+	local connection2
+	connection2 = player.AncestryChanged:Connect(function()
+		if not player:IsDescendantOf(game) then
+			connection:Disconnect()
+			connection2:Disconnect()
+		end
+	end)
 end
 
 Config._WaitForLock(function()

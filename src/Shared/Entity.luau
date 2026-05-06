@@ -407,6 +407,7 @@ function Entity.new(
 	modelReplicationMode: Types.MODEL_REPLICATION_MODE?,
 	initCFrame: CFrame?
 ): Entity
+	
 	local self = Entity._new(entityConfig, model, modelReplicationMode, initCFrame)
 	Holder.RegisterEntity(self)
 	return self
@@ -841,6 +842,7 @@ function Entity.Destroy(self: Entity)
 	for eventName, signal: Types.Signal<any> in (self._events or {}) :: any do
 		signal:DisconnectAll()
 	end
+	self.model = nil
 	--//TODO: add more
 end
 

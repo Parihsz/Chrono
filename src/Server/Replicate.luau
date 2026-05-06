@@ -329,10 +329,17 @@ local function HandleEntity(plr, entity: Types.Entity)
 		clear()
 		HandleModel(entity)
 	end))
-
-	Entity.GetEvent(entity, "NetworkOwnerChanged"):Once(function()
+	local destroyEvent 
+	local event = Entity.GetEvent(entity, "NetworkOwnerChanged"):Once(function()
 		clear()
 		clear2()
+		destroyEvent:Disconnect()
+	end)
+
+	destroyEvent = Entity.GetEvent(entity, "Destroying"):Once(function()
+		clear()
+		clear2()
+		event:Disconnect()
 	end)
 
 	HandleModel(entity)

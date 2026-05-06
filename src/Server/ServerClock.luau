@@ -1,3 +1,4 @@
+local Players = game:GetService("Players")
 local ServerClockData = {} :: { [Player]: {
 	clockOffset: number,
 	oneWayDelay: number,
@@ -40,6 +41,8 @@ end
 local function Remove(player: Player)
 	ServerClockData[player] = nil
 end
+
+Players.PlayerRemoving:Connect(Remove)
 
 return {
 	Store = Store,
