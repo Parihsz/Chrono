@@ -58,12 +58,12 @@ Config.RegisterEntityType("PLAYER_RAGDOLL", {
 ```
 Then swap entity types when ragdolling:
 ```lua
-Chrono.Entity.SetEntityType(entity, "PLAYER_RAGDOLL")
+Chrono.Entity.SetConfig(entity, "PLAYER_RAGDOLL")
 Ragdoll.SetRagdollEnabled(character)
 
 --after ragdoll: 
 Ragdoll.SetRagdollDisabled(character)
-Chrono.Entity.SetEntityType(entity, "PLAYER")
+Chrono.Entity.SetConfig(entity, "PLAYER")
 ```
 
 If you depend on the primary part being the Head that is still fine, but you will need to slightly modify the Ragdoll script to create a 2nd set of skeleton. This is hacky but if you are depending on head being a primarypart thats arguably even more hacky. 
