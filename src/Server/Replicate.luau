@@ -20,6 +20,10 @@ local Sender = require(script.Parent.Sender)
 local _Receiver = require(script.Parent.Receiver)
 local Stats = require(Shared.Stats).SERVER
 
+local HeartbeatRemote = Shared.Remotes.Heartbeat
+local HEARTBEAT_RATE = 1 / 10
+local lastHeartbeat = 0
+
 local tickers: { Types.Ticker } = {}
 
 Config._WaitForLock(function()
@@ -267,11 +271,28 @@ local function updateEntityStats()
 	Stats.SERVER_ENTITIES = entities
 end
 
+local function UpdateHeartbeat()
+	if Config.FLAGS.HEARTBEAT_CLOCK_SYNC then
+		local now = os.clock()
+		if now - lastHeartbeat >= HEARTBEAT_RATE then
+			lastHeartbeat = now
+			for _, v in Players:GetPlayers() do
+				if not EntityGrid.GetEntityHolder(v) then
+					continue
+				end
+				HeartbeatRemote:FireClient(v, now)
+			end
+		end
+	end
+end
+
 local function Update()
 	EntityGrid.Update()
 	UpdatePlayerPositions()
 	UpdateTickers()
 	CheckEntityChanges()
+	UpdateHeartbeat()
+
 	for _, player in Players:GetPlayers() do
 		Sender.ReplicatePlayer(player)
 	end

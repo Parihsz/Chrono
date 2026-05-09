@@ -220,6 +220,7 @@ return {
 	FLAGS = {
 		["SNAPSHOT_INTERPOLATION_FIX"] = true,
 		["SET_CFRAME_FIX"] = true,
+		["HEARTBEAT_CLOCK_SYNC"] = true,
 	},
 
 	_EntityConfigs = ENTITY_TYPES,
