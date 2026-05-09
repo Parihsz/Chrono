@@ -47,15 +47,15 @@ end
 local function OnSnapShot(clientClock: Types.ClientClock, currentSendTime: number)
 	local now = os.clock()
 
+	if clientClock.buffer then
+		BufferTracker.Register(clientClock.buffer, currentSendTime)
+	end
+
 	if not clientClock.lastClockAt then
 		clientClock.lastClockAt = currentSendTime
 		clientClock.lastClockDuration = now
 		clientClock.renderAt = nil
 		return
-	end
-
-	if clientClock.buffer then
-		BufferTracker.Register(clientClock.buffer, currentSendTime)
 	end
 
 	if currentSendTime > clientClock.lastClockAt then
