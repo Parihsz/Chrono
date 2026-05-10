@@ -56,8 +56,11 @@ Config.RegisterEntityType("PLAYER_RAGDOLL", {
     MODEL_REPLICATION_MODE = "NATIVE",
 })
 ```
+
 Then swap entity types when ragdolling:
+
 ```lua
+local entity = Holder.GetEntity(character) --before ragdoll:
 Chrono.Entity.SetConfig(entity, "PLAYER_RAGDOLL")
 Ragdoll.SetRagdollEnabled(character)
 
