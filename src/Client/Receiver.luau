@@ -9,6 +9,8 @@ local Holder = require(Shared.Holder)
 local ModelHelper = require(Shared.ModelHelper)
 local Types = require(Shared.Types)
 local Stats = require(Shared.Stats).CLIENT
+local Config = require(Shared.Config)
+local ClientClock = require(script.Parent.ClientClock)
 
 local BytesReceived = 0
 local NewPerSec = 0
@@ -19,6 +21,7 @@ local SetTickMode = Entity._SetTickMode
 
 local UnreliableEvent = Shared.Remotes.Replicate
 local ReliableEvent = Shared.Remotes.ReplicateFull
+local HeartbeatRemote = Shared.Remotes.Heartbeat
 
 local TickerHeaderBytes = 4 + 1
 local FULL_BYTES = 4 * 3 + 2 * 3
@@ -309,6 +312,14 @@ end
 
 UnreliableEvent.OnClientEvent:Connect(HandleUnreliable)
 ReliableEvent.OnClientEvent:Connect(HandleReliable)
+
+if Config.FLAGS.HEARTBEAT_CLOCK_SYNC then
+	HeartbeatRemote.OnClientEvent:Connect(function(time: number)
+		for clock in ClientClock.serverOwnedClocks do
+			clock:OnSnapShot(time)
+		end
+	end)
+end
 
 local lastByteCheckTime = 0
 RunService.Heartbeat:Connect(function()
