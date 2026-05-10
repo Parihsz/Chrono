@@ -7,6 +7,7 @@ local Types = require(script.Parent.Parent.Shared.Types)
 local BufferTracker = require(script.Parent.InterpolationBuffer)
 
 local ClientClocks = {}
+local _ServerOwnedClocks = {}
 
 local function GetBuffer(clientClock: Types.ClientClock): number
 	if clientClock.buffer then
@@ -79,6 +80,9 @@ end
 
 local function Destroy(clientClock: Types.ClientClock)
 	ClientClocks[clientClock] = nil
+	if _ServerOwnedClocks[clientClock] then
+		_ServerOwnedClocks[clientClock] = nil
+	end
 end
 
 local function Update(clientClock: Types.ClientClock, dt: number)
@@ -103,7 +107,7 @@ local function Update(clientClock: Types.ClientClock, dt: number)
 	clientClock.renderAt = renderAt
 end
 
-local function new(tickRate: number, name: string, bufferNumber: number?, netowner: Player?): Types.ClientClock
+local function new(tickRate: number, name: string, bufferNumber: number?, networkOwner: Player?): Types.ClientClock
 	local self: Types.ClientClock = {
 		name = name,
 		lastClockAt = nil,
@@ -111,6 +115,7 @@ local function new(tickRate: number, name: string, bufferNumber: number?, netown
 		renderAt = nil,
 		tickRate = tickRate,
 		_baseTickRate = tickRate,
+		_owner = networkOwner,
 		buffer = nil,
 		bufferConst = bufferNumber,
 
@@ -123,6 +128,10 @@ local function new(tickRate: number, name: string, bufferNumber: number?, netown
 	}
 	if not bufferNumber then
 		self.buffer = BufferTracker.new(self)
+	end
+
+	if not networkOwner then
+		_ServerOwnedClocks[self] = true
 	end
 
 	ClientClocks[self] = true
@@ -156,5 +165,6 @@ return {
 	_getBuffer = GetBuffer,
 	new = new,
 	clientClocks = ClientClocks,
+	serverOwnedClocks = _ServerOwnedClocks,
 	UpdateAll = UpdateAll,
 }

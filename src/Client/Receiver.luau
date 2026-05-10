@@ -315,7 +315,7 @@ ReliableEvent.OnClientEvent:Connect(HandleReliable)
 
 if Config.FLAGS.HEARTBEAT_CLOCK_SYNC then
 	HeartbeatRemote.OnClientEvent:Connect(function(time: number)
-		for clock in ClientClock.clientClocks do
+		for clock in ClientClock.serverOwnedClocks do
 			clock:OnSnapShot(time)
 		end
 	end)

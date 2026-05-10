@@ -204,7 +204,7 @@ local function CheckNetworkOwner(self: Entity, prev: Player?)
 		end
 		if self.networkOwner then
 			self._clientClock =
-				ClientClock.new(self.entityConfig.TICK_RATE, `Entity id: {self.id} plr: {self.networkOwner.Name}`)
+				ClientClock.new(self.entityConfig.TICK_RATE, `Entity id: {self.id} plr: {self.networkOwner.Name}`,nil, self.networkOwner)
 		end
 	end
 

@@ -137,6 +137,7 @@ export type ClientClock = {
 	renderAt: number?,
 	tickRate: number,
 	_baseTickRate: number,
+	_owner: Player?,
 	buffer: InterpolationBuffer?,
 	bufferConst: number?,
 
