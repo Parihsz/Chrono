@@ -95,6 +95,10 @@ Clears the mount parent of this entity, if any.
 
 Sets the network owner of this entity on the server. If nil, unsets ownership.
 
+### `SyncOwnerShip(self: Entity) -> ()`
+
+Syncs the ownership status of this entity and its model. This is useful if you encounter issues with Roblox resetting the parts ownership.
+
 ### `Clear(self: Entity) -> ()`
 
 Clears snapshot data and resets last cached cframe and time.

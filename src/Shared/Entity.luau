@@ -172,6 +172,7 @@ local function FireEvent(entity: Entity, eventName: string, ...: any)
 end
 
 local function CheckNetworkOwner(self: Entity, prev: Player?)
+	prev = prev or self.networkOwner
 	self.isContextOwner = self.networkOwner == LOCAL_PLAYER
 	local isSameOwner = self.networkOwner == prev
 	if not isSameOwner then
@@ -194,17 +195,8 @@ local function CheckNetworkOwner(self: Entity, prev: Player?)
 
 		if self.isContextOwner and not self.entityConfig.STORE_SNAPSHOTS then
 			self.snapshot = nil
-		else
+		elseif not self.snapshot then
 			self.snapshot = Snapshot(InterpolationMath.Hermite)
-		end
-	elseif not isSameOwner then
-		if self._clientClock then
-			self._clientClock:Destroy()
-			self._clientClock = nil
-		end
-		if self.networkOwner then
-			self._clientClock =
-				ClientClock.new(self.entityConfig.TICK_RATE, `Entity id: {self.id} plr: {self.networkOwner.Name}`,nil, self.networkOwner)
 		end
 	end
 
@@ -212,6 +204,21 @@ local function CheckNetworkOwner(self: Entity, prev: Player?)
 		return
 	elseif self.snapshot then
 		self.snapshot:Clear()
+	end
+
+	if not IS_SERVER then
+		if self._clientClock then
+			self._clientClock:Destroy()
+			self._clientClock = nil
+		end
+		if self.networkOwner then
+			self._clientClock = ClientClock.new(
+				self.entityConfig.TICK_RATE,
+				`Entity id: {self.id} plr: {self.networkOwner.Name}`,
+				nil,
+				self.networkOwner
+			)
+		end
 	end
 
 	FireEvent(self, "NetworkOwnerChanged", self.networkOwner, prev)
@@ -234,6 +241,10 @@ local function CheckNetworkOwner(self: Entity, prev: Player?)
 
 		Events._Signals.PlayerOwnedAdded:Fire(self.networkOwner, self)
 	end
+end
+
+function Entity.SyncOwnerShip(self: Entity)
+	CheckNetworkOwner(self)
 end
 
 local function CheckModelReplicationMode(entity: Entity, mode: Types.MODEL_REPLICATION_MODE?): "NATIVE" | "CUSTOM"
@@ -407,7 +418,6 @@ function Entity.new(
 	modelReplicationMode: Types.MODEL_REPLICATION_MODE?,
 	initCFrame: CFrame?
 ): Entity
-	
 	local self = Entity._new(entityConfig, model, modelReplicationMode, initCFrame)
 	Holder.RegisterEntity(self)
 	return self

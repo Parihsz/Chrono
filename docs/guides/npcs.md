@@ -99,6 +99,9 @@ This would register a part as the model for the entity on the server and a diffe
 
 Entities will have a default ownership of the server, to give a client control of an entity you can set it via `Entity.SetNetworkOwner`.
 
+!!! warning
+    There has been issues where even thought chrono explicitly sets the network owner to nil, disabling roblox's `OwnershipAuto` feature, adding parts/welds may cause ownership to be reset to `OwnershipAuto` which can cause the model to be client owned if the client is near. If you ever encounter this issue we recommend calling `BasePart:SetNetworkOwner(nil)` on the primary part after adding a new weld/part to the model to reset the ownership back to server owned. Or you can do it through chrono by calling `Entity.SyncOwnerShip(entity)` which will update the ownership status of the entity and model.
+
 ## Player Character
 
 The only thing that separates a player character from a client-owned entity is that player characters should also be registered to `Holder.SetAsCharacter` so that when a character is added chrono knows to change the camera logic on the client.
