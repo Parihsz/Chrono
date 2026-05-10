@@ -21,7 +21,7 @@ local _Receiver = require(script.Parent.Receiver)
 local Stats = require(Shared.Stats).SERVER
 
 local HeartbeatRemote = Shared.Remotes.Heartbeat
-local HEARTBEAT_RATE = 1 / 10
+local HEARTBEAT_RATE = 1 / 20
 local lastHeartbeat = 0
 
 local tickers: { Types.Ticker } = {}

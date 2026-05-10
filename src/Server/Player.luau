@@ -41,6 +41,7 @@ local function RegisterPlayer(
 	end
 
 	local newEntity = Entity.new(config, character, modelRepMode :: any)
+
 	Holder.SetAsCharacter(player, newEntity)
 	Entity.SetNetworkOwner(newEntity, player)
 

@@ -207,6 +207,7 @@ local function PushCFrameFor(
 		SetTickMode(entity, isHalfTick)
 	end
 	entity.isHalfTicked = isHalfTick
+
 	Entity.Push(entity, time, cframe)
 	return true
 end
@@ -313,13 +314,11 @@ end
 UnreliableEvent.OnClientEvent:Connect(HandleUnreliable)
 ReliableEvent.OnClientEvent:Connect(HandleReliable)
 
-if Config.FLAGS.HEARTBEAT_CLOCK_SYNC then
-	HeartbeatRemote.OnClientEvent:Connect(function(time: number)
-		for clock in ClientClock.serverOwnedClocks do
-			clock:OnSnapShot(time)
-		end
-	end)
-end
+HeartbeatRemote.OnClientEvent:Connect(function(time: number)
+	for clock in ClientClock.serverOwnedClocks do
+		clock:OnSnapShot(time)
+	end
+end)
 
 local lastByteCheckTime = 0
 RunService.Heartbeat:Connect(function()

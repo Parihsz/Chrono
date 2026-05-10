@@ -45,19 +45,27 @@ local function GetEstimatedServerTime(clientClock: Types.ClientClock): number
 	return clientClock.lastClockAt + (os.clock() - clientClock.lastClockDuration)
 end
 
+local function CheckHasLastClockAt(clientClock: Types.ClientClock,sendTime: number)
+	if not clientClock.lastClockAt then
+		clientClock.lastClockAt = sendTime
+		clientClock.lastClockDuration = os.clock()
+		clientClock.renderAt = nil
+	end
+end
+
 local function OnSnapShot(clientClock: Types.ClientClock, currentSendTime: number)
 	local now = os.clock()
+
+	if not clientClock.lastClockAt then
+		CheckHasLastClockAt(clientClock, currentSendTime)
+		return
+	end
 
 	if clientClock.buffer then
 		BufferTracker.Register(clientClock.buffer, currentSendTime)
 	end
 
-	if not clientClock.lastClockAt then
-		clientClock.lastClockAt = currentSendTime
-		clientClock.lastClockDuration = now
-		clientClock.renderAt = nil
-		return
-	end
+	CheckHasLastClockAt(clientClock, currentSendTime)
 
 	if currentSendTime > clientClock.lastClockAt then
 		clientClock.lastClockAt = currentSendTime

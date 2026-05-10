@@ -172,7 +172,6 @@ local function FireEvent(entity: Entity, eventName: string, ...: any)
 end
 
 local function CheckNetworkOwner(self: Entity, prev: Player?)
-	prev = prev or self.networkOwner
 	self.isContextOwner = self.networkOwner == LOCAL_PLAYER
 	local isSameOwner = self.networkOwner == prev
 	if not isSameOwner then
@@ -234,6 +233,7 @@ local function CheckNetworkOwner(self: Entity, prev: Player?)
 	end
 	if self.networkOwner then
 		local ownedEntities = clientOwned[self.networkOwner]
+
 		if not ownedEntities then
 			return
 		end
@@ -244,7 +244,7 @@ local function CheckNetworkOwner(self: Entity, prev: Player?)
 end
 
 function Entity.SyncOwnerShip(self: Entity)
-	CheckNetworkOwner(self)
+	CheckNetworkOwner(self,self.networkOwner)
 end
 
 local function CheckModelReplicationMode(entity: Entity, mode: Types.MODEL_REPLICATION_MODE?): "NATIVE" | "CUSTOM"
