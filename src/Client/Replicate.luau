@@ -106,7 +106,8 @@ local TotalCulled = 0
 local MovedThisFrame = 0
 
 local function Interpolate(entity: Types.Entity)
-	if not entity.interpolation or entity.entityConfig.CUSTOM_INTERPOLATION then
+	local config = entity.entityConfig
+	if not entity.interpolation or config.CUSTOM_INTERPOLATION then
 		return
 	end
 	local primaryPart = Entity.GetPrimaryPart(entity)
@@ -114,8 +115,16 @@ local function Interpolate(entity: Types.Entity)
 	if not primaryPart then
 		return
 	end
+
 	if entity.isContextOwner then
 		return
+	end
+
+	if config.ASSEMBLY_ROOT_PART_CHECK then
+		if primaryPart.AssemblyRootPart ~= primaryPart then
+			Warn.low("Primary part for entity " .. entity.id .. " is not the assembly root part. Skipping interpolation for this entity.")
+			return
+		end
 	end
 
 	local currentEntityTick = entity._outofBroadPhaseTick

@@ -169,6 +169,7 @@ local ENTITY_TYPES = {
 * `NORMAL_TICK_DISTANCE` - Overrides the default normal tick distance for this entity type.
 * `HALF_TICK_DISTANCE` - Overrides the default half tick distance for this entity type.
 * `CUSTOM_INTERPOLATION` - Whether to use custom interpolation for this entity. Default is false. If is true then chrono will not interpolate the entity automatically on the client.
+* `ASSEMBLY_ROOT_PART_CHECK` - Checks if the part is marked as the root assembly part of the model. This is useful for when the model is being grabbed.
 
 !!! warning
     NAME field is required if modifying the config table directly. But when using `RegisterEntityType`, the name is taken from the first argument.

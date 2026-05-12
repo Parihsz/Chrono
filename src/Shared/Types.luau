@@ -93,6 +93,7 @@ export type EntityConfig = {
 	NORMAL_TICK_DISTANCE: number?,
 	HALF_TICK_DISTANCE: number?,
 	CUSTOM_INTERPOLATION: boolean?,
+	ASSEMBLY_ROOT_PART_CHECK: boolean?
 }
 
 export type EntityConfigInput = {
@@ -102,6 +103,7 @@ export type EntityConfigInput = {
 	AUTO_UPDATE_POSITION: boolean?, -- If false have to manually call Entity.push
 	STORE_SNAPSHOTS: boolean?, -- Should snapshots be stored on the server. Excludes client owned
 	MODEL_REPLICATION_MODE: MODEL_REPLICATION_MODE?,
+	ASSEMBLY_ROOT_PART_CHECK: boolean?, -- If true, will check if the primary part is the root part of the model or inside the model.
 
 	NORMAL_TICK_DISTANCE: number?,
 	HALF_TICK_DISTANCE: number?,

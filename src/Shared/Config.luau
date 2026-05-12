@@ -111,6 +111,7 @@ local ENTITY_TYPES: { [string]: Types.EntityConfig } = {
 		MODEL_REPLICATION_MODE = "NATIVE",
 		BUFFER = 0, -- handled dynamically for players
 		TICK_RATE = 1 / 20,
+		ASSEMBLY_ROOT_PART_CHECK = true,
 	},
 }
 local ENTITY_MODELS = {}

@@ -34,6 +34,8 @@
 
 - `mountOffset` : `CFrame?` - The offset CFrame of this entity when mounted to a parent entity.
 
+- `interpolation` : `Boolean` - If this is false, Chrono will not interpolate the entity on the client. 
+
 !!! info
     For setting properties use the appropriate methods like `Entity.SetBroadPhase`, `Entity.SetAutoUpdatePosition`, etc. Goes the same for getting properties.
 
