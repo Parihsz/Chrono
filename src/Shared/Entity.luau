@@ -260,6 +260,7 @@ local function CheckModelReplicationMode(entity: Entity, mode: Types.MODEL_REPLI
 		Warn.medium(`Invalid model replication mode {mode} for entity id {entity.id}, defaulting to NATIVE`)
 		mode = "NATIVE"
 	end
+	entity._lockedCFReplication = false
 	if mode == "NATIVE_WITH_LOCK" then
 		mode = "NATIVE"
 		entity._lockedCFReplication = true
@@ -273,18 +274,20 @@ local function SetModel(
 	modelReplicationMode: Types.MODEL_REPLICATION_MODE?,
 	noDestroy: boolean?
 ): ()
-	local isCustom = self.modelReplicationMode == "CUSTOM"
+	local wasCustom = self.modelReplicationMode == "CUSTOM"
 
 	if IS_SERVER then
+		if self.modelReplicationMode == "NATIVE" then
+			Entity.UnlockNativeServerCFrameReplication(self)
+		end
 		if not noDestroy then
 			SafeDestroy(self.model)
 		end
 		self.model = nil
-	elseif not IS_SERVER and isCustom then
+	elseif not IS_SERVER and wasCustom then
 		SafeDestroy(self.model)
 		self.model = nil
 	end
-	local locked = self._lockedCFReplication
 	local modelString
 	if type(model) == "string" then
 		modelString = model
@@ -346,9 +349,7 @@ local function SetModel(
 	if self.latestCFrame then
 		primaryPart.CFrame = self.latestCFrame
 	end
-	if locked and IS_SERVER then
-		LockCFReplication(primaryPart)
-	end
+
 
 	self.modelReplicationMode = Entity.GetModelReplicationType(self) :: any
 	if self.modelReplicationMode == "NATIVE_WITH_LOCK" then
