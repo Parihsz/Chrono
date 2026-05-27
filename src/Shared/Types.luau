@@ -75,6 +75,17 @@ export type Snapshot<Value, Velocity> = {
 	Clear: (self: Snapshot<Value, Velocity>) -> (),
 }
 
+export type PlayerEntityHolder = {
+	PLAYER: Player,
+	HALF: { Entity },
+	NORMAL: { Entity },
+	_TEMP_HALF: { Entity },
+	_TEMP_NORMAL: { Entity },
+	REPLICATED: { [Entity]: true },
+	EntityAdded: Signal<(Entity)-> (), Entity>,
+	EntityRemoving: Signal<(Entity)-> (), Entity>,
+}
+
 export type MODEL_REPLICATION_MODE = "NATIVE" | "NATIVE_WITH_LOCK" | "CUSTOM"
 export type EntityConfig = {
 	NAME: string,
@@ -93,7 +104,7 @@ export type EntityConfig = {
 	NORMAL_TICK_DISTANCE: number?,
 	HALF_TICK_DISTANCE: number?,
 	CUSTOM_INTERPOLATION: boolean?,
-	ASSEMBLY_ROOT_PART_CHECK: boolean?
+	ASSEMBLY_ROOT_PART_CHECK: boolean?,
 }
 
 export type EntityConfigInput = {

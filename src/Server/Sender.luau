@@ -158,6 +158,9 @@ local function ReplicatePlayer(player: Player)
 	local replicatedOLD = holder.REPLICATED -- Leftovers will be removed
 	local replicated = table.clone(replicatedOLD)
 	holder.REPLICATED = replicated
+
+	local holderEntityAdded = holder.EntityAdded
+	local holderEntityRemoving = holder.EntityRemoving
 	local normal = holder.NORMAL
 	local half = holder.HALF
 
@@ -191,6 +194,7 @@ local function ReplicatePlayer(player: Player)
 		end
 		replicated[entity] = true
 		if not replicatedOLD[entity] then
+			holderEntityAdded:Fire(entity)
 			table.insert(toSendFull, GetEntityFullData(player, entity))
 			return
 		end
@@ -237,6 +241,7 @@ local function ReplicatePlayer(player: Player)
 
 	for entity, _ in replicatedOLD do
 		replicated[entity] = nil
+		holderEntityRemoving:Fire(entity)
 		table.insert(toRemove, entity._lastId or entity.id)
 	end
 

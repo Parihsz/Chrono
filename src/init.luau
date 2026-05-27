@@ -13,6 +13,7 @@ local Holder = require(script.Shared.Holder)
 local ReplicationRules = require(script.Shared.ReplicationRules)
 local Snapshots = require(script.Shared.Snapshots)
 local Types = require(script.Shared.Types)
+local EntityGrid = require(script.Server.EntityGrid)
 
 export type SnapshotData<Value, Velocity> = Types.SnapshotData<Value, Velocity>
 export type Signal<fx, T...> = Types.Signal<fx, T...>
@@ -30,6 +31,7 @@ export type ClientClock = Types.ClientClock
 export type ReplicationRule = Types.ReplicationRule
 export type EntityReceivePacket = Types.EntityReceivePacket
 export type Entity = Types.Entity
+export type PlayerEntityHolder = Types.PlayerEntityHolder
 
 local function CheckVersion()
 	task.spawn(function()
@@ -90,4 +92,5 @@ return {
 	ServerClock = ServerClock,
 	Player = Player,
 	ServerReceiver = Receiver,
+	EntityGrid = EntityGrid,
 }

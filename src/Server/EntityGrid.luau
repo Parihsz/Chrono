@@ -67,6 +67,7 @@ local Types = require(Shared.Types)
 local Holder = require(Shared.Holder)
 local Ticker = require(Shared.Ticker)
 local Entity = require(Shared.Entity)
+local Signal = require(Shared.Signal)
 
 local SetTickMode = Entity._SetTickMode
 
@@ -81,14 +82,8 @@ local FULL_TICKED = 0
 local HALF_TICKED = 0
 local UN_TICKED = 0
 
-type PlayerEntityHolder = {
-	PLAYER: Player,
-	HALF: { Entity },
-	NORMAL: { Entity },
-	_TEMP_HALF: { Entity },
-	_TEMP_NORMAL: { Entity },
-	REPLICATED: { [Entity]: true },
-}
+
+type PlayerEntityHolder = Types.PlayerEntityHolder
 
 local entities = Holder.idMap
 local playerTablePositionPair: { [PlayerEntityHolder]: vector } = {}
@@ -262,6 +257,8 @@ local function PlayerAdded(player: Player)
 		REPLICATED = {},
 		_TEMP_HALF = {},
 		_TEMP_NORMAL = {},
+		EntityAdded = Signal.new(),
+		EntityRemoving = Signal.new(),
 	}
 	playerToHolder[player] = t
 	playerTablePositionPair[t] = vector.zero
@@ -274,6 +271,8 @@ if RunService:IsServer() then
 		if not holder then
 			return
 		end
+		holder.EntityAdded:DisconnectAll()
+		holder.EntityRemoving:DisconnectAll()
 		playerTablePositionPair[holder] = nil
 		playerToHolder[player] = nil
 	end)
