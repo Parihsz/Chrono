@@ -351,7 +351,7 @@ local function HandleEntity(plr, entity: Types.Entity)
 		clear()
 		HandleModel(entity)
 	end))
-	local destroyEvent 
+	local destroyEvent
 	local event = Entity.GetEvent(entity, "NetworkOwnerChanged"):Once(function()
 		clear()
 		clear2()
@@ -376,6 +376,14 @@ local function HandleCFrameSetters()
 		Events.PlayerOwnedAdded:Connect(HandleEntity, true)
 	else
 		Events.PlayerCharacterRegistered:Connect(HandleEntity, true)
+	end
+
+	for _, entity in Holder.idMap do
+		if mode == "PLAYER_ENTITIES" and entity.networkOwner then
+			HandleEntity(entity.networkOwner, entity)
+		elseif mode == "PLAYER_CHARACTERS" and entity._player then
+			HandleEntity(entity._player, entity)
+		end
 	end
 end
 
