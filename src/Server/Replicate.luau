@@ -6,6 +6,7 @@ local RunService = game:GetService("RunService")
 
 local Shared = script.Parent.Parent.Shared
 
+local ApplyMounts = require(Shared.ApplyMounts)
 local Warn = require(Shared.Warn)
 local Bin = require(Shared.Bin)
 local Holder = require(Shared.Holder)
@@ -288,6 +289,7 @@ end
 
 local function Update()
 	EntityGrid.Update()
+	ApplyMounts()
 	UpdatePlayerPositions()
 	UpdateTickers()
 	CheckEntityChanges()
