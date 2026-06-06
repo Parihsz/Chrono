@@ -1,6 +1,6 @@
 --!native
 local Players = game:GetService("Players")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
 local RunService = game:GetService("RunService")
 
 local Config = require(script.Parent.Parent.Shared.Config)
@@ -81,7 +81,6 @@ local lastUpdate = 0
 local FULL_TICKED = 0
 local HALF_TICKED = 0
 local UN_TICKED = 0
-
 
 type PlayerEntityHolder = Types.PlayerEntityHolder
 

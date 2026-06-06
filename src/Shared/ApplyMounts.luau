@@ -1,4 +1,5 @@
 --!native
+
 local Entity = require(script.Parent.Entity)
 local Events = require(script.Parent.Events)
 local Holder = require(script.Parent.Holder)
@@ -10,7 +11,18 @@ local dp = {} :: { [Types.Entity]: number }
 local world = {} :: { [Types.Entity]: CFrame }
 
 local path = {} :: { Types.Entity }
+local mountedEntities = {} :: { [Types.Entity]: true }
 
+local function SetCFrame(entity: Types.Entity, cframe: CFrame)
+	local root = Entity._GetRootPart(entity)
+	if root then
+		root.CFrame = cframe
+		if entity.isContextOwner then
+			root.AssemblyAngularVelocity = Vector3.zero
+			root.AssemblyLinearVelocity = Vector3.zero
+		end
+	end
+end
 local function ResolveWorldCFrame(entity: Types.Entity): CFrame
 	local currentTime = timestamp
 	if dp[entity] == currentTime then
@@ -34,7 +46,7 @@ local function ResolveWorldCFrame(entity: Types.Entity): CFrame
 				or CFrame.identity
 			dp[current] = currentTime
 			world[current] = rootCFrame
-			Entity._SetPartCFrame(current, rootCFrame)
+			SetCFrame(current, rootCFrame)
 			break
 		end
 
@@ -49,7 +61,6 @@ local function ResolveWorldCFrame(entity: Types.Entity): CFrame
 				rootCFrame = Entity.GetAt(current, Entity.GetTargetRenderTime(current))
 					or current.latestCFrame
 					or CFrame.identity
-				Entity._SetPartCFrame(current, rootCFrame)
 			end
 			dp[current] = currentTime
 			world[current] = rootCFrame
@@ -63,7 +74,7 @@ local function ResolveWorldCFrame(entity: Types.Entity): CFrame
 				or CFrame.identity
 			dp[current] = currentTime
 			world[current] = rootCFrame
-			Entity._SetPartCFrame(current, rootCFrame)
+			SetCFrame(current, rootCFrame)
 			break
 		end
 
@@ -78,55 +89,49 @@ local function ResolveWorldCFrame(entity: Types.Entity): CFrame
 		out = out * (child.mountOffset or CFrame.identity)
 		dp[child] = currentTime
 		world[child] = out
-		Entity._SetPartCFrame(child, out)
+		SetCFrame(child, out)
 		path[i] = nil
 	end
 
 	if dp[entity] ~= currentTime then
 		dp[entity] = currentTime
 		world[entity] = out
-		Entity._SetPartCFrame(entity, out)
+		SetCFrame(entity, out)
 	end
 
 	return world[entity]
 end
 
+Events.EntityAdded:Connect(function(entity: Types.Entity)
+	if entity.mountParentId then
+		mountedEntities[entity] = true
+	end
+end, true)
+
+Events.EntityMountChanged:Connect(function(entity: Types.Entity, mountParentId: number?)
+	if mountParentId then
+		mountedEntities[entity] = true
+	else
+		mountedEntities[entity] = nil
+	end
+end, true)
+
 Events.EntityRemoved:Connect(function(entity: Types.Entity)
 	dp[entity] = nil
 	world[entity] = nil
-end)
+	mountedEntities[entity] = nil
+end, true)
 
-return function()
+local function ApplyMounts()
 	debug.profilebegin("ApplyMounts")
-	local hasChildMount = {}
-	for _, entity in Holder.idMap do
-		if entity.destroyed or not entity.mountParentId or dp[entity] == timestamp then
+	for entity in mountedEntities do
+		if entity.destroyed or dp[entity] == timestamp then
 			continue
 		end
-		hasChildMount[entity.mountParentId] = true
 		ResolveWorldCFrame(entity)
 	end
 	timestamp += 1
-
-	for _, entity in Holder.idMap do
-		if entity.destroyed or entity.mountParentId or not hasChildMount[entity.id] then
-			continue
-		end
-
-		if entity.isContextOwner then
-			dp[entity] = timestamp
-			local part = Entity.GetPrimaryPart(entity)
-			world[entity] = if part then part.CFrame else (entity.latestCFrame or CFrame.identity)
-			continue
-		end
-
-		local time = Entity.GetTargetRenderTime(entity)
-		local cframe = time ~= 0 and Entity.GetAt(entity, time) or entity.latestCFrame
-		if cframe then
-			--Entity._SetPartCFrame(entity, cframe)
-			dp[entity] = timestamp
-			world[entity] = cframe
-		end
-	end
 	debug.profileend()
 end
+
+return ApplyMounts

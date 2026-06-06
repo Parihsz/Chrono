@@ -1,4 +1,3 @@
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local Warn = require(script.Parent.Parent.Shared.Warn)
@@ -45,7 +44,7 @@ local function GetEstimatedServerTime(clientClock: Types.ClientClock): number
 	return clientClock.lastClockAt + (os.clock() - clientClock.lastClockDuration)
 end
 
-local function CheckHasLastClockAt(clientClock: Types.ClientClock,sendTime: number)
+local function CheckHasLastClockAt(clientClock: Types.ClientClock, sendTime: number)
 	if not clientClock.lastClockAt then
 		clientClock.lastClockAt = sendTime
 		clientClock.lastClockDuration = os.clock()

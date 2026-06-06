@@ -288,8 +288,8 @@ end
 
 local function Update()
 	EntityGrid.Update()
-	ApplyMounts()
 	UpdatePlayerPositions()
+	ApplyMounts()
 	UpdateTickers()
 	CheckEntityChanges()
 	UpdateHeartbeat()
@@ -384,7 +384,7 @@ Config._WaitForLock(function()
 		return
 	end
 	HandleCFrameSetters()
-	RunService.PreSimulation:Connect(Update)
+	RunService.PostSimulation:Connect(Update)
 end)
 
 return nil

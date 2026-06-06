@@ -2,6 +2,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local Chrono = ReplicatedStorage.Packages.chrono
+local Holder = require(ReplicatedStorage.Packages.chrono.Shared.Holder)
 local Config = require(Chrono.Shared.Config)
 local Entity = require(Chrono.Shared.Entity)
 
@@ -37,6 +38,7 @@ return {
 		local child1 = Entity.new("MOUNT_TEST", "ChildEntity", nil, CFrame.new(0, 10, 0))
 		local child2 = Entity.new("MOUNT_TEST", "ChildEntity", nil, CFrame.new(0, 10, 0))
 
+
 		Entity.SetMount(child1, root, CFrame.new(5, 0, 0))
 		Entity.SetMount(child2, root, CFrame.new(-5, 0, 0))
 
@@ -57,12 +59,14 @@ return {
 		local t = 0
 		RunService.Heartbeat:Connect(function(dt)
 			t += dt
-
+			local plrEntity = Holder.GetEntityFromPlayer(p)
 			local part = Entity.GetPrimaryPart(root)
 			if part then
 				part.Anchored = true
-				part.CFrame = CFrame.new(math.cos(t) * 10, 10 + math.sin(t * 2) * 3, math.sin(t) * 10)
+				local cf = CFrame.new(math.cos(t) * 10, 10 + math.sin(t * 2) * 3, math.sin(t) * 10)
 					* CFrame.Angles(0, t, 0)
+				Entity.SetMount(root,plrEntity,cf)
+				--part.CFrame = cf
 			end
 
 			for _, entity in { root, child1, child2, grandchild, orphan } do

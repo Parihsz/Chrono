@@ -129,6 +129,11 @@ local function GetAt<Value, Velocity>(self: Snapshot<Value, Velocity>, at: numbe
 		return self.cache[index].value
 	end
 
+	if at < 0 then
+		local latest = GetLatest(self)
+		return latest and latest.value or nil
+	end
+
 	local cache = self.cache
 	local head = self.head
 	local lerpFunction = self.Lerp

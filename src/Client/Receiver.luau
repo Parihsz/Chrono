@@ -1,15 +1,13 @@
-local CollectionService = game:GetService("CollectionService")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local Shared = script.Parent.Parent.Shared
 
 local Warn = require(Shared.Warn)
 local Entity = require(Shared.Entity)
+local Events = require(Shared.Events)
 local Holder = require(Shared.Holder)
 local ModelHelper = require(Shared.ModelHelper)
 local Types = require(Shared.Types)
 local Stats = require(Shared.Stats).CLIENT
-local Config = require(Shared.Config)
 local ClientClock = require(script.Parent.ClientClock)
 
 local BytesReceived = 0
@@ -86,6 +84,7 @@ end
 
 local function SetMountId(entity: Types.Entity, mountParentId: number?)
 	entity.mountParentId = mountParentId
+	Events._Signals.EntityMountChanged:Fire(entity, mountParentId)
 end
 
 local function SetMountOffset(entity: Types.Entity, mountOffset: CFrame?)

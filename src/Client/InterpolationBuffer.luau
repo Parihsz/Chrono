@@ -1,5 +1,3 @@
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-
 local Warn = require(script.Parent.Parent.Shared.Warn)
 local Config = require(script.Parent.Parent.Shared.Config)
 local Types = require(script.Parent.Parent.Shared.Types)

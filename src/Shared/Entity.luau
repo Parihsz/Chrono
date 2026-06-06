@@ -79,7 +79,7 @@ local function LockCFReplication(part: BasePart?)
 	part.CFrame = initCF
 end
 
-local function SetPartCFrame(entity, cframe: CFrame)
+local function GetRootPart(entity: Entity): BasePart?
 	local primaryPart = Entity.GetPrimaryPart(entity)
 
 	if not primaryPart then
@@ -94,12 +94,19 @@ local function SetPartCFrame(entity, cframe: CFrame)
 		end
 		local lockerPart = locker:FindFirstChild("__CHRONO_LOCKER_PART") :: BasePart?
 		if not lockerPart or not lockerPart:IsA("BasePart") then
-			return
+			return primaryPart
 		end
 
-		lockerPart.CFrame = cframe
+		return lockerPart
 	else
-		primaryPart.CFrame = cframe
+		return primaryPart
+	end
+end
+
+local function SetPartCFrame(entity, cframe: CFrame)
+	local part = GetRootPart(entity)
+	if part then
+		part.CFrame = cframe
 	end
 end
 
@@ -537,6 +544,7 @@ function Entity.ClearMount(self: Entity)
 
 	SetValue(self, "mountParentId", nil)
 	SetValue(self, "mountOffset", nil)
+	Events._Signals.EntityMountChanged:Fire(self, nil)
 end
 
 --[=[
@@ -566,6 +574,7 @@ function Entity.SetMount(self: Entity, parent: Entity?, offset: CFrame?)
 
 	SetValue(self, "mountParentId", parent.id)
 	SetValue(self, "mountOffset", offset)
+	Events._Signals.EntityMountChanged:Fire(self, parent.id)
 end
 
 Entity["设置网络主控玩家"] = function(self: Entity, player: Player?)
@@ -692,12 +701,12 @@ function Entity.GetTargetRenderTime(self: Entity): number
 	if not renderCache then
 		local RenderCaches = self.entityConfig.CLIENT_CLOCK
 		if not RenderCaches then
-			return 0
+			return -1
 		end
 		renderCache = self.isHalfTicked and RenderCaches.HALF or RenderCaches.NORMAL
 	end
 	if not renderCache then
-		return 0
+		return -1
 	end
 	return renderCache:GetTargetRenderTime()
 end
@@ -919,4 +928,5 @@ Events._Signals["请不要使用_内部_设置值_拜托谢谢_嗨_这个名字�
 Entity._Changes = Changes
 Entity._GetPart = GetPart
 Entity._SetPartCFrame = SetPartCFrame
+Entity._GetRootPart = GetRootPart
 return Entity

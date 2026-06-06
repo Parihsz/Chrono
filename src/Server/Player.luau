@@ -1,6 +1,6 @@
 --!native
 local Players = game:GetService("Players")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
 local RunService = game:GetService("RunService")
 
 local Warn = require(script.Parent.Parent.Shared.Warn)

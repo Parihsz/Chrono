@@ -1,6 +1,5 @@
 local Shared = script.Parent.Parent.Shared
 
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local Warn = require(Shared.Warn)
@@ -122,7 +121,11 @@ local function Interpolate(entity: Types.Entity)
 
 	if config.ASSEMBLY_ROOT_PART_CHECK then
 		if primaryPart.AssemblyRootPart ~= primaryPart then
-			Warn.low("Primary part for entity " .. entity.id .. " is not the assembly root part. Skipping interpolation for this entity.")
+			Warn.low(
+				"Primary part for entity "
+					.. entity.id
+					.. " is not the assembly root part. Skipping interpolation for this entity."
+			)
 			return
 		end
 	end
@@ -289,9 +292,7 @@ Config._WaitForLock(function()
 		TotalInterpolationTime += (endTime - startTime)
 		AmtInterpolations += 1
 
-		debug.profilebegin("Apply Mounts")
 		ApplyMounts()
-		debug.profileend()
 		if not Stats._PAUSE then
 			Stats.TOTAL_CLIENT_ENTITIES_CHECKED_THIS_FRAME = total
 			Stats.ENTITIES_MOVED_THIS_FRAME = MovedThisFrame
