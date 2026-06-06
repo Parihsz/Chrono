@@ -9,6 +9,13 @@ local Entity = require(Chrono.Shared.Entity)
 local p = Players:GetPlayers()[1] or Players.PlayerAdded:Wait()
 local char = p.Character or p.CharacterAdded:Wait()
 
+local p2, char2
+
+task.spawn(function()
+	p2 = Players:GetPlayers()[2] or Players.PlayerAdded:Wait()
+	char2 = p2.Character or p2.CharacterAdded:Wait()
+end)
+
 return {
 	init = function()
 		char.Archivable = true
@@ -27,7 +34,7 @@ return {
 
 		Config.RegisterEntityType("MOUNT_TEST", {
 			TICK_RATE = 1 / 20,
-			FULL_ROTATION = false,
+			FULL_ROTATION = true,
 			BUFFER = 0.1,
 			MODEL_REPLICATION_MODE = "CUSTOM",
 		})
@@ -37,7 +44,6 @@ return {
 		local root = Entity.new("MOUNT_TEST", "RootEntity", nil, CFrame.new(0, 10, 0))
 		local child1 = Entity.new("MOUNT_TEST", "ChildEntity", nil, CFrame.new(0, 10, 0))
 		local child2 = Entity.new("MOUNT_TEST", "ChildEntity", nil, CFrame.new(0, 10, 0))
-
 
 		Entity.SetMount(child1, root, CFrame.new(5, 0, 0))
 		Entity.SetMount(child2, root, CFrame.new(-5, 0, 0))
@@ -65,8 +71,18 @@ return {
 				part.Anchored = true
 				local cf = CFrame.new(math.cos(t) * 10, 10 + math.sin(t * 2) * 3, math.sin(t) * 10)
 					* CFrame.Angles(0, t, 0)
-				Entity.SetMount(root,plrEntity,cf)
+				Entity.SetMount(root, plrEntity, cf)
 				--part.CFrame = cf
+			end
+
+			if p2 then
+				local plr2Entity = Holder.GetEntityFromPlayer(p2)
+				local t = t + 32
+				if plr2Entity then
+					local cf = CFrame.new(math.cos(t) * 5, 10 + math.sin(t * 2) * 3, math.sin(t) * 10)
+						* CFrame.Angles(0, t, 0)
+					Entity.SetMount(plr2Entity, plrEntity, cf)
+				end
 			end
 
 			for _, entity in { root, child1, child2, grandchild, orphan } do
