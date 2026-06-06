@@ -97,6 +97,7 @@ Events.EntityRemoved:Connect(function(entity: Types.Entity)
 end)
 
 return function()
+	debug.profilebegin("ApplyMounts")
 	local hasChildMount = {}
 	for _, entity in Holder.idMap do
 		if entity.destroyed or not entity.mountParentId or dp[entity] == timestamp then
@@ -119,11 +120,13 @@ return function()
 			continue
 		end
 
-		local cframe = Entity.GetAt(entity, Entity.GetTargetRenderTime(entity)) or entity.latestCFrame
+		local time = Entity.GetTargetRenderTime(entity)
+		local cframe = time ~= 0 and Entity.GetAt(entity, time) or entity.latestCFrame
 		if cframe then
 			--Entity._SetPartCFrame(entity, cframe)
 			dp[entity] = timestamp
 			world[entity] = cframe
 		end
 	end
+	debug.profileend()
 end

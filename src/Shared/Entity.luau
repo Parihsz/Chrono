@@ -727,7 +727,7 @@ end
 	@param cframe The CFrame to set for the entity. 
 ]=]
 function Entity.SetCFrame(self: Entity, cframe: CFrame)
-	local latestTime = (self.latestTime or 0) + 0.02
+	local latestTime = (self.latestTime or 0) + 0.00002
 	if self.snapshot then
 		--self.snapshot.lockedTime = latestTime
 	end

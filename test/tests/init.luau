@@ -2,7 +2,7 @@ local RunService = game:GetService("RunService")
 
 type tests = "" | "testPart" | "testChar" | "largeCharTest" | "testMount" | "testSetCFrame" | "testDestroying"
 
-local test: tests = ""
+local test: tests = "testSetCFrame"
 if test == "" then
 	return nil
 end
