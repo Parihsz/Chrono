@@ -29,3 +29,9 @@ Fired when a player-owned entity is added.
 Fired when a player-owned entity is removed.
 - `player` - The player who owned the entity.
 - `entity` - The entity that was removed as player-owned.
+
+### `EntityMountChanged`
+Fired when an entity's mount parent changes. Fires on both server (via `Entity.SetMount`/`Entity.ClearMount`) and client (via replication).
+- `entity` - The entity whose mount changed.
+- `mountParentId` - The new parent entity ID, or `nil` if the mount was cleared.
+

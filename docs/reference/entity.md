@@ -82,16 +82,22 @@ Gets the custom data table for this entity. Can be used to store arbitrary data.
 
 Sets the custom data table for this entity. Can be used to store arbitrary data which gets replicated to clients.
 
-### `SetMount(self: Entity, parentEntity: Entity, offset: CFrame?) -> ()`
+### `SetMount(self: Entity, parent: Entity, offset: CFrame?) -> ()`
 
-Sets the mount parent of this entity to another entity, with an optional offset CFrame.
+!!! warning "Server Only"
+    This can only be called on the server. Mount state is automatically replicated to clients.
 
-- `parentEntity` - The entity to mount this entity to.
-- `offset` - The offset CFrame of this entity when mounted to the parent entity.
+Sets the mount parent of this entity to another entity with an optional offset CFrame. Can be called every frame to animate the offset. Fires `Events.EntityMountChanged`.
+
+- `parent` - The entity to mount this entity to.
+- `offset` - The CFrame offset applied relative to the parent each frame.
 
 ### `ClearMount(self: Entity) -> ()`
 
-Clears the mount parent of this entity, if any.
+!!! warning "Server Only"
+    This can only be called on the server.
+
+Clears the mount parent of this entity, if any. Fires `Events.EntityMountChanged` with `nil`.
 
 ### `SetNetworkOwner(self: Entity, player: Player?) -> ()`
 
@@ -129,7 +135,7 @@ Gets the interpolated CFrame of this entity at the given time. Returns nil if no
 
 ### `GetTargetRenderTime(self: Entity) -> number`
 
-Gets the target render time for this entity based on buffer settings. Returns 0 if no buffering.
+Gets the target render time for this entity based on buffer settings. Returns `-1` if no render cache is configured.
 
 ### `SetAutoUpdatePosition(self: Entity, autoUpdate: boolean) -> ()`
 
