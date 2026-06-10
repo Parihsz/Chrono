@@ -64,6 +64,9 @@ Chrono replicates the model using Roblox's native replication, but locks server-
 
 **Bandwidth:** Low 
 
+!!! info
+    Another benefit of this mode is for client owned entities the server model will have a more update to date CFrame. [see](../index.md#showcase)
+
 !!! warning
     The way we current implement this is by having an server-side anchored part (hidden via camera) welded to the primary part of the model. This method will stop replication but still allow the model to be moved on the server. However, this has not been thoroughly tested in live environments so any feedback on this method is appreciated.
 

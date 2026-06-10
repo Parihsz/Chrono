@@ -82,8 +82,8 @@ export type PlayerEntityHolder = {
 	_TEMP_HALF: { Entity },
 	_TEMP_NORMAL: { Entity },
 	REPLICATED: { [Entity]: true },
-	EntityAdded: Signal<(Entity)-> (), Entity>,
-	EntityRemoving: Signal<(Entity)-> (), Entity>,
+	EntityAdded: Signal<(Entity) -> (), Entity>,
+	EntityRemoving: Signal<(Entity) -> (), Entity>,
 }
 
 export type MODEL_REPLICATION_MODE = "NATIVE" | "NATIVE_WITH_LOCK" | "CUSTOM"
