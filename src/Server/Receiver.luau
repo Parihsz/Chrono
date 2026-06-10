@@ -11,7 +11,7 @@ local Holder = require(Shared.Holder)
 local Entity = require(Shared.Entity)
 local Config = require(Shared.Config)
 local Stats = require(Shared.Stats).SERVER
-local MAX_TOTAL_BYTES_PER_FRAME_PER_PLAYER = 3000
+local BASE_MAX_TOTAL_BYTES_PER_FRAME_PER_PLAYER = 300
 
 local BytesReceived = 0
 
@@ -86,6 +86,14 @@ local function DeserializeEntityPacket(b: buffer, index: number): (number, CFram
 	return id, cframe, index, isTeleport
 end
 
+local function CalculateMaxThroughputForPlayer(player: Player): number
+	local numberOfEntities = 0
+	for _ in Holder._clientOwned[player] or {} do
+		numberOfEntities += 1
+	end
+	return BASE_MAX_TOTAL_BYTES_PER_FRAME_PER_PLAYER + numberOfEntities * (FULL_BYTES + 3)
+end
+
 local function HandleEntity(
 	player: Player,
 	id: number,
@@ -110,9 +118,12 @@ local function HandleEntity(
 		end
 	end
 
+	debug.profilebegin("HandleEntity.FireMiddleMans")
 	if FireMiddleMans(player, entity, cframe, serverClock) then
+		debug.profileend()
 		return
 	end
+	debug.profileend()
 	if Entity.Push(entity, serverClock, cframe) then
 		task.spawn(function()
 			RunService.PreAnimation:Wait()
@@ -135,15 +146,9 @@ local function OnReceive(player: Player, data: buffer)
 	end
 	TotalBytes[player] = (TotalBytes[player] or 0) + buffer.len(data)
 	BytesReceived += buffer.len(data)
-	if TotalBytes[player] > MAX_TOTAL_BYTES_PER_FRAME_PER_PLAYER then
-		Warn.medium(
-			"Player",
-			player.Name,
-			"exceeded max bytes per frame:",
-			TotalBytes[player],
-			"max:",
-			MAX_TOTAL_BYTES_PER_FRAME_PER_PLAYER
-		)
+	local maxBytes = CalculateMaxThroughputForPlayer(player)
+	if TotalBytes[player] > maxBytes then
+		Warn.medium("Player", player.Name, "exceeded max bytes per frame:", TotalBytes[player], "max:", maxBytes)
 		return
 	end
 	debug.profilebegin("Receiver.OnReceive")
