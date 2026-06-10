@@ -13,6 +13,7 @@ local function ReadyModelFromRep(entity: Types.Entity, playerSpecific: Player?):
 	local modelString = entity.modelString
 	local replicationMode: "NATIVE" | "CUSTOM" = (entity.modelReplicationMode or "NATIVE") :: any
 
+	--//TODO: FIX IF SOMEONE CLONES A MODEL THEN THE META DATA WILL GET CLONED TOO.
 	if replicationMode == "NATIVE" and model then
 		local metaStringValue: string? = model:GetAttribute(CHRONO_META_NAME) :: any
 		local metaData = metaStringValue
