@@ -31,7 +31,7 @@ For configurations, see [Getting Started: Configurations](getting-started/config
 - **Fixes Roblox replication limitations:** dynamic tick rates and distance-based replication.
 - **Smaller interpolation delay:** configurable buffer control for smoother client rendering.
 - **Snapshot history & lag compensation:** snapshots API and built in lagcomp api.
-- **Flexible model replication modes:** `NATIVE`, `NATIVE_WITH_LOCK`, and `CUSTOM` for  [bandwidth/perf tradeoffs](../guides/npcs#model-replication-mode).
+- **Flexible model replication modes:** `NATIVE`, `NATIVE_WITH_LOCK`, and `CUSTOM` for  [bandwidth/perf tradeoffs](guides/npcs#model-replication-mode).
 
 ---
 
