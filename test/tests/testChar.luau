@@ -6,8 +6,12 @@ local Entity = require(Chrono.Shared.Entity)
 local Holder = require(Chrono.Shared.Holder)
 local p = Players:GetPlayers()[1] or Players.PlayerAdded:Wait()
 local char = p.Character or p.CharacterAdded:Wait()
+task.wait(2)
 -- You should see a part in workspace (might need to disable streaming enabled)
 local function movePart(part: BasePart)
+	do
+		return
+	end
 	local dir = 1
 	local dist = 20
 	while true do
@@ -34,7 +38,7 @@ return {
 		local part = Entity.GetPrimaryPart(native)
 
 		if part then
-			part.Name = "NativeTestPart"
+			part.Parent.Name = "NativeTestPart"
 			part.Color = Color3.new(1, 0, 0)
 			task.spawn(movePart, part)
 		end
@@ -43,7 +47,7 @@ return {
 
 		local part = Entity.GetPrimaryPart(mirrored) :: BasePart?
 		if part then
-			part.Name = "MirroredTestPart"
+			part.Parent.Name = "MirroredTestPart"
 			part.Color = Color3.new(0.478431, 0.180392, 0.180392)
 			task.spawn(movePart, part)
 		end
@@ -51,8 +55,9 @@ return {
 		local custom = Entity.new(nil, "TestChar", "CUSTOM")
 		local part = Entity.GetPrimaryPart(custom) :: BasePart?
 		if part then
+			part.Parent.Name = "CustomTestPart"
 			part.Color = Color3.new(0, 1, 0)
-			part.Name = "CustomTestPart"
+
 			task.spawn(movePart, part)
 		end
 
