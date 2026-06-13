@@ -10,7 +10,7 @@ type tests =
 	| "testDestroying"
 	| "benchEntities"
 
-local test: tests = "testChar"
+local test: tests = "benchEntities"
 if test == "" then
 	return nil
 end

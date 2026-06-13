@@ -47,84 +47,6 @@ local function SafeSetNetworkOwner(part: BasePart, player: Player?)
 	end)
 end
 
-local function LockCFReplication(part: BasePart?)
-	if not part then
-		return
-	end
-	local initCF = part.CFrame
-	local previousLocker = part:FindFirstChild("__CHRONO_LOCKER")
-	if previousLocker then
-		local weld = previousLocker:FindFirstChild("__CHRONO_WELD") :: Motor6D
-		if weld then
-			weld.Part1 = part
-			part.CFrame = initCF
-			return
-		else
-			SafeDestroy(previousLocker)
-		end
-	end
-	local camera = Instance.new("Camera", part)
-	camera.Name = "__CHRONO_LOCKER"
-	local weld = Instance.new("Weld", camera)
-	weld.Name = "__CHRONO_WELD"
-	local aPart = Instance.new("Part", camera)
-	aPart.Name = "__CHRONO_LOCKER_PART"
-	aPart.CanCollide = false
-	aPart.CanQuery = false
-	aPart.CanTouch = false
-	aPart.Color = Color3.new(1, 0, 0)
-	aPart.Anchored = true
-	weld.Part0 = aPart
-	weld.Part1 = part
-	part.CFrame = initCF
-end
-
-local function GetRootPart(entity: Entity): BasePart?
-	local primaryPart = Entity.GetPrimaryPart(entity)
-
-	if not primaryPart then
-		return
-	end
-
-	if IS_SERVER and entity._lockedCFReplication then
-		local locker = primaryPart:FindFirstChild("__CHRONO_LOCKER")
-
-		if not locker then
-			return
-		end
-		local lockerPart = locker:FindFirstChild("__CHRONO_LOCKER_PART") :: BasePart?
-		if not lockerPart or not lockerPart:IsA("BasePart") then
-			return primaryPart
-		end
-
-		return lockerPart
-	else
-		return primaryPart
-	end
-end
-
-local function SetPartCFrame(entity, cframe: CFrame)
-	local part = GetRootPart(entity)
-	if part then
-		part.CFrame = cframe
-	end
-end
-
-local function UnlockCFReplication(part: BasePart?)
-	if not part then
-		return
-	end
-	local locker = part:FindFirstChild("__CHRONO_LOCKER")
-	if locker then
-		local weld = locker:FindFirstChild("__CHRONO_WELD") :: Motor6D
-		if weld then
-			weld.Part1 = nil
-		else
-			SafeDestroy(locker)
-		end
-	end
-end
-
 local function GetPart(self: Types.Entity): BasePart?
 	local model = self.model
 	if not model then
@@ -151,6 +73,93 @@ local function GetPart(self: Types.Entity): BasePart?
 		end
 	end
 	return nil
+end
+
+local function GetRootPart(entity: Entity): BasePart?
+	local primaryPart = Entity.GetPrimaryPart(entity)
+
+	if not primaryPart then
+		return
+	end
+
+	if IS_SERVER and entity._lockedCFReplication then
+		local locker = primaryPart:FindFirstChild("__CHRONO_LOCKER")
+
+		if not locker then
+			return
+		end
+		local lockerPart = locker:FindFirstChildWhichIsA("BasePart")
+		if not lockerPart or not lockerPart:IsA("BasePart") then
+			return primaryPart
+		end
+
+		return lockerPart
+	else
+		return primaryPart
+	end
+end
+
+local function LockCFReplication(part: BasePart?): BasePart?
+	if not part then
+		return
+	end
+	local initCF = part.CFrame
+	local previousLocker = part:FindFirstChild("__CHRONO_LOCKER")
+	if previousLocker then
+		local weld = previousLocker:FindFirstChild("__CHRONO_WELD") :: Motor6D
+		if weld then
+			weld.Part1 = part
+			part.CFrame = initCF
+			return weld.Part0
+		else
+			SafeDestroy(previousLocker)
+		end
+	end
+
+	local camera = Instance.new("Camera", part)
+	camera.Archivable = false
+	camera.Name = "__CHRONO_LOCKER"
+	local weld = Instance.new("Weld", camera)
+	weld.Name = "__CHRONO_WELD"
+	local locker = Instance.fromExisting(part)
+	locker.CustomPhysicalProperties = PhysicalProperties.new(0.0001, 0, 0, 0, 0)
+	--locker.Name = "__CHRONO_LOCKER_PART"
+	locker.Parent = camera
+	locker.CanCollide = false
+	locker.CanQuery = false
+	locker.CanTouch = false
+	locker.Transparency = 0
+	locker.Color = Color3.new(1, 0, 0)
+	-- locker.Size = Vector3.new(1, 2, 1)
+	--locker.Anchored = true
+	weld.Part0 = locker
+	weld.Part1 = part
+	part.CFrame = initCF
+	return locker
+end
+
+local function SetPartCFrame(entity, cframe: CFrame)
+	local part = GetRootPart(entity)
+	if part then
+		part.CFrame = cframe
+	end
+end
+
+local function UnlockCFReplication(part: BasePart?)
+	if not part then
+		return
+	end
+	local locker = part:FindFirstChild("__CHRONO_LOCKER")
+	if locker then
+		-- local weld = locker:FindFirstChild("__CHRONO_WELD") :: Motor6D
+		-- if weld then
+		-- 	weld.Part1 = nil
+		-- else
+		-- 	SafeDestroy(locker)
+		-- end
+		--Safer overall to just destroy and recreate
+		locker:Destroy()
+	end
 end
 
 local function SetValue(entity: Entity, key: string, value: any, bypass: boolean?, specialValue: any)
@@ -196,6 +205,11 @@ local function CheckNetworkOwner(self: Entity, prev: Player?)
 			SafeSetNetworkOwner(part, self.networkOwner)
 			if locked then
 				LockCFReplication(part)
+				local root = GetRootPart(self)
+				if root then
+					SafeSetNetworkOwner(root, self.networkOwner)
+					root.Anchored = not isSameOwner
+				end
 			end
 		end
 
@@ -203,6 +217,18 @@ local function CheckNetworkOwner(self: Entity, prev: Player?)
 			self.snapshot = nil
 		elseif not self.snapshot then
 			self.snapshot = Snapshot(InterpolationMath.Hermite)
+		end
+	else
+		local locked = self._lockedCFReplication
+
+		if locked and self.isContextOwner then
+			local part = GetPart(self)
+			if part then
+				LockCFReplication(part)
+				self._cfLockFailed = nil
+			else
+				self._cfLockFailed = true
+			end
 		end
 	end
 
@@ -284,8 +310,10 @@ local function SetModel(
 	local wasCustom = self.modelReplicationMode == "CUSTOM"
 
 	if IS_SERVER then
-		if self.modelReplicationMode == "NATIVE" then
-			Entity.UnlockNativeServerCFrameReplication(self)
+		if self.modelReplicationMode == "NATIVE" and self._lockedCFReplication then
+			local part = GetPart(self)
+			self._lockedCFReplication = false
+			UnlockCFReplication(part)
 		end
 		if not noDestroy then
 			SafeDestroy(self.model)
@@ -294,6 +322,10 @@ local function SetModel(
 	elseif not IS_SERVER and wasCustom then
 		SafeDestroy(self.model)
 		self.model = nil
+	elseif not IS_SERVER and self._lockedCFReplication then
+		local part = GetPart(self)
+		self._lockedCFReplication = false
+		UnlockCFReplication(part)
 	end
 	local modelString
 	if type(model) == "string" then
@@ -333,9 +365,10 @@ local function SetModel(
 
 	local primaryPart = GetPart(self)
 	if _model and not primaryPart then
-		Warn.medium(`{_model:GetFullName()} must have a PrimaryPart set for things like autoReplication and movement.`)
+		local warn = IS_SERVER and Warn.high or Warn.low
+		warn(`{_model:GetFullName()} must have a PrimaryPart set for things like autoReplication and movement.`)
 	elseif _model and not _model.Archivable then
-		Warn.medium(
+		Warn.low(
 			`{_model:GetFullName()} is not Archivable. It is recommended to set Archivable to true for entity models to prevent potential issues when cloning. Archivable has been set to true automatically.`
 		)
 		_model.Archivable = true
@@ -347,11 +380,6 @@ local function SetModel(
 
 	local initCFrame = primaryPart.CFrame
 
-	--//TODO: might want to include native_with_lock to this, but that requires
-	--//us to send that the model is native_with_lock to the client as well
-	if not IS_SERVER and not self.isContextOwner and replicationMode == "CUSTOM" then
-		primaryPart.Anchored = true
-	end
 	if not self.latestCFrame then
 		Entity.SetCFrame(self, initCFrame or primaryPart.CFrame)
 	end
@@ -361,7 +389,11 @@ local function SetModel(
 
 	self.modelReplicationMode = Entity.GetModelReplicationType(self) :: any
 	if self.modelReplicationMode == "NATIVE_WITH_LOCK" then
+		self._lockedCFReplication = true
 		self.modelReplicationMode = "NATIVE"
+	end
+	if not IS_SERVER and not self.isContextOwner and (replicationMode == "CUSTOM" or self._lockedCFReplication) then
+		primaryPart.Anchored = true
 	end
 end
 
@@ -785,9 +817,10 @@ function Entity.LockNativeServerCFrameReplication(self: Entity)
 		if self._lockedCFReplication then
 			return
 		end
-		self._lockedCFReplication = true
-		local part = GetPart(self)
-		LockCFReplication(part)
+		SetValue(self, "_lockedCFReplication", true)
+
+		CheckNetworkOwner(self, self.networkOwner)
+
 		FireEvent(self, "LockChanged", true)
 	else
 		error("LockNativeServerCFrameReplication can only be called on the server")
@@ -809,9 +842,10 @@ function Entity.UnlockNativeServerCFrameReplication(self: Entity)
 		if not self._lockedCFReplication then
 			return
 		end
-		self._lockedCFReplication = false
+		SetValue(self, "_lockedCFReplication", false)
 		local part = GetPart(self)
 		UnlockCFReplication(part)
+		CheckNetworkOwner(self, self.networkOwner)
 		FireEvent(self, "LockChanged", false)
 	else
 		error("LockNativeServerCFrameReplication can only be called on the server")
@@ -820,10 +854,11 @@ end
 
 --[=[
 	Returns the current model replication type of the entity, which can be "NATIVE", "CUSTOM", or "NATIVE_WITH_LOCK".
-	NATIVE_WITH_LOCK may appear as native on the client.	
+
 ]=]
 function Entity.GetModelReplicationType(self: Entity): "NATIVE" | "CUSTOM" | "NATIVE_WITH_LOCK"
 	local mode = self.modelReplicationMode
+
 	if not mode then
 		mode = self.entityConfig.MODEL_REPLICATION_MODE
 	end
@@ -843,7 +878,6 @@ function Entity.Destroy(self: Entity)
 	self.destroyed = true
 	FireEvent(self, "Destroying")
 	Holder.UnregisterEntity(self)
-
 	if self._clientClock then
 		self._clientClock:Destroy()
 	end
@@ -854,6 +888,9 @@ function Entity.Destroy(self: Entity)
 		if modeType == "CUSTOM" then
 			SafeDestroy(self.model)
 		elseif primaryPat then
+			if self._lockedCFReplication then
+				UnlockCFReplication(primaryPat)
+			end
 			primaryPat.CFrame = CFrame.new(0, 1000000, 0)
 		end
 	else
@@ -930,4 +967,6 @@ Entity._Changes = Changes
 Entity._GetPart = GetPart
 Entity._SetPartCFrame = SetPartCFrame
 Entity._GetRootPart = GetRootPart
+Entity._LockPartPhysicsReplication = LockCFReplication
+Entity._UnlockPartPhysicsReplication = UnlockCFReplication
 return Entity

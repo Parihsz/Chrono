@@ -9,9 +9,6 @@ local char = p.Character or p.CharacterAdded:Wait()
 task.wait(2)
 -- You should see a part in workspace (might need to disable streaming enabled)
 local function movePart(part: BasePart)
-	do
-		return
-	end
 	local dir = 1
 	local dist = 20
 	while true do
