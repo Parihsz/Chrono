@@ -236,7 +236,7 @@ return {
 	end,
 
 	server = function()
-		task.wait(40) -- uncomment this for two local clients test
+		--task.wait(40) -- uncomment this for two local clients test
 
 		if MODE == "ALL" then
 			local function runAll()
