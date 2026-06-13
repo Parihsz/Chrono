@@ -4,7 +4,7 @@ When v1 was being developed it was designed around for player characters and add
 
 ## Starting Chrono
 
-The startup process remains the same—call `Chrono.Start()` on both server and client.
+The startup process remains the same-call `Chrono.Start()` on both server and client.
 
 ## Configurations
 

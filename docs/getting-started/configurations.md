@@ -128,7 +128,7 @@ PLAYER_REPLICATION = "AUTOMATIC"
 ### Model Replication Modes
 
 * `NATIVE` - Chrono replicates the model along with using Roblox's native model replication. This is good for cases where you want more responsive replication and don't mind the extra bandwidth.
-* `NATIVE_WITH_LOCK` - Chrono replicates the model along with using Roblox's native model replication, but locks the model to disable Roblox's native replication and physics. This is good for client-owned models where server doesn't need to simulate physics. Calls `LockNativeServerCFrameReplication` internally.
+* `NATIVE_WITH_LOCK` - Chrono replicates the model along with using Roblox's native model replication. Calls `LockNativeServerCFrameReplication` internally. 
 * `CUSTOM` - Chrono creates a server and client model separately and only replicates CFrames. This is good for low-bandwidth but requires more manual setup.
 
 ### Entity Types

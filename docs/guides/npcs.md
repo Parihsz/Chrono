@@ -54,21 +54,21 @@ Chrono replicates the model along with using Roblox's native model replication. 
 
 **Best for:** Physics-based NPCs, simpler setups where you want to leverage Roblox's native replication and don't mind the extra bandwidth.
 
-**Bandwidth:** Medium
+**Bandwidth:** High
 
 ### NATIVE_WITH_LOCK
 
-Chrono replicates the model using Roblox's native replication, but locks server-side physics. On the client, the model is unlocked so it can simulate physics, while on the server physics is stopped to save Bandwidth. Calls `Entity.LockNativeServerCFrameReplication` internally.
+Chrono replicates the model using Roblox's native replication, but disables physics replication. Calls `Entity.LockNativeServerCFrameReplication` internally. For client owned entities they their server physics will be disabled.
 
-**Best for:** Client-owned entities (player characters, client-controlled objects) where you want the client to still be able to simulate physics but the server doesn't need to and saving bandwidth is a concern.
+**Best for:** Cases where you want to reduce bandwidth compared to NATIVE mode but still want to use Roblox's native model replication. 
 
-**Bandwidth:** Low 
+**Bandwidth:** Low - Medium
 
 !!! info
     Another benefit of this mode is for client owned entities the server model will have a more update to date CFrame. [see](../index.md#showcase)
 
 !!! warning
-    The way we current implement this is by having an server-side anchored part (hidden via camera) welded to the primary part of the model. This method will stop replication but still allow the model to be moved on the server. However, this has not been thoroughly tested in live environments so any feedback on this method is appreciated.
+    The way we current implement this is by having an server-side  part (hidden via camera) welded to the primary part of the model. This method will stop replication but still allow the model to be moved on the server. However, this has not been thoroughly tested in live environments so any feedback on this method is appreciated.
 
 
 ### CUSTOM

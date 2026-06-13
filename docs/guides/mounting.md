@@ -14,7 +14,7 @@ Entity.ClearMount(follower)
 ```
 
 ## Dynamic offsets
-Calling `SetMount` every frame with a new offset is valid and efficient — no need to clear first. This is how you do orbiting, animated attachments, etc.
+Calling `SetMount` every frame with a new offset is valid and efficient - no need to clear first. This is how you do orbiting, animated attachments, etc.
 ```lua
 RunService.Heartbeat:Connect(function(dt)
     t += dt
@@ -24,7 +24,7 @@ end)
 ```
 
 ## Chaining
-Mounts nest — mount an arm to a body, a hand to the arm, a weapon to the hand, etc.
+Mounts nest - mount an arm to a body, a hand to the arm, a weapon to the hand, etc.
 ```lua
 Entity.SetMount(arm, body, cframe)
 Entity.SetMount(hand, arm, cframe)
@@ -32,7 +32,7 @@ Entity.SetMount(hand, arm, cframe)
 The resolver walks up the chain once, finds the root, then applies offsets back down. Results are cached per frame so even deep trees do one pass of work.
 
 ## Player entities as parents
-A player entity can be the parent. The player's physics is client-owned, so Chrono reads its position as a reference — it does not force-set the player's CFrame.
+A player entity can be the parent. The player's physics is client-owned, so Chrono reads its position as a reference - it does not force-set the player's CFrame.
 ```lua
 local plrEntity = Holder.GetEntityFromPlayer(player)
 Entity.SetMount(attachedThing, plrEntity, CFrame.new(0, 3, 0))
@@ -54,4 +54,4 @@ end)
 * **Server-only.** `SetMount` and `ClearMount` must be called from the server. Mount state is replicated to clients automatically.
 * Parents must be registered entities before mounting.
 * Mounting continuously zeros the child's linear and angular velocity to keep it locked to the parent.
-* Mounting does not affect collision — a child can phase through geometry if the parent moves into a wall.
+* Mounting does not affect collision - a child can phase through geometry if the parent moves into a wall.
