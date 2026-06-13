@@ -137,6 +137,16 @@ local function HandleChanges(changes: { id: number, data: { { any } } })
 			else
 				Entity.ResumeReplication(entity)
 			end
+		elseif key == "_lockedCFReplication" then
+			entity._lockedCFReplication = value
+			if not value then
+				local part = Entity._GetPart(entity)
+				if part then
+					Entity._UnlockPartPhysicsReplication(part)
+				end
+			else
+				Entity.SyncOwnerShip(entity)
+			end
 		else
 			Warn.high("Unhandled entity change key:", key)
 		end
@@ -162,6 +172,7 @@ local function HandleNewEntity(data: Types.EntityReceivePacket)
 	entity.mountParentId = data.mountParentId
 	entity.mountOffset = data.mountOffset or CFrame.identity
 	entity.broadPhase = data.broadPhase or entity.broadPhase
+	entity._lockedCFReplication = data._lockedCFReplication or false
 
 	Entity.Push(entity, data.time, data.cframe)
 

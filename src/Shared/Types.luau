@@ -106,6 +106,7 @@ export type EntityConfig = {
 	HALF_TICK_DISTANCE: number?,
 	CUSTOM_INTERPOLATION: boolean?,
 	ASSEMBLY_ROOT_PART_CHECK: boolean?,
+	ATTACH_MODEL_META_DATA: boolean?, -- defaults to true
 }
 
 export type EntityConfigInput = {
@@ -120,6 +121,7 @@ export type EntityConfigInput = {
 	NORMAL_TICK_DISTANCE: number?,
 	HALF_TICK_DISTANCE: number?,
 	CUSTOM_INTERPOLATION: boolean?,
+	ATTACH_MODEL_META_DATA: boolean?, -- if explicitly false then chrono will not attach meta data. See shared/ModelHelper
 	-- Might consider giving a config level replication rules instead of just entity
 }
 
@@ -180,6 +182,7 @@ export type EntityReceivePacket = {
 	mountOffset: CFrame?,
 	broadPhase: vector?,
 	_modelMetaData: string?,
+	_lockedCFReplication: boolean?,
 }
 
 export type Entity = {
@@ -201,6 +204,7 @@ export type Entity = {
 	isContextOwner: boolean,
 	networkOwner: Player?,
 	_player: Player?,
+	_cfLockFailed: boolean?,
 
 	snapshot: Snapshot<CFrame, Vector3>?,
 	latestCFrame: CFrame?,

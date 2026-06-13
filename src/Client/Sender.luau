@@ -127,6 +127,21 @@ local function CFrameChanged(cframe1: CFrame?, cframe2: CFrame?): boolean
 	return cframe1:FuzzyEq(cframe2, 0.0001) == false
 end
 
+--//This is to catch an edge case where the primarypart hasn't been replicated
+local function CheckLocker(entity: Types.Entity)
+	if entity._cfLockFailed then
+		if entity._lockedCFReplication and entity.isContextOwner then
+			local part = Entity._GetPart(entity)
+			if part then
+				Entity._LockPartPhysicsReplication(part)
+				entity._cfLockFailed = nil
+			end
+		else
+			entity._cfLockFailed = nil
+		end
+	end
+end
+
 local function CheckEntity(entity: Types.Entity)
 	if entity.destroyed or entity.paused then
 		return
@@ -148,7 +163,7 @@ local function CheckEntity(entity: Types.Entity)
 	if difference < tickRate then
 		return
 	end
-
+	CheckLocker(entity)
 	FireEvent(entity, "Ticked", difference)
 	local primaryPart = Entity.GetPrimaryPart(entity)
 

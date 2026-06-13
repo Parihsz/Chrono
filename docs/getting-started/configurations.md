@@ -170,9 +170,10 @@ local ENTITY_TYPES = {
 * `HALF_TICK_DISTANCE` - Overrides the default half tick distance for this entity type.
 * `CUSTOM_INTERPOLATION` - Whether to use custom interpolation for this entity. Default is false. If is true then chrono will not interpolate the entity automatically on the client.
 * `ASSEMBLY_ROOT_PART_CHECK` - Checks if the part is marked as the root assembly part of the model. This is useful for when the model is being grabbed.
+* `ATTACH_MODEL_META_DATA` - Whether to attach meta data to the model when using NATIVE replication mode. This is used for storing the entity id on the client in cases where the entity model isn't received when the entity is created on the client. Default is true, if false then chrono will not attach meta data to the model.
 
 !!! warning
-    NAME field is required if modifying the config table directly. But when using `RegisterEntityType`, the name is taken from the first argument.
+    `NAME` field is required if modifying the config table directly. But when using `RegisterEntityType`, the name is taken from the first argument.
 
 ### Entity Models
 

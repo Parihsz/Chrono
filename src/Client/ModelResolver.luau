@@ -40,6 +40,7 @@ return function(entity: Types.Entity)
 	if model and model.Parent then
 		return
 	end
+	
 	local metaData = entity._modelMetaData
 	if not metaData then
 		return

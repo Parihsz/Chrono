@@ -16,6 +16,13 @@ local function ReadyModelFromRep(entity: Types.Entity, playerSpecific: Player?):
 
 	--//TODO[FIXED]: FIX IF SOMEONE CLONES A MODEL THEN THE META DATA WILL GET CLONED TOO.
 	if replicationMode == "NATIVE" and model then
+		local config = entity.entityConfig
+		local attachMeta = config.ATTACH_MODEL_META_DATA ~= false -- defaults to true
+
+		if not attachMeta then
+			return model
+		end
+
 		local metaInstance: Instance = model:FindFirstChild(CHRONO_META_INSTANCE) or Instance.new("Configuration")
 		metaInstance.Name = CHRONO_META_INSTANCE
 		metaInstance.Archivable = false

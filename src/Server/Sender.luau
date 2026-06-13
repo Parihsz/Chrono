@@ -140,6 +140,7 @@ local function GetEntityFullData(player: Player, entity: Types.Entity): Types.En
 		paused = entity.paused,
 		isHalfTicked = entity.isHalfTicked,
 		_data = entity._data,
+		_lockedCFReplication = entity._lockedCFReplication,
 
 		mountParentId = entity.mountParentId,
 		mountOffset = entity.mountOffset,
