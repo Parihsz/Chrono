@@ -130,6 +130,7 @@ local function LockCFReplication(part: BasePart?): BasePart?
 	locker.CanTouch = false
 	locker.Transparency = if IS_SERVER then 0 else 1
 	locker.Color = Color3.new(1, 0, 0)
+	locker.Massless = false
 	-- locker.Size = Vector3.new(1, 2, 1)
 	--locker.Anchored = true
 	weld.Part0 = locker
