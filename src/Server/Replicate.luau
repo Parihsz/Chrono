@@ -102,7 +102,7 @@ local function PushLatest(entity: Types.Entity, time: number)
 	if entity.autoUpdatePosition and entity.isContextOwner and entity.model then
 		local primaryPart = Entity.GetPrimaryPart(entity)
 		if not primaryPart then
-			Warn.medium("Entity", entity, "has no primary part")
+			Warn.low("Entity", entity, "has no primary part")
 			return
 		end
 		local cframe = primaryPart.CFrame
@@ -311,11 +311,12 @@ local function HandleEntity(plr, entity: Types.Entity)
 		if not entity.model then
 			return
 		end
-		local primaryPart = Entity.GetPrimaryPart(entity)
-		if not primaryPart then
+
+		local partToUse = Entity._GetRootPart(entity)
+
+		if not partToUse then
 			return
 		end
-		local partToUse = primaryPart
 
 		local function CFrameChanged()
 			local cframe = partToUse.CFrame
@@ -326,21 +327,7 @@ local function HandleEntity(plr, entity: Types.Entity)
 			Entity.SetCFrame(entity, cframe)
 		end
 
-		if entity._lockedCFReplication then
-			local locker = primaryPart:FindFirstChild("__CHRONO_LOCKER")
-
-			if not locker then
-				return
-			end
-			local lockerPart = locker:FindFirstChild("__CHRONO_LOCKER_PART") :: BasePart?
-			if not lockerPart or not lockerPart:IsA("BasePart") then
-				return
-			end
-			partToUse = lockerPart
-			add(lockerPart:GetPropertyChangedSignal("CFrame"):Connect(CFrameChanged))
-		else
-			add(primaryPart:GetPropertyChangedSignal("CFrame"):Connect(CFrameChanged))
-		end
+		add(partToUse:GetPropertyChangedSignal("CFrame"):Connect(CFrameChanged))
 	end
 	local add2, clear2 = Bin()
 	add2(Entity.GetEvent(entity, "ModelChanged"):Connect(function()
