@@ -107,7 +107,8 @@ local function Check(entity: Entity)
 	local networkOwner = entity.networkOwner
 	local ownedHolder = networkOwner and playerToHolder[networkOwner]
 
-	local isNotNative = entity.modelReplicationMode ~= "NATIVE"
+	local isLocked = entity._lockedCFReplication
+	local isNotNative = isLocked or entity.modelReplicationMode ~= "NATIVE"
 	for holder, playerPos in playerTablePositionPair do
 		local viewer = holder.PLAYER
 		local allowed = ReplicationRules.Allows(entity, viewer)
@@ -203,6 +204,7 @@ local function DoLoop()
 	Stats.SERVER.ENTITIES_FULL_TICKED = FULL_TICKED
 	Stats.SERVER.ENTITIES_HALF_TICKED = HALF_TICKED
 	Stats.SERVER.NON_TICKED = UN_TICKED
+
 	for _, holder in playerToHolder do
 		local tempNormal = holder._TEMP_NORMAL
 		local tempHalf = holder._TEMP_HALF
