@@ -121,8 +121,25 @@ local function displayClientEntityStats(entity: Types.ClientEntitiesStats)
 	Iris.Text({ "Target Time: " .. tostring(entity.targetTime) })
 	Iris.Text({ "Deviation: " .. tostring(entity.deviation) })
 	Iris.Text({ "Buffered Time: " .. tostring(entity.bufferedTime) })
+	if Iris.Button({ "Clear client clock" }).clicked() then
+		local entity = entity.entity
+		local renderCache = entity._clientClock
 
+		if not renderCache then
+			local RenderCaches = entity.entityConfig.CLIENT_CLOCK
+			if RenderCaches then
+				renderCache = entity.isHalfTicked and RenderCaches.HALF or RenderCaches.NORMAL
+			end
+		end
+		if renderCache then
+			renderCache:Clear()
+		end
+	end
 	if Iris.Tree({ "Snapshots" }).state.isUncollapsed.value then
+		if Iris.Button({ "Clear Snapshots" }).clicked() then
+			local snaps: Types.Snapshot<CFrame, Vector3> = entity.entity.snapshot
+			snaps:Clear()
+		end
 		displaySnapShots(entity.snapshots)
 	end
 	Iris.End()

@@ -13,6 +13,7 @@ export type Signal<fx, T...> = {
 
 export type ClientEntitiesStats = {
 	id: number,
+	entity: Entity,
 	networkOwner: Player?,
 	isCharacter: boolean,
 	config: string,

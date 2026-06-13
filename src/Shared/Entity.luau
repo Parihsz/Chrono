@@ -251,7 +251,7 @@ local function CheckNetworkOwner(self: Entity, prev: Player?)
 end
 
 function Entity.SyncOwnerShip(self: Entity)
-	CheckNetworkOwner(self,self.networkOwner)
+	CheckNetworkOwner(self, self.networkOwner)
 end
 
 local function CheckModelReplicationMode(entity: Entity, mode: Types.MODEL_REPLICATION_MODE?): "NATIVE" | "CUSTOM"
@@ -347,6 +347,8 @@ local function SetModel(
 
 	local initCFrame = primaryPart.CFrame
 
+	--//TODO: might want to include native_with_lock to this, but that requires
+	--//us to send that the model is native_with_lock to the client as well
 	if not IS_SERVER and not self.isContextOwner and replicationMode == "CUSTOM" then
 		primaryPart.Anchored = true
 	end
@@ -356,7 +358,6 @@ local function SetModel(
 	if self.latestCFrame then
 		primaryPart.CFrame = self.latestCFrame
 	end
-
 
 	self.modelReplicationMode = Entity.GetModelReplicationType(self) :: any
 	if self.modelReplicationMode == "NATIVE_WITH_LOCK" then

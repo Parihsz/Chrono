@@ -219,14 +219,15 @@ local function updateEntityStats()
 		local averageLatency = 0
 		local deviation = 0
 		local bufferedTime = 0
+
 		if renderCache then
 			targetRender = renderCache:GetTargetRenderTime()
 			local interpolationBuff = renderCache.buffer
 			if interpolationBuff then
 				averageLatency = interpolationBuff.averageLatency
 				deviation = interpolationBuff.deviation
-				bufferedTime = RenderCache._getBuffer(renderCache)
 			end
+			bufferedTime = RenderCache._getBuffer(renderCache)
 		end
 		local primaryPart = Entity.GetPrimaryPart(entity)
 		local snapshot = entity.snapshot
@@ -242,6 +243,7 @@ local function updateEntityStats()
 		end
 		local data = {
 			id = id,
+			entity = entity,
 			networkOwner = networkOwner,
 			isCharacter = isCharacter,
 			config = configName,
