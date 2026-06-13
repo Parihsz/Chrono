@@ -13,7 +13,7 @@ local RegisteredModels = {}
 local function OnInstanceAdded(instance: Instance)
 	local metaStringValue: string? = instance:GetAttribute(CHRONO_META_NAME) :: any
 	if metaStringValue then
-		RegisteredModels[metaStringValue] = instance :: any
+		RegisteredModels[metaStringValue] = instance.Parent :: any
 		Warn.low(
 			`Model with meta {metaStringValue} was added to the game. Entities using this model will now be able to resolve it.`
 		)
@@ -36,11 +36,11 @@ end
 
 return function(entity: Types.Entity)
 	local model = entity.model
+
 	if model and model.Parent then
 		return
 	end
 	local metaData = entity._modelMetaData
-
 	if not metaData then
 		return
 	end

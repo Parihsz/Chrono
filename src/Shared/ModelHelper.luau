@@ -6,6 +6,7 @@ local Types = require(Shared.Types)
 
 local TAG = "CHRONO_MODEL_REPLICATOR"
 local CHRONO_META_NAME = "__CHRONO_MODEL_META_ID"
+local CHRONO_META_INSTANCE = "__CHRONO_MODEL_META_INSTANCE"
 
 local ids = 0
 local function ReadyModelFromRep(entity: Types.Entity, playerSpecific: Player?): (Model | string | BasePart?, string?)
@@ -13,14 +14,18 @@ local function ReadyModelFromRep(entity: Types.Entity, playerSpecific: Player?):
 	local modelString = entity.modelString
 	local replicationMode: "NATIVE" | "CUSTOM" = (entity.modelReplicationMode or "NATIVE") :: any
 
-	--//TODO: FIX IF SOMEONE CLONES A MODEL THEN THE META DATA WILL GET CLONED TOO.
+	--//TODO[FIXED]: FIX IF SOMEONE CLONES A MODEL THEN THE META DATA WILL GET CLONED TOO.
 	if replicationMode == "NATIVE" and model then
-		local metaStringValue: string? = model:GetAttribute(CHRONO_META_NAME) :: any
+		local metaInstance: Instance = model:FindFirstChild(CHRONO_META_INSTANCE) or Instance.new("Configuration")
+		metaInstance.Name = CHRONO_META_INSTANCE
+		metaInstance.Archivable = false
+		metaInstance.Parent = model
+		local metaStringValue: string? = metaInstance:GetAttribute(CHRONO_META_NAME) :: any
 		local metaData = metaStringValue
 		if not metaStringValue then
 			metaData = "CHRONO_" .. tostring(ids)
-			model:SetAttribute(CHRONO_META_NAME, metaData)
-			model:AddTag(TAG)
+			metaInstance:SetAttribute(CHRONO_META_NAME, metaData)
+			metaInstance:AddTag(TAG)
 			ids += 1
 		end
 
@@ -79,7 +84,7 @@ local function CreateModelFromData(model: Model | string | BasePart?): (Model | 
 	end
 
 	if type(model) == "string" then
-		return model, nil
+		return model, "CUSTOM"
 	end
 
 	if
