@@ -14,4 +14,6 @@
 | Native with lock | - | 22.13 |
 | Custom | - | 21.92 |
 
+For the raw footage see: https://youtu.be/xo8EJ9YHSi4
+
 See tests/benchEntities.luau for more details on the tests.
