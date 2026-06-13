@@ -128,7 +128,7 @@ local function LockCFReplication(part: BasePart?): BasePart?
 	locker.CanCollide = false
 	locker.CanQuery = false
 	locker.CanTouch = false
-	locker.Transparency = 0
+	locker.Transparency = if IS_SERVER then 0 else 1
 	locker.Color = Color3.new(1, 0, 0)
 	-- locker.Size = Vector3.new(1, 2, 1)
 	--locker.Anchored = true
