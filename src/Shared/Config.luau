@@ -219,10 +219,10 @@ return {
 	RegisterEntityType = RegisterEntityType,
 	RegisterEntityModel = RegisterEntityModel,
 	FLAGS = {
-		["SNAPSHOT_INTERPOLATION_FIX"] = true,
-		["SET_CFRAME_FIX"] = true,
-		["HEARTBEAT_CLOCK_SYNC"] = false,
-		["FIX_TELEPORT_JITTER"] = true,
+		["SNAPSHOT_INTERPOLATION_FIX"] = true, -- Fixes interpolation of snapshots when replication is stopped briefly and resumed rapidly which can cause slight jitter due to velocity.
+		["SET_CFRAME_FIX"] = true, -- Adds a teleport flag to packets
+		["HEARTBEAT_CLOCK_SYNC"] = false, -- Starts an  server clock that runs at 20 hz sending server clock to clients, shouldn't be needed anymore from observations.
+		["FIX_TELEPORT_JITTER"] = true, -- Resolves jitter issue when clearing snapshots then settings cframe/teleporting can cause a bouncing effect. Uses a locking mechanism when getting the snapshot buffer to prevent old snapshots from being retrieved.
 	},
 
 	_EntityConfigs = ENTITY_TYPES,
