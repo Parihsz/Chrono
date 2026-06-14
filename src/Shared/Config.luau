@@ -97,7 +97,7 @@ local BASE_CONFIG = {
 local ENTITY_TYPES: { [string]: Types.EntityConfig } = {
 	DEFAULT = {
 		NAME = "DEFAULT",
-		TICK_RATE = 1 / 30,
+		TICK_RATE = 1 / 20,
 		BUFFER = 0.1,
 	},
 	WITH_ROT = {
@@ -222,6 +222,7 @@ return {
 		["SNAPSHOT_INTERPOLATION_FIX"] = true,
 		["SET_CFRAME_FIX"] = true,
 		["HEARTBEAT_CLOCK_SYNC"] = false,
+		["FIX_TELEPORT_JITTER"] = true,
 	},
 
 	_EntityConfigs = ENTITY_TYPES,

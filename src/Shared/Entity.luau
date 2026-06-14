@@ -772,9 +772,6 @@ end
 ]=]
 function Entity.SetCFrame(self: Entity, cframe: CFrame)
 	local latestTime = (self.latestTime or 0) + 0.00002
-	if self.snapshot then
-		--self.snapshot.lockedTime = latestTime
-	end
 	if Config.FLAGS.SET_CFRAME_FIX then
 		if IS_SERVER then
 			self._teleport = os.clock()
@@ -783,6 +780,9 @@ function Entity.SetCFrame(self: Entity, cframe: CFrame)
 		else
 			Entity.Clear(self)
 		end
+	end
+	if self.snapshot and Config.FLAGS.FIX_TELEPORT_JITTER then
+		self.snapshot.lockedTime = latestTime
 	end
 	Entity.Push(self, latestTime, cframe)
 	SetValue(self, "latestCFrame", cframe, true)

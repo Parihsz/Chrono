@@ -191,6 +191,7 @@ end
 local function Clear<Value, Velocity>(self: Snapshot<Value, Velocity>)
 	self.head = 1
 	self.count = 0
+	self.lockedTime = 0
 end
 
 local function New<Value, Velocity>(
