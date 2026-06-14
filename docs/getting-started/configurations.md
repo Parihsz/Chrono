@@ -199,3 +199,6 @@ Warning severity controls how Chrono outputs warnings. This can be set to "NONE"
 ### Grid Update Configurations
 
 The entity grid updates every `GRID_UPDATE_INTERVAL` which defaults to 0.1 seconds. During each update cycle the grid is limited to `GRID_MAX_UPDATE_TIME` per frame which defaults to 0.5 milliseconds. If the grid update takes longer than this, then the operation will be stopped until the next frame to prevent server lag. The grid will continue updating across frames until all entities have been iterated. Lowering `GRID_UPDATE_INTERVAL` will make the grid update more frequently making it more responsive but may cause more server lag, while increasing `GRID_MAX_UPDATE_TIME` will allow the grid to update more entities per cycle but may also cause more server lag.
+
+### Max Total Bytes Per Frame Per Player
+`MAX_TOTAL_BYTES_PER_FRAME_PER_PLAYER` controls the base maximum total bytes that a client can send to the server. The total bytes is calculated by `MAX_TOTAL_BYTES_PER_FRAME_PER_PLAYER + number_of_client_owned * 21` where `number_of_client_owned` is the number of entities owned by the client. This allows for a more dynamic bandwidth limit that scales with the number of entities a client owns rather than a static value.

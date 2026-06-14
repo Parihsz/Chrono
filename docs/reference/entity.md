@@ -225,3 +225,21 @@ Fired when the model of the entity changes.
 Fired when the native server CFrame replication lock state changes.
 
 - isLocked : `boolean` - Whether the native server CFrame replication is locked.
+
+
+## Internal Functions
+
+### `_GetRootPart(entity: Entity) -> BasePart?`
+
+Returns the root part, if the entity is locked then this will return the locker part, otherwise it will return the primary part or base part.
+
+### `_SetPartCFrame(entity: Entity, cframe: CFrame)`
+
+Sets the root part's CFrame directly.
+
+### `_LockPartPhysicsReplication(part: BasePart): BasePart?`
+
+Locks the physics replication of the given part. Returns the locker part if successful, otherwise returns nil.
+
+### `_UnlockPartPhysicsReplication(part: BasePart)`
+Unlocks the physics replication of the given part if it is currently locked.
