@@ -9,9 +9,10 @@ type tests =
 	| "testSetCFrame"
 	| "testDestroying"
 	| "benchEntities"
+	| "testSnapshotJitter"
 	| "lockerTest"
 
-local test: tests = "testSnapshotJitter"
+local test: tests = ""
 if test == "" then
 	return nil
 end

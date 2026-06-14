@@ -13,6 +13,10 @@ local Config = require(Shared.Config)
 local Stats = require(Shared.Stats).SERVER
 local BASE_MAX_TOTAL_BYTES_PER_FRAME_PER_PLAYER = 300
 
+Config._WaitForLock(function()
+	BASE_MAX_TOTAL_BYTES_PER_FRAME_PER_PLAYER = Config._GetConfig("MAX_TOTAL_BYTES_PER_FRAME_PER_PLAYER")
+end)
+
 local BytesReceived = 0
 
 local UnreliableEvent = Shared.Remotes.Replicate
