@@ -163,7 +163,7 @@ Unlocks the native server CFrame replication for this entity's model. Only appli
 
 ### `Destroy(self: Entity) -> ()`
 
-Destroys this entity and unregisters it from the holder. Cleans up model and snapshot data
+Destroys this entity and unregisters it from the holder. Cleans up model and snapshot data.
 
 ### `GetEvent(self: Entity, eventName: string) -> Event?`
 

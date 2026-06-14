@@ -9,10 +9,11 @@ A map of entity IDs to entity objects.
 ## Functions
 
 ### `SetAsCharacter(player: Player, entity: Entity) -> ()`
-Sets the given entity as the main character for the player.
+Sets the given entity as the main character for the player. If the player already has a character entity, it will be removed and replaced with the new one.
 
 - `player` - The player whose character entity to set.
 - `entity` - The entity to set as the player's character.
+
 
 ### `RemovePlayerCharacter(entity: Entity) -> ()`
 Removes the given entity as a player character, if it is one.

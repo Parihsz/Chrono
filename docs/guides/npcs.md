@@ -139,10 +139,10 @@ Entities automatically adjust their update frequency based on distance to nearby
 
 - **Full Updates** (0 to NORMAL_TICK_DISTANCE): Full tick rate - updates every tick
 - **Half Updates** (NORMAL_TICK_DISTANCE to HALF_TICK_DISTANCE): Reduced tick rate - updates every other tick
-- **No Replication** (beyond HALF_TICK_DISTANCE): Entity is not replicated to this player only applies for CUSTOM replication mode, NATIVE and NATIVE_WITH_LOCK entities will continue to replicate at half tick
+- **No Replication** (beyond HALF_TICK_DISTANCE): Entity is not replicated to this player only applies for `CUSTOM` and `NATIVE_WITH_LOCK` replication modes. NATIVE entities will continue to replicate at half tick
 
 By default, Chrono uses `DEFAULT_NORMAL_TICK_DISTANCE` and `DEFAULT_HALF_TICK_DISTANCE` from your config. You can override these per-entity by setting `NORMAL_TICK_DISTANCE` and `HALF_TICK_DISTANCE` in the entity configuration.
-
+    
 **Example:**
 
 ```lua
@@ -157,7 +157,7 @@ local myNPC = Entity.new("NPC",...)
 ```
 
 !!! note
-    For `CUSTOM` replication mode: Entities are completely removed from clients when outside `HALF_TICK_DISTANCE` and re-added when within range. To keep entities always present on the client, set `HALF_TICK_DISTANCE = math.huge`.
+    For `CUSTOM` and `NATIVE_WITH_LOCK` replication modes: Entities are completely removed from clients when outside `HALF_TICK_DISTANCE` and re-added when within range. To keep entities always present on the client, set `HALF_TICK_DISTANCE = math.huge`.
 
 ## Client Side Culling
 
@@ -192,3 +192,6 @@ You can pause/resume replication of an entity via `Entity.PauseReplication` and 
 ## Destroying an Entity
 
 When you call `Entity.Destroy`, this will destroy the entity on the server and remove the entity from the registry, which will remove it from all clients. This will also cleanup and listeners connected to the entity.
+
+!!! warning
+    This does not apply the other way around `Instance:Destroy()` will not trigger `Entity.Destroy` and will not remove the entity from the registry. You must call `Entity.Destroy` to properly destroy an entity and remove it from the registry.
