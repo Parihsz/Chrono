@@ -16,7 +16,7 @@ return {
 		local char = char:Clone()
 		char.Name = "TestChar"
 
-		if RunService:IsServer() then
+		if RunService:IsServer() and false then
 			Config.RegisterEntityModel("TestChar", false) -- Dummy part to test server vs client model loading
 		else
 			local char = char:Clone()
@@ -28,14 +28,14 @@ return {
 			TICK_RATE = 1 / 20,
 			FULL_ROTATION = false,
 			BUFFER = 0.1,
-			MODEL_REPLICATION_MODE = "CUSTOM",
+			MODEL_REPLICATION_MODE = "NATIVE_WITH_LOCK",
 			HALF_TICK_DISTANCE = math.huge,
 		})
 	end,
 	server = function()
 		local entities = {}
 		for i = 1, AMT do
-			local custom = Entity.new("TEST", nil, nil, CFrame.new(0, 10, 0))
+			local custom = Entity.new("TEST", "TestChar", nil, CFrame.new(0, 10, 0))
 
 			table.insert(entities, custom)
 			if SHOW_DEBUG then

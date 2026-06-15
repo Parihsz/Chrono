@@ -121,7 +121,7 @@ local function LockCFReplication(part: BasePart?): BasePart?
 	camera.Name = "__CHRONO_LOCKER"
 	local weld = Instance.new("Weld", camera)
 	weld.Name = "__CHRONO_WELD"
-	local locker = Instance.fromExisting(part)
+	local locker = Instance.new("Part")
 	locker.CustomPhysicalProperties = PhysicalProperties.new(0.0001, 0, 0, 0, 0)
 	--locker.Name = "__CHRONO_LOCKER_PART"
 	locker.Parent = camera
