@@ -12,7 +12,7 @@ type tests =
 	| "testSnapshotJitter"
 	| "lockerTest"
 
-local test: tests = "benchEntities"
+local test: tests = ""
 if test == "" then
 	return nil
 end
