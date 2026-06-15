@@ -122,6 +122,10 @@ local function HandleEntity(
 		end
 	end
 
+	if entity.lastClientClock and clientClock < entity.lastClientClock then
+		return
+	end
+
 	debug.profilebegin("HandleEntity.FireMiddleMans")
 	if FireMiddleMans(player, entity, cframe, serverClock) then
 		debug.profileend()
