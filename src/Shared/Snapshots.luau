@@ -172,11 +172,9 @@ local function GetAt<Value, Velocity>(self: Snapshot<Value, Velocity>, at: numbe
 		local v0, v1 = beforeData.velocity, afterData.velocity
 
 		local position = lerpFunction(p0, p1, v0, v1, alpha, dt)
-		local delta = (afterData.value :: any).Rotation * (beforeData.value :: any).Rotation:Inverse()
-		local axis, angle = delta:ToAxisAngle()
-		local rotation = (beforeData.value :: any).Rotation * CFrame.fromAxisAngle(axis, angle * alpha)
+		local cf = (beforeData.value :: any):Lerp(afterData.value, alpha)
 
-		return CFrame.new(position) * rotation
+		return CFrame.new(position) * cf.Rotation
 	elseif beforeData then
 		Warn.low("Tried to fetch a time that was ahead of snapshot storage!")
 		return beforeData.value
