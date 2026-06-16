@@ -123,9 +123,12 @@ local function HandleChanges(changes: { id: number, data: { { any } } })
 		if handler then
 			handler(entity, value)
 		elseif key == "latestCFrame" then
-			if entity.isContextOwner or not entity.networkOwner then
-				Entity.SetCFrame(entity, value)
-			end
+			-- if entity.isContextOwner or not entity.networkOwner then
+			-- 	Entity.SetCFrame(entity, value)
+			-- else
+			-- 	entity._teleport = os.clock()
+			-- end
+			Entity.SetCFrame(entity, value)
 			-- don't want to set cframe for non context owner or else it will fight with the client interpolation
 		elseif key == "_modelMetaData" then
 			hasMetadata = value
@@ -192,13 +195,24 @@ local function PushCFrameFor(
 	clientOwned: boolean,
 	cframe: CFrame,
 	time: number,
-	isHalfTick: boolean
+	isHalfTick: boolean,
+	teleport: boolean?
 ): boolean
 	local entity = Holder.GetEntityFromId(id)
 	if not entity then
 		Warn.high("Received update for non existent entity with id", id)
 		return false
 	end
+
+	local withinTeleportThreshold = entity._teleport and os.clock() - entity._teleport < 0.5
+	if withinTeleportThreshold then
+		if teleport then
+			entity._teleport = nil
+		else
+			return false
+		end
+	end
+
 	if clientOwned then
 		local renderCache = entity._clientClock
 		if renderCache then
@@ -262,11 +276,7 @@ local function HandleClientOwned(b: buffer)
 			-- Unwrap in the source player's frame (delta-based, offset-0). Shares state with
 			-- this player's other entity packets + the clock relay.
 			local time = ClockUnwrap.unwrapFor(ClientOwnedWrap, entity.networkOwner or "__unknown", rawTime)
-			if teleport then
-				Entity.SetCFrame(entity, cf)
-				continue
-			end
-			PushCFrameFor(id, true, cf, time, isHalfTickRate)
+			PushCFrameFor(id, true, cf, time, isHalfTickRate, teleport)
 		end
 	end
 end

@@ -7,6 +7,7 @@ local Types = require(Shared.Types)
 local Entity = require(Shared.Entity)
 local ClockUnwrap = require(Shared.ClockUnwrap)
 local UnreliableEvent = Shared.Remotes.Replicate
+local SafeReplicateEvent = Shared.Remotes.SafeReplicate
 
 local ClientOwned = Holder._clientOwned
 if not ClientOwned[LocalPlayer] then
@@ -24,6 +25,7 @@ local INDEX = 0
 local TAU = math.pi * 2
 
 local clock = 0
+local hasTeleport = false
 
 local function MapRotation(u16: number): number
 	return math.round((u16 + math.pi) / (TAU / 65535))
@@ -84,7 +86,11 @@ local function Flush()
 	local copy = buffer.create(INDEX + 4)
 	buffer.writeu32(copy, 0, ClockUnwrap.quantize(clock))
 	buffer.copy(copy, 4, BUFFER, 0, INDEX)
-	UnreliableEvent:FireServer(copy)
+	if hasTeleport then
+		SafeReplicateEvent:FireServer(copy)
+	else
+		UnreliableEvent:FireServer(copy)
+	end
 
 	INDEX = 0
 end
@@ -131,7 +137,7 @@ end
 --//This is to catch an edge case where the primarypart hasn't been replicated
 local function CheckLocker(entity: Types.Entity)
 	if entity._cfLockFailed then
-		if entity._lockedCFReplication and entity.isContextOwner then
+		if entity._lockedCFReplication and entity.isContextOwner and not entity._player then
 			local part = Entity._GetPart(entity)
 			if part then
 				Entity._LockPartPhysicsReplication(part)
@@ -178,7 +184,7 @@ local function CheckEntity(entity: Types.Entity)
 		entity.lastReplicatedTime = now
 		local fullCFrame = config.FULL_ROTATION
 		entity.lastCheckedCFrame = currentCFrame
-
+		hasTeleport = hasTeleport or entity._teleport
 		WriteEntity(entity.id, currentCFrame, fullCFrame, entity.isHalfTicked, entity._teleport)
 		entity._teleport = nil
 	end
@@ -191,6 +197,7 @@ local function Update()
 	end
 
 	Flush()
+	hasTeleport = false
 end
 
 return {

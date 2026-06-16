@@ -108,7 +108,7 @@ local ENTITY_TYPES: { [string]: Types.EntityConfig } = {
 	},
 	PLAYER = {
 		NAME = "PLAYER",
-		MODEL_REPLICATION_MODE = "NATIVE",
+		MODEL_REPLICATION_MODE = "NATIVE_WITH_LOCK",
 		BUFFER = 0, -- handled dynamically for players
 		TICK_RATE = 1 / 20,
 		ASSEMBLY_ROOT_PART_CHECK = true,

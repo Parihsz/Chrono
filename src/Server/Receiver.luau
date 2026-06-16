@@ -24,10 +24,11 @@ end)
 local BytesReceived = 0
 
 local UnreliableEvent = Shared.Remotes.Replicate
+local SafeReplicateEvent = Shared.Remotes.SafeReplicate
 
 local FULL_BYTES = 4 * 3 + 2 * 3
 local YAW_BYTES = 4 * 3 + 2
-local TELEPORT_TIME_THRESHOLD = 0.5
+local BASE_TELEPORT_TIME_THRESHOLD = 0.5
 
 local function FireMiddleMans(player: Player, entity: Types.Entity, cframe: CFrame, arriveTime: number): boolean
 	if #SortedMiddleMans == 0 then
@@ -116,14 +117,19 @@ local function HandleEntity(
 		return
 	end
 
+	local teleportTime = entity._teleport
+	local ping = math.max(player:GetNetworkPing(), 0) + 0.05
+
+	local withinTeleportThreshold = teleportTime and os.clock() - teleportTime < (BASE_TELEPORT_TIME_THRESHOLD + ping)
 	if isTeleport then
-		local teleportTime = entity._teleport
-		if teleportTime and os.clock() - teleportTime < TELEPORT_TIME_THRESHOLD then
+		if withinTeleportThreshold then
 			entity._teleport = nil
 		else
 			local packed = buffer.readu8(copyB, 2)
 			buffer.writeu8(copyB, 2, bit32.band(packed, bit32.bnot(4)))
 		end
+	elseif withinTeleportThreshold then
+		return
 	end
 
 	if entity.lastClientClock and clientClock < entity.lastClientClock then
@@ -236,6 +242,7 @@ if RunService:IsServer() then
 		end
 	end)
 	UnreliableEvent.OnServerEvent:Connect(OnReceive)
+	SafeReplicateEvent.OnServerEvent:Connect(OnReceive)
 
 	Shared.Remotes.ClientHeartbeat.OnServerEvent:Connect(function(player: Player, seconds: number)
 		if type(seconds) ~= "number" then

@@ -778,11 +778,10 @@ end
 function Entity.SetCFrame(self: Entity, cframe: CFrame)
 	local latestTime = (self.latestTime or 0) + 0.00002
 	if Config.FLAGS.SET_CFRAME_FIX then
-		if IS_SERVER then
+		if IS_SERVER or self.networkOwner then
 			self._teleport = os.clock()
-		elseif self.isContextOwner then
-			self._teleport = os.clock()
-		else
+		end
+		if not IS_SERVER and not self.isContextOwner then
 			Entity.Clear(self)
 		end
 	end

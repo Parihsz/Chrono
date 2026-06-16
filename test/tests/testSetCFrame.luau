@@ -6,6 +6,7 @@ local Entity = require(Chrono.Shared.Entity)
 local Holder = require(Chrono.Shared.Holder)
 local p = Players:GetPlayers()[1] or Players.PlayerAdded:Wait()
 local char = p.Character or p.CharacterAdded:Wait()
+task.wait(1)
 -- You should see a part in workspace (might need to disable streaming enabled)
 return {
 	init = function()
