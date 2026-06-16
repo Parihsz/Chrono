@@ -132,7 +132,7 @@ local function LockCFReplication(part: BasePart?): BasePart?
 	locker.Color = Color3.new(1, 0, 0)
 	locker.Massless = false
 	locker.RootPriority = 127
-	-- locker.Size = Vector3.new(1, 2, 1)
+	locker.Size = Vector3.zero
 	--locker.Anchored = true
 	weld.Part0 = locker
 	weld.Part1 = part
@@ -151,6 +151,7 @@ local function UnlockCFReplication(part: BasePart?)
 	if not part then
 		return
 	end
+	local cf = part.CFrame
 	local locker = part:FindFirstChild("__CHRONO_LOCKER")
 	if locker then
 		-- local weld = locker:FindFirstChild("__CHRONO_WELD") :: Motor6D
@@ -161,6 +162,7 @@ local function UnlockCFReplication(part: BasePart?)
 		-- end
 		--Safer overall to just destroy and recreate
 		locker:Destroy()
+		part.CFrame = cf
 	end
 end
 
@@ -230,6 +232,9 @@ local function CheckNetworkOwner(self: Entity, prev: Player?)
 				self._cfLockFailed = nil
 			else
 				self._cfLockFailed = true
+			end
+			if self._player then
+				UnlockCFReplication(part)
 			end
 		end
 	end
