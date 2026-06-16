@@ -91,7 +91,6 @@ local BASE_CONFIG = {
 			+ Less bandwidth
 			- Have to write custom code to replicate stuff like animations
 	]]
-	SEND_FULL_ROTATION = false,
 	MAX_SNAPSHOT_COUNT = 30,
 }
 local ENTITY_TYPES: { [string]: Types.EntityConfig } = {
@@ -108,7 +107,7 @@ local ENTITY_TYPES: { [string]: Types.EntityConfig } = {
 	},
 	PLAYER = {
 		NAME = "PLAYER",
-		MODEL_REPLICATION_MODE = "NATIVE_WITH_LOCK",
+		MODEL_REPLICATION_MODE = "NATIVE",
 		BUFFER = 0, -- handled dynamically for players
 		TICK_RATE = 1 / 20,
 		ASSEMBLY_ROOT_PART_CHECK = true,
