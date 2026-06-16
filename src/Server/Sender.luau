@@ -3,6 +3,7 @@ local EntityGrid = require(script.Parent.EntityGrid)
 local Types = require(script.Parent.Parent.Shared.Types)
 local Shared = script.Parent.Parent.Shared
 local ModelHelper = require(Shared.ModelHelper)
+local ClockUnwrap = require(Shared.ClockUnwrap)
 local Stats = require(Shared.Stats).SERVER
 
 local FULL_BYTES = 4 * 3 + 2 * 3 + 2
@@ -22,7 +23,7 @@ local function WriteTickerHeader(b: buffer, index: number, ticker: Types.Ticker,
 	local lastTicked = ticker.lastTicked
 	local sendFull = ticker.config.FULL_ROTATION
 
-	buffer.writef32(b, index, lastTicked)
+	buffer.writeu32(b, index, ClockUnwrap.quantize(lastTicked)) -- changed to u32 fixed-point precision
 	index += 4
 
 	local packed = if isHalf then 1 else 0
@@ -47,8 +48,10 @@ end
 
 local function FlushClientOwned(player, buffersT: { [number]: { buffer } })
 	local index = 0
+
 	for time, buffers in buffersT do
-		buffer.writef32(BUFFER, index, time)
+		local quantized = ClockUnwrap.quantize(time)
+		buffer.writeu32(BUFFER, index, quantized)
 		index += 4
 		local indexToWriteLength = index
 		index += 1
@@ -61,7 +64,7 @@ local function FlushClientOwned(player, buffersT: { [number]: { buffer } })
 				buffer.writeu8(BUFFER, indexToWriteLength, length)
 				Flush(player, index, "O")
 				index = 0
-				buffer.writef32(BUFFER, index, time)
+				buffer.writeu32(BUFFER, index, quantized)
 				index += 4
 				indexToWriteLength = index
 				index += 1

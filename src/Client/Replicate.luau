@@ -12,8 +12,9 @@ local Holder = require(Shared.Holder)
 local Config = require(Shared.Config)
 local Types = require(Shared.Types)
 local Sender = require(script.Parent.Sender)
-local receiver = require(script.Parent.Receiver)
 local Stats = require(Shared.Stats).CLIENT
+
+local CLIENT_CLOCK_SYNC_RATE = 15 -- should be fine having lower then server
 require(script.Parent.Player)
 require(script.Parent.Receiver)
 
@@ -309,6 +310,21 @@ Config._WaitForLock(function()
 		end
 	end)
 	RunService.Heartbeat:Connect(Sender.Update)
+
+	-- Client clock heartbeat: sends the FULL os.clock so the server can seat this client's wrap
+	-- epoch directly (remotes serialize numbers as f64 anyway, so it's the same bytes as a u32).
+	-- Keeps the server's view fresh + correct even for a still (macro/auto-click) player that
+	-- sends no entity packets. See ClockUnwrap.
+	local ClientHeartbeatRemote = Shared.Remotes.ClientHeartbeat
+	ClientHeartbeatRemote:FireServer(os.clock()) -- seed on join
+	local clientHeartbeatAcc = 0
+	RunService.Heartbeat:Connect(function(dt: number)
+		clientHeartbeatAcc += dt
+		if clientHeartbeatAcc >= CLIENT_CLOCK_SYNC_RATE then
+			clientHeartbeatAcc = 0
+			ClientHeartbeatRemote:FireServer(os.clock())
+		end
+	end)
 
 	Shared.Remotes.ClientLoaded:FireServer()
 end)

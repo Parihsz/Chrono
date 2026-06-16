@@ -18,9 +18,8 @@ local function Store(player: Player, clientClockTime: number, clientServerTimeNo
 		end
 	end
 
-	local measuredClockOffset = os.clock()
-		- clientClockTime
-		- math.clamp(data.oneWayDelay, 0, player:GetNetworkPing() + 0.05)
+	local ping = math.max(player:GetNetworkPing(), 0) + 0.05 -- network ping was 0 for some reason
+	local measuredClockOffset = os.clock() - clientClockTime - math.clamp(data.oneWayDelay, 0, ping)
 
 	data.clockOffset = data.clockOffset + 0.2 * (measuredClockOffset - data.clockOffset)
 end

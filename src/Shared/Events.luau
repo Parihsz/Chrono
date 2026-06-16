@@ -33,5 +33,7 @@ Events.EntityMountChanged = Signals.EntityMountChanged.Event
 Signals["请不要使用_内部_设置值_拜托谢谢_嗨_这个名字有点长_好吧_再见_算了_这个确实被用了_因为递归错误_而我懒得去解决_所以这是一个能用的_创可贴式修复_好吧"] =
 	Signal.new() :: Signal<(entity: Types.Entity, key: string, value: any) -> (), Types.Entity, string, any>
 
+Signals.PlayerLoaded = Signal.new() :: Signal<(player: Player) -> (), Player>
+
 Events._Signals = Signals
 return Events

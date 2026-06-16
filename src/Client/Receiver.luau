@@ -1,4 +1,5 @@
 local RunService = game:GetService("RunService")
+local Players = game:GetService("Players")
 local Shared = script.Parent.Parent.Shared
 
 local Warn = require(Shared.Warn)
@@ -7,6 +8,7 @@ local Events = require(Shared.Events)
 local Holder = require(Shared.Holder)
 local ModelHelper = require(Shared.ModelHelper)
 local Types = require(Shared.Types)
+local ClockUnwrap = require(Shared.ClockUnwrap)
 local Stats = require(Shared.Stats).CLIENT
 local ClientClock = require(script.Parent.ClientClock)
 
@@ -20,6 +22,10 @@ local SetTickMode = Entity._SetTickMode
 local UnreliableEvent = Shared.Remotes.Replicate
 local ReliableEvent = Shared.Remotes.ReplicateFull
 local HeartbeatRemote = Shared.Remotes.Heartbeat
+local ClientClockRelayRemote = Shared.Remotes.ClientClockRelay
+
+local ServerWrap = ClockUnwrap.new()
+local ClientOwnedWrap: ClockUnwrap.Store = {}
 
 local TickerHeaderBytes = 4 + 1
 local FULL_BYTES = 4 * 3 + 2 * 3
@@ -32,7 +38,7 @@ local function UnmapRotation(u16: number): number
 end
 
 local function ReadTickerHeader(b: buffer, index: number): (number, boolean, boolean)
-	local lastTicked = buffer.readf32(b, index)
+	local lastTicked = ClockUnwrap.unwrap(ServerWrap, buffer.readu32(b, index))
 	local packed = buffer.readu8(b, index + 4)
 
 	local isHalfTickRate = bit32.band(packed, 1) == 1
@@ -228,7 +234,7 @@ local function HandleClientOwned(b: buffer)
 	local index = 0
 
 	while index < bLen do
-		local time = buffer.readf32(b, index)
+		local rawTime = buffer.readu32(b, index)
 		index += 4
 		local length = buffer.readu8(b, index)
 		index += 1
@@ -248,12 +254,15 @@ local function HandleClientOwned(b: buffer)
 				cf = DeserializeYaw(b, index)
 				index += YAW_BYTES
 			end
+			local entity = Holder.GetEntityFromId(id)
+			if not entity then
+				Warn.medium("Received update for non existent entity with id", id)
+				continue
+			end
+			-- Unwrap in the source player's frame (delta-based, offset-0). Shares state with
+			-- this player's other entity packets + the clock relay.
+			local time = ClockUnwrap.unwrapFor(ClientOwnedWrap, entity.networkOwner or "__unknown", rawTime)
 			if teleport then
-				local entity = Holder.GetEntityFromId(id)
-				if not entity then
-					Warn.medium("Received teleport for non existent entity with id", id)
-					continue
-				end
 				Entity.SetCFrame(entity, cf)
 				continue
 			end
@@ -325,9 +334,41 @@ UnreliableEvent.OnClientEvent:Connect(HandleUnreliable)
 ReliableEvent.OnClientEvent:Connect(HandleReliable)
 
 HeartbeatRemote.OnClientEvent:Connect(function(time: number)
+	-- Reduce the full-precision server time into the same offset-0 frame as the buffered
+	-- server-owned headers, otherwise the two feeds would disagree and freeze the clock.
+	local unwrapped = ClockUnwrap.unwrap(ServerWrap, ClockUnwrap.quantize(time))
 	for clock in ClientClock.serverOwnedClocks do
-		clock:OnSnapShot(time)
+		-- Refresh, not OnSnapShot: keep the clock fresh without feeding the heartbeat
+		-- cadence into the interpolation buffer's jitter estimate.
+		clock:Refresh(unwrapped)
 	end
+end)
+
+-- Client-clock relay: reseats each source to the server's authoritative wrap offset so every
+-- receiver agrees on the source's epoch regardless of join time. max() avoids regressing a wrap
+-- this client already witnessed between relays.
+ClientClockRelayRemote.OnClientEvent:Connect(function(list: { { player: Player, raw: number, offset: number } })
+	if type(list) ~= "table" then
+		return
+	end
+	for _, entry in list do
+		local player = entry.player
+		local raw = entry.raw
+		local offset = entry.offset
+		if player and type(raw) == "number" and type(offset) == "number" then
+			local state = ClientOwnedWrap[player]
+			if not state then
+				state = ClockUnwrap.new()
+				ClientOwnedWrap[player] = state
+			end
+			state.lastRaw = raw
+			state.offset = math.max(state.offset, offset)
+		end
+	end
+end)
+
+Players.PlayerRemoving:Connect(function(player)
+	ClientOwnedWrap[player] = nil
 end)
 
 local lastByteCheckTime = 0

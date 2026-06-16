@@ -3,6 +3,7 @@ local Players = game:GetService("Players")
 
 local RunService = game:GetService("RunService")
 
+local Events = require(script.Parent.Parent.Shared.Events)
 local Config = require(script.Parent.Parent.Shared.Config)
 local ReplicationRules = require(script.Parent.Parent.Shared.ReplicationRules)
 local Stats = require(script.Parent.Parent.Shared.Stats)
@@ -263,6 +264,8 @@ local function PlayerAdded(player: Player)
 	}
 	playerToHolder[player] = t
 	playerTablePositionPair[t] = vector.zero
+
+	Events._Signals.PlayerLoaded:Fire(player)
 end
 if RunService:IsServer() then
 	Shared.Remotes.ClientLoaded.OnServerEvent:Connect(PlayerAdded)

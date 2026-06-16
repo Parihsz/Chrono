@@ -1,4 +1,5 @@
 local RunService = game:GetService("RunService")
+local Players = game:GetService("Players")
 local Receiver = {}
 
 local MiddleMans = {}
@@ -10,7 +11,10 @@ local Types = require(Shared.Types)
 local Holder = require(Shared.Holder)
 local Entity = require(Shared.Entity)
 local Config = require(Shared.Config)
+local ClockUnwrap = require(Shared.ClockUnwrap)
 local Stats = require(Shared.Stats).SERVER
+
+local ClientClockWrap: ClockUnwrap.Store = {}
 local BASE_MAX_TOTAL_BYTES_PER_FRAME_PER_PLAYER = 300
 
 Config._WaitForLock(function()
@@ -161,7 +165,7 @@ local function OnReceive(player: Player, data: buffer)
 	end
 	debug.profilebegin("Receiver.OnReceive")
 	local index = 0
-	local clientClock = buffer.readf32(data, index)
+	local clientClock = ClockUnwrap.unwrapFor(ClientClockWrap, player, buffer.readu32(data, index))
 	index += 4
 	local serverClock = os.clock()
 	local dataLength = buffer.len(data)
@@ -219,6 +223,7 @@ function Receiver.UnregisterMiddleMan(name: string)
 		return a.priority > b.priority
 	end)
 end
+
 if RunService:IsServer() then
 	local lastByteCheckTime = 0
 	RunService.Heartbeat:Connect(function(a0: number)
@@ -231,9 +236,28 @@ if RunService:IsServer() then
 		end
 	end)
 	UnreliableEvent.OnServerEvent:Connect(OnReceive)
+
+	Shared.Remotes.ClientHeartbeat.OnServerEvent:Connect(function(player: Player, seconds: number)
+		if type(seconds) ~= "number" then
+			return
+		end
+		local clientClock = ClockUnwrap.seatFullFor(ClientClockWrap, player, seconds)
+		ServerClock.Store(player, clientClock)
+	end)
+
+	Players.PlayerRemoving:Connect(function(player)
+		ClientClockWrap[player] = nil
+	end)
 end
 
-Config._WaitForLock(function()
-	MAX_TOTAL_BYTES_PER_FRAME_PER_PLAYER = Config._GetConfig("MAX_TOTAL_BYTES_PER_FRAME_PER_PLAYER")
-end)
+function Receiver._GetClientClockRaws(): { { player: Player, raw: number, offset: number } }
+	local out = {}
+	for player, state in ClientClockWrap do
+		if state.lastRaw then
+			table.insert(out, { player = player, raw = state.lastRaw, offset = state.offset })
+		end
+	end
+	return out
+end
+
 return Receiver

@@ -52,9 +52,22 @@ local function CheckHasLastClockAt(clientClock: Types.ClientClock, sendTime: num
 	end
 end
 
-local function OnSnapShot(clientClock: Types.ClientClock, currentSendTime: number)
-	local now = os.clock()
+local function Refresh(clientClock: Types.ClientClock, currentSendTime: number): boolean
+	if not clientClock.lastClockAt then
+		CheckHasLastClockAt(clientClock, currentSendTime)
+		return false
+	end
 
+	if currentSendTime > clientClock.lastClockAt then
+		clientClock.lastClockAt = currentSendTime
+		clientClock.lastClockDuration = os.clock()
+		return true
+	end
+
+	return false
+end
+
+local function OnSnapShot(clientClock: Types.ClientClock, currentSendTime: number)
 	if not clientClock.lastClockAt then
 		CheckHasLastClockAt(clientClock, currentSendTime)
 		return
@@ -64,16 +77,8 @@ local function OnSnapShot(clientClock: Types.ClientClock, currentSendTime: numbe
 		BufferTracker.Register(clientClock.buffer, currentSendTime)
 	end
 
-	CheckHasLastClockAt(clientClock, currentSendTime)
-
-	if currentSendTime > clientClock.lastClockAt then
-		clientClock.lastClockAt = currentSendTime
-		clientClock.lastClockDuration = now
-
-		if not clientClock.renderAt then
-			local delay = GetBuffer(clientClock)
-			clientClock.renderAt = currentSendTime - delay
-		end
+	if Refresh(clientClock, currentSendTime) and not clientClock.renderAt then
+		clientClock.renderAt = currentSendTime - GetBuffer(clientClock)
 	end
 end
 
@@ -127,6 +132,7 @@ local function new(tickRate: number, name: string, bufferNumber: number?, networ
 		bufferConst = bufferNumber,
 
 		OnSnapShot = OnSnapShot,
+		Refresh = Refresh,
 		GetEstimatedServerTime = GetEstimatedServerTime,
 		GetTargetRenderTime = GetTargetRenderTime,
 		Clear = Clear,

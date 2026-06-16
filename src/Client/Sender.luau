@@ -5,6 +5,7 @@ local Shared = script.Parent.Parent.Shared
 local Holder = require(Shared.Holder)
 local Types = require(Shared.Types)
 local Entity = require(Shared.Entity)
+local ClockUnwrap = require(Shared.ClockUnwrap)
 local UnreliableEvent = Shared.Remotes.Replicate
 
 local ClientOwned = Holder._clientOwned
@@ -81,7 +82,7 @@ local function Flush()
 	end
 
 	local copy = buffer.create(INDEX + 4)
-	buffer.writef32(copy, 0, clock)
+	buffer.writeu32(copy, 0, ClockUnwrap.quantize(clock))
 	buffer.copy(copy, 4, BUFFER, 0, INDEX)
 	UnreliableEvent:FireServer(copy)
 

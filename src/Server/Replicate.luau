@@ -21,8 +21,13 @@ local _Receiver = require(script.Parent.Receiver)
 local Stats = require(Shared.Stats).SERVER
 
 local HeartbeatRemote = Shared.Remotes.Heartbeat
-local HEARTBEAT_RATE = 1 / 20
+local ClientClockRelayRemote = Shared.Remotes.ClientClockRelay
+
+local HEARTBEAT_RATE = 1 / 10
 local lastHeartbeat = 0
+
+local CLIENT_CLOCK_SYNC_RATE = 60
+local lastClientClockRelay = 0
 
 local tickers: { Types.Ticker } = {}
 
@@ -272,18 +277,31 @@ local function updateEntityStats()
 end
 
 local function UpdateHeartbeat()
-	if Config.FLAGS.HEARTBEAT_CLOCK_SYNC then
-		local now = os.clock()
-		if now - lastHeartbeat >= HEARTBEAT_RATE then
-			lastHeartbeat = now
-			for _, v in Players:GetPlayers() do
-				if not EntityGrid.GetEntityHolder(v) then
-					continue
-				end
-				HeartbeatRemote:FireClient(v, now)
-			end
-		end
+	local now = os.clock()
+	if now - lastHeartbeat >= HEARTBEAT_RATE then
+		lastHeartbeat = now
 	end
+	for _, player in Players:GetPlayers() do
+		if not EntityGrid.GetEntityHolder(player) then
+			continue
+		end
+		HeartbeatRemote:FireClient(player, now)
+	end
+end
+
+local function UpdateClientClockRelay()
+	local now = os.clock()
+	if now - lastClientClockRelay < CLIENT_CLOCK_SYNC_RATE then
+		return
+	end
+	lastClientClockRelay = now
+
+	local raws = _Receiver._GetClientClockRaws()
+	if #raws == 0 then
+		return
+	end
+
+	ClientClockRelayRemote:FireAllClients(raws)
 end
 
 local function Update()
@@ -293,6 +311,7 @@ local function Update()
 	UpdateTickers()
 	CheckEntityChanges()
 	UpdateHeartbeat()
+	UpdateClientClockRelay()
 
 	for _, player in Players:GetPlayers() do
 		Sender.ReplicatePlayer(player)
@@ -374,11 +393,17 @@ local function HandleCFrameSetters()
 	end
 end
 
+local function PlayerAdded(plr: Player)
+	local raws = _Receiver._GetClientClockRaws()
+	ClientClockRelayRemote:FireAllClients(raws)
+end
+
 Config._WaitForLock(function()
 	if not RunService:IsServer() then
 		return
 	end
 	HandleCFrameSetters()
+	Events._Signals.PlayerLoaded.Event:Connect(PlayerAdded)
 	RunService.PostSimulation:Connect(Update)
 end)
 

@@ -1,4 +1,4 @@
-export type SnapshotData<Value, Velocity> = {
+export type SnapshotData<Value = CFrame, Velocity = Vector3> = {
 	t: number,
 	value: Value,
 	velocity: Velocity,
@@ -161,6 +161,7 @@ export type ClientClock = {
 	GetTargetRenderTime: (self: ClientClock) -> number,
 	GetEstimatedServerTime: (self: ClientClock) -> number,
 	OnSnapShot: (self: ClientClock, currentTime: number) -> (),
+	Refresh: (self: ClientClock, currentTime: number) -> boolean,
 	SetTickRate: (self: ClientClock, tickRate: number) -> (),
 	Destroy: (self: ClientClock) -> (),
 }
