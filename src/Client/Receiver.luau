@@ -123,13 +123,7 @@ local function HandleChanges(changes: { id: number, data: { { any } } })
 		if handler then
 			handler(entity, value)
 		elseif key == "latestCFrame" then
-			-- if entity.isContextOwner or not entity.networkOwner then
-			-- 	Entity.SetCFrame(entity, value)
-			-- else
-			-- 	entity._teleport = os.clock()
-			-- end
 			Entity.SetCFrame(entity, value)
-			-- don't want to set cframe for non context owner or else it will fight with the client interpolation
 		elseif key == "_modelMetaData" then
 			hasMetadata = value
 		elseif key == "model" then

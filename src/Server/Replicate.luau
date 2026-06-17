@@ -280,12 +280,12 @@ local function UpdateHeartbeat()
 	local now = os.clock()
 	if now - lastHeartbeat >= HEARTBEAT_RATE then
 		lastHeartbeat = now
-	end
-	for _, player in Players:GetPlayers() do
-		if not EntityGrid.GetEntityHolder(player) then
-			continue
+		for _, player in Players:GetPlayers() do
+			if not EntityGrid.GetEntityHolder(player) then
+				continue
+			end
+			HeartbeatRemote:FireClient(player, now)
 		end
-		HeartbeatRemote:FireClient(player, now)
 	end
 end
 
