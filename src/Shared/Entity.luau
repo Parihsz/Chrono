@@ -123,7 +123,7 @@ local function LockCFReplication(part: BasePart?): BasePart?
 	weld.Name = "__CHRONO_WELD"
 	local locker = Instance.new("Part")
 	locker.CustomPhysicalProperties = PhysicalProperties.new(0.0001, 0, 0, 0, 0)
-	--locker.Name = "__CHRONO_LOCKER_PART"
+	locker.Name = "__CHRONO_LOCKER_PART"
 	locker.Parent = camera
 	locker.CanCollide = false
 	locker.CanQuery = false
