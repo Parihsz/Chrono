@@ -1,10 +1,12 @@
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Receiver = {}
 
 local MiddleMans = {}
 local SortedMiddleMans = {}
 local Shared = script.Parent.Parent.Shared
+local InterpolationMath = require(Shared.InterpolationMath)
 local Warn = require(Shared.Warn)
 local ServerClock = require(script.Parent.ServerClock)
 local Types = require(Shared.Types)
@@ -142,7 +144,25 @@ local function HandleEntity(
 		return
 	end
 	debug.profileend()
-	if Entity.Push(entity, serverClock, cframe) then
+	local velocity = nil
+	if Config.FLAGS.SERVER_VELOCITY_FIX and entity.snapshot then
+		local latest = entity.snapshot:GetLatest()
+		local lastClientClock = entity.lastClientClock or clientClock
+		local tickrate = entity.entityConfig.TICK_RATE
+		if entity.isHalfTicked then
+			tickrate = tickrate * 2
+		end
+		if latest then
+			velocity = InterpolationMath.CalculateVelocity(
+				latest.value.Position,
+				lastClientClock,
+				cframe.Position,
+				clientClock,
+				tickrate
+			)
+		end
+	end
+	if Entity.Push(entity, serverClock, cframe, velocity) then
 		task.spawn(function()
 			RunService.PreAnimation:Wait()
 			entity.arriveFrame = time()

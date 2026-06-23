@@ -218,6 +218,8 @@ return {
 	RegisterEntityType = RegisterEntityType,
 	RegisterEntityModel = RegisterEntityModel,
 	FLAGS = {
+		["SERVER_VELOCITY_FIX"] = true, -- Fixes velocity calculation on the server when two packets are received next to each other
+		["VELOCITY_CALC_FIX"] = true, -- Fixes velocity calculation when dt is less then tickrate
 		["SNAPSHOT_INTERPOLATION_FIX"] = true, -- Fixes interpolation of snapshots when replication is stopped briefly and resumed rapidly which can cause slight jitter due to velocity.
 		["SET_CFRAME_FIX"] = true, -- Adds a teleport flag to packets
 		["FIX_TELEPORT_JITTER"] = true, -- Resolves jitter issue when clearing snapshots then settings cframe/teleporting can cause a bouncing effect. Uses a locking mechanism when getting the snapshot buffer to prevent old snapshots from being retrieved.
