@@ -60,7 +60,8 @@ nav = [
     { "Entities" = "guides/npcs.md" },
     { "Mounting" = "guides/mounting.md" },
     { "Ragdolls" = "guides/ragdolls.md" },
-    {"Debugger" = "guides/debugger.md"}
+    {"Debugger" = "guides/debugger.md"},
+    {"Manual Replication Integration" = "guides/stateless.md"}
   ]},
 
   { Reference = [
