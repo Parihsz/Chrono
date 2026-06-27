@@ -1,11 +1,11 @@
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Receiver = {}
 
 local MiddleMans = {}
 local SortedMiddleMans = {}
 local Shared = script.Parent.Parent.Shared
+local Ticker = require(Shared.Ticker)
 local InterpolationMath = require(Shared.InterpolationMath)
 local Warn = require(Shared.Warn)
 local ServerClock = require(script.Parent.ServerClock)
@@ -163,10 +163,7 @@ local function HandleEntity(
 		end
 	end
 	if Entity.Push(entity, serverClock, cframe, velocity) then
-		task.spawn(function()
-			RunService.PreAnimation:Wait()
-			entity.arriveFrame = time()
-		end)
+		entity.arriveFrame = Ticker.GetGlobalTick()
 
 		entity.lastClientClock = clientClock
 		entity.cframeBuffer = copyB

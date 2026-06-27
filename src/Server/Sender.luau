@@ -1,4 +1,6 @@
 local RunService = game:GetService("RunService")
+
+local Ticker = require(script.Parent.Parent.Shared.Ticker)
 local EntityGrid = require(script.Parent.EntityGrid)
 local Types = require(script.Parent.Parent.Shared.Types)
 local Shared = script.Parent.Parent.Shared
@@ -175,7 +177,7 @@ local function ReplicatePlayer(player: Player)
 
 	local normalBuffers: BufferHolder = {}
 	local halfBuffers: BufferHolder = {}
-	local frameTimeNow = time()
+	local frameTimeNow = Ticker.GetGlobalTick()
 
 	local function HandleClientEntities(entity: Types.Entity)
 		if entity.arriveFrame ~= frameTimeNow then -- (time will be the same during the same frame)

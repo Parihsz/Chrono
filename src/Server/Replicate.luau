@@ -321,6 +321,7 @@ local function Update()
 	end
 	table.clear(Changes)
 	updateEntityStats()
+	Ticker._IncrementGlobalTick()
 end
 
 local function HandleEntity(plr, entity: Types.Entity)

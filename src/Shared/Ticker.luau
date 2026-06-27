@@ -1,3 +1,4 @@
+local RunService = game:GetService("RunService")
 local Ticker = {}
 
 --//TODO: this should be in server since client don't use it, maybe move later
@@ -16,6 +17,16 @@ local Types = require(script.Parent.Types)
 local Warn = require(script.Parent.Warn)
 type Entity = Types.Entity
 type Ticker = Types.Ticker
+
+local GlobalTick = 0
+
+function Ticker._IncrementGlobalTick()
+	GlobalTick += 1
+end
+
+function Ticker.GetGlobalTick()
+	return GlobalTick
+end
 
 function Ticker.new(config: Types.EntityConfig): Ticker
 	local ticker = {
@@ -76,7 +87,7 @@ function Ticker.CheckUpdate(ticker: Ticker): boolean
 
 	if difference >= ticker.tickRate then
 		ticker.lastTicked = os.clock()
-		ticker.tickedFrame = time()
+		ticker.tickedFrame = GlobalTick
 		ticker.tickedHalf = not ticker.tickedHalf
 
 		if ticker.tickedHalf then
