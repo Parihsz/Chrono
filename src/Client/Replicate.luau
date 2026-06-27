@@ -2,6 +2,7 @@ local Shared = script.Parent.Parent.Shared
 
 local RunService = game:GetService("RunService")
 
+local Ticker = require(Shared.Ticker)
 local Warn = require(Shared.Warn)
 local StatsALL = require(script.Parent.Parent.Shared.Stats)
 local ApplyMounts = require(script.Parent.Parent.Shared.ApplyMounts)
@@ -308,9 +309,9 @@ Config._WaitForLock(function()
 			TotalInterpolationTime = 0
 			AmtInterpolations = 0
 		end
+		Sender.Update()
+		Ticker._IncrementGlobalTick()
 	end)
-	RunService.Heartbeat:Connect(Sender.Update)
-
 	-- Client clock heartbeat: sends the FULL os.clock so the server can seat this client's wrap
 	-- epoch directly (remotes serialize numbers as f64 anyway, so it's the same bytes as a u32).
 	-- Keeps the server's view fresh + correct even for a still (macro/auto-click) player that
