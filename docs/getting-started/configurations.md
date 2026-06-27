@@ -158,7 +158,7 @@ local ENTITY_TYPES = {
 }
 ```
 
-* `BUFFER` - The buffer time for the npc
+* `BUFFER` - The buffer time for the npc. If buffer is set to 0 or nil then the entity will use an dynamic buffer (entities that are client owned will automatically use a dynamic buffer. This will only apply to server owned entities). 
 
 * `TICK_RATE` - How often the entity replicates per second.
 * `FULL_ROTATION` - Whether to replicate full rotation or just yaw. Default is false (yaw only).

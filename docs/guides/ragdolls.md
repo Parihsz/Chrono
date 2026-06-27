@@ -121,3 +121,5 @@ local function EnableRagdoll(model: Model)
 	... rest of the ragdoll script 
 end
 ```
+
+A open sourced demo of this can be found at https://www.roblox.com/games/78492181198483/rep-test
