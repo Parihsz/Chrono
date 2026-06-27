@@ -33,6 +33,12 @@ CENTER_PART.CanQuery = false
 
 type Entity = Types.Entity
 
+local READY = false
+
+Config._WaitForLock(function()
+	READY = true
+end)
+
 local function SafeDestroy(instance: Instance?)
 	if instance then
 		pcall(function()
@@ -250,12 +256,14 @@ local function CheckNetworkOwner(self: Entity, prev: Player?)
 			self._clientClock:Destroy()
 			self._clientClock = nil
 		end
-		if self.networkOwner then
+		local entityBuffer = self.entityConfig.BUFFER
+		if self.networkOwner or (entityBuffer <= 0 or not entityBuffer) then
+			local networkOwner = self.networkOwner
 			self._clientClock = ClientClock.new(
 				self.entityConfig.TICK_RATE,
-				`Entity id: {self.id} plr: {self.networkOwner.Name}`,
+				`Entity id: {self.id} plr: {networkOwner and networkOwner.Name or "SERVER"}`,
 				nil,
-				self.networkOwner
+				networkOwner
 			)
 		end
 	end
@@ -466,6 +474,9 @@ function Entity.new(
 	modelReplicationMode: Types.MODEL_REPLICATION_MODE?,
 	initCFrame: CFrame?
 ): Entity
+	if not READY then
+		error("Entity.new cannot be called until Chrono.Start() is called.")
+	end
 	local self = Entity._new(entityConfig, model, modelReplicationMode, initCFrame)
 	Holder.RegisterEntity(self)
 	return self

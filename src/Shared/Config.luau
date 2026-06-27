@@ -97,7 +97,7 @@ local ENTITY_TYPES: { [string]: Types.EntityConfig } = {
 	DEFAULT = {
 		NAME = "DEFAULT",
 		TICK_RATE = 1 / 20,
-		BUFFER = 0.1,
+		BUFFER = 0.1, --if buffer is 0 or nil for server side entities then it will use an dynamic buffer
 	},
 	WITH_ROT = {
 		NAME = "WITH_ROT",
@@ -109,6 +109,7 @@ local ENTITY_TYPES: { [string]: Types.EntityConfig } = {
 		NAME = "PLAYER",
 		MODEL_REPLICATION_MODE = "NATIVE",
 		BUFFER = 0, -- handled dynamically for players
+		HALF_TICK_DISTANCE = math.huge, -- Keep players replicated at all distances to mimic roblox's default behavior
 		TICK_RATE = 1 / 20,
 		ASSEMBLY_ROOT_PART_CHECK = true,
 	},
