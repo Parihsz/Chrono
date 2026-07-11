@@ -2,6 +2,19 @@
 
 Drop-in custom physics replication and lag compensation for Roblox.
 
+## Why Chrono?
+
+Roblox's default replication has several limitations that make responsive multiplayer gameplay difficult to achieve. By default, physics is replicated at 20hz, and all characters are subject to a large, non-configurable interpolation delay designed primarily for mobile devices on low-bandwidth connections.
+
+NPC replication is especially inefficient. Roblox often triggers excessive recv traffic for parts moved on the server - sometimes 10x higher than an optimized custom solution - and can also incur unnecessary send usage that is 100x more than normal. This wastes bandwidth and reduces performance.
+
+Chrono solves all of these problems, while also improving developer experience:
+
+- **Bypasses Roblox's interpolation delay** by manually forwarding CFrame data to other players with a configurable, custom dynamic interpolation delay.
+- **Far more accurate lag compensation** by providing access to historical snapshot data and exposing the interpolation delay.
+- **Optimized server-controlled entity replication** by elegantly disabling default replication. Chrono then sends its own compressed replication data using a fraction of the bandwidth.
+- **Real-time debugging** - Chrono’s API allows developers to create real time debuggers that hooks onto its snapshot and latency system, letting you view exact replication data, packet loss, and per player interpolation states.
+
 ## Docs
 
 Full documentation: https://parihsz.github.io/Chrono/
