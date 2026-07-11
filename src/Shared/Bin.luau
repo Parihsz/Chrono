@@ -4,7 +4,7 @@ export type Add = <T>(Item: T & BinItem) -> T
 export type Clear = () -> ()
 
 return function(): (Add, Clear)
-	local Bin: { BinItem } = {}
+	const Bin: { BinItem } = {}
 
 	return function<T>(Item: T & BinItem)
 		table.insert(Bin, Item :: any)

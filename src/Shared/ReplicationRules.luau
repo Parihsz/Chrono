@@ -1,7 +1,7 @@
-local Shared = script.Parent.Parent.Shared
-local Warn = require(script.Parent.Warn)
-local Types = require(Shared.Types)
-local Holder = require(Shared.Holder)
+const Shared = script.Parent.Parent.Shared
+const Warn = require(script.Parent.Warn)
+const Types = require(Shared.Types)
+const Holder = require(Shared.Holder)
 
 export type RuleFn = (entity: Types.Entity, viewer: Player, viewerEntityId: number?) -> boolean
 
@@ -10,9 +10,9 @@ export type ReplicationRule = {
 	filterPlayers: { Player }?,
 }
 
-local ruleById = {} :: { [number]: RuleFn }
+const ruleById = {} :: { [number]: RuleFn }
 
-local function GetIdFrom(input: Player | Model | number | Types.Entity): number?
+const function GetIdFrom(input: Player | Model | number | Types.Entity): number?
 	if typeof(input) == "number" then
 		return input
 	end
@@ -26,22 +26,22 @@ local function GetIdFrom(input: Player | Model | number | Types.Entity): number?
 	end
 
 	if input:IsA("Player") then
-		local entity = Holder.GetEntityFromPlayer(input)
+		const entity = Holder.GetEntityFromPlayer(input)
 		return entity and entity.id or nil
 	end
 
 	if input:IsA("Model") then
-		local entity = Holder.GetEntityFromModel(input)
+		const entity = Holder.GetEntityFromModel(input)
 		return entity and entity.id or nil
 	end
 
 	return nil
 end
 
-local function CompileRule(rule: ReplicationRule): RuleFn
-	local filterType = rule.filterType
-	local list: { Player } = rule.filterPlayers or {}
-	local set = {} :: { [Player]: true }
+const function CompileRule(rule: ReplicationRule): RuleFn
+	const filterType = rule.filterType
+	const list: { Player } = rule.filterPlayers or {}
+	const set = {} :: { [Player]: true }
 
 	for _, player in list do
 		set[player] = true
@@ -70,11 +70,11 @@ local function CompileRule(rule: ReplicationRule): RuleFn
 	end
 end
 
-local function SetReplicationRule(
+const function SetReplicationRule(
 	target: Player | Model | number | Types.Entity,
 	rule: ReplicationRule | RuleFn | nil
 ): ()
-	local id = GetIdFrom(target)
+	const id = GetIdFrom(target)
 	if not id then
 		Warn.low("no id", target)
 		return
@@ -93,23 +93,23 @@ local function SetReplicationRule(
 	ruleById[id] = CompileRule(rule :: ReplicationRule)
 end
 
-local function Allows(entity: Types.Entity, viewer: Player): boolean
-	local fn = ruleById[entity.id]
+const function Allows(entity: Types.Entity, viewer: Player): boolean
+	const fn = ruleById[entity.id]
 	if not fn then
 		return true
 	end
 
-	local viewerEntity = Holder.GetEntityFromPlayer(viewer)
-	local viewerEntityId = viewerEntity and viewerEntity.id or nil
+	const viewerEntity = Holder.GetEntityFromPlayer(viewer)
+	const viewerEntityId = viewerEntity and viewerEntity.id or nil
 
 	return fn(entity, viewer, viewerEntityId)
 end
 
-local function Include(players: { Player }): RuleFn
+const function Include(players: { Player }): RuleFn
 	return CompileRule({ filterType = "include", filterPlayers = players })
 end
 
-local function Exclude(players: { Player }): RuleFn
+const function Exclude(players: { Player }): RuleFn
 	return CompileRule({ filterType = "exclude", filterPlayers = players })
 end
 

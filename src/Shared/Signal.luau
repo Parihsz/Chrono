@@ -49,8 +49,8 @@ local freeRunnerThread = nil
 -- currently idle one.
 -- If there was a currently idle runner thread already, that's okay, that old
 -- one will just get thrown and eventually GCed.
-local function acquireRunnerThreadAndCallEventHandler(fn, ...)
-	local acquiredRunnerThread = freeRunnerThread
+const function acquireRunnerThreadAndCallEventHandler(fn, ...)
+	const acquiredRunnerThread = freeRunnerThread
 	freeRunnerThread = nil
 	fn(...)
 	-- The handler finished running, this runner thread is free again.
@@ -60,7 +60,7 @@ end
 -- Coroutine runner that we create coroutines of. The coroutine can be
 -- repeatedly resumed with functions to run followed by the argument to run
 -- them with.
-local function runEventHandlerInFreeThread()
+const function runEventHandlerInFreeThread()
 	-- Note: We cannot use the initial set of arguments passed to
 	-- runEventHandlerInFreeThread for a call to the handler, because those
 	-- arguments would stay on the stack for the duration of the thread's
@@ -72,7 +72,7 @@ local function runEventHandlerInFreeThread()
 end
 
 -- Connection class
-local Connection = {}
+const Connection = {}
 Connection.__index = Connection
 
 function Connection.new(signal, fn, defer)
@@ -117,7 +117,7 @@ setmetatable(Connection, {
 	end,
 })
 
-local Event = {}
+const Event = {}
 Event.__index = Event
 
 function Event.new()
@@ -128,7 +128,7 @@ function Event.new()
 end
 
 function Event:Connect(fn, defer)
-	local connection = Connection.new(self, fn, defer)
+	const connection = Connection.new(self, fn, defer)
 	if self._handlerListHead then
 		connection._next = self._handlerListHead
 		self._handlerListHead = connection
@@ -141,7 +141,7 @@ end
 -- Implement Signal:Wait() in terms of a temporary connection using
 -- a Signal:Connect() which disconnects itself.
 function Event:Wait(defer)
-	local waitingCoroutine = coroutine.running()
+	const waitingCoroutine = coroutine.running()
 	local cn
 	cn = self:Connect(function(...)
 		cn:Disconnect()
@@ -164,7 +164,7 @@ function Event:Once(fn, defer)
 end
 
 -- Signal class
-local Signal = {}
+const Signal = {}
 Signal.__index = Signal
 
 function Signal.new()

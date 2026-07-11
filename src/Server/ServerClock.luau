@@ -1,10 +1,10 @@
-local Players = game:GetService("Players")
-local ServerClockData = {} :: { [Player]: {
+const Players = game:GetService("Players")
+const ServerClockData = {} :: { [Player]: {
 	clockOffset: number,
 	oneWayDelay: number,
 } }
 
-local function Store(player: Player, clientClockTime: number, clientServerTimeNow: number?)
+const function Store(player: Player, clientClockTime: number, clientServerTimeNow: number?)
 	local data = ServerClockData[player]
 	if not data then
 		data = { clockOffset = 0, oneWayDelay = 0.05 }
@@ -12,20 +12,20 @@ local function Store(player: Player, clientClockTime: number, clientServerTimeNo
 	end
 
 	if clientServerTimeNow then
-		local latency = workspace:GetServerTimeNow() - clientServerTimeNow
+		const latency = workspace:GetServerTimeNow() - clientServerTimeNow
 		if latency > 0 and latency <= player:GetNetworkPing() + 0.05 then
 			data.oneWayDelay = latency
 		end
 	end
 
-	local ping = math.max(player:GetNetworkPing(), 0) + 0.05 -- network ping was 0 for some reason
-	local measuredClockOffset = os.clock() - clientClockTime - math.clamp(data.oneWayDelay, 0, ping)
+	const ping = math.max(player:GetNetworkPing(), 0) + 0.05 -- network ping was 0 for some reason
+	const measuredClockOffset = os.clock() - clientClockTime - math.clamp(data.oneWayDelay, 0, ping)
 
 	data.clockOffset = data.clockOffset + 0.2 * (measuredClockOffset - data.clockOffset)
 end
 
-local function ConvertTo(player: Player, clock: number, environment: "Server" | "Client")
-	local data = ServerClockData[player]
+const function ConvertTo(player: Player, clock: number, environment: "Server" | "Client")
+	const data = ServerClockData[player]
 	if not data then
 		return clock
 	end
@@ -37,7 +37,7 @@ local function ConvertTo(player: Player, clock: number, environment: "Server" | 
 	end
 end
 
-local function Remove(player: Player)
+const function Remove(player: Player)
 	ServerClockData[player] = nil
 end
 

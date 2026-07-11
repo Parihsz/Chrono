@@ -1,28 +1,28 @@
-local Entity = {}
+const Entity = {}
 
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local Types = require(script.Parent.Types)
-local Config = require(script.Parent.Config)
-local Snapshot = require(script.Parent.Snapshots)
-local InterpolationMath = require(script.Parent.InterpolationMath)
-local ClientClock = require(script.Parent.Parent.Client.ClientClock)
-local Holder = require(script.Parent.Holder)
-local Signal = require(script.Parent.Signal)
-local Events = require(script.Parent.Events)
-local ModelHelper = require(script.Parent.ModelHelper)
-local Warn = require(script.Parent.Warn)
-local VelocityAt = InterpolationMath.VelocityAt
+const Players = game:GetService("Players")
+const RunService = game:GetService("RunService")
+const Types = require(script.Parent.Types)
+const Config = require(script.Parent.Config)
+const Snapshot = require(script.Parent.Snapshots)
+const InterpolationMath = require(script.Parent.InterpolationMath)
+const ClientClock = require(script.Parent.Parent.Client.ClientClock)
+const Holder = require(script.Parent.Holder)
+const Signal = require(script.Parent.Signal)
+const Events = require(script.Parent.Events)
+const ModelHelper = require(script.Parent.ModelHelper)
+const Warn = require(script.Parent.Warn)
+const VelocityAt = InterpolationMath.VelocityAt
 
-local Changes = {}
+const Changes = {}
 
-local clientOwned = Holder._clientOwned
-local IS_SERVER = RunService:IsServer()
-local LOCAL_PLAYER = if IS_SERVER then nil else Players.LocalPlayer
+const clientOwned = Holder._clientOwned
+const IS_SERVER = RunService:IsServer()
+const LOCAL_PLAYER = if IS_SERVER then nil else Players.LocalPlayer
 
-local CHRONO_PRIMARY = "__CHRONO_PRIMARY"
+const CHRONO_PRIMARY = "__CHRONO_PRIMARY"
 
-local CENTER_PART = Instance.new("Part")
+const CENTER_PART = Instance.new("Part")
 CENTER_PART.Size = Vector3.new(0.1, 0.1, 0.1)
 CENTER_PART.Name = "__CHRONO_CENTER"
 CENTER_PART.Anchored = true
@@ -39,7 +39,7 @@ Config._WaitForLock(function()
 	READY = true
 end)
 
-local function SafeDestroy(instance: Instance?)
+const function SafeDestroy(instance: Instance?)
 	if instance then
 		pcall(function()
 			instance:Destroy()
@@ -47,14 +47,14 @@ local function SafeDestroy(instance: Instance?)
 	end
 end
 
-local function SafeSetNetworkOwner(part: BasePart, player: Player?)
+const function SafeSetNetworkOwner(part: BasePart, player: Player?)
 	pcall(function()
 		part:SetNetworkOwner(player)
 	end)
 end
 
-local function GetPart(self: Types.Entity): BasePart?
-	local model = self.model
+const function GetPart(self: Types.Entity): BasePart?
+	const model = self.model
 	if not model then
 		return nil
 	end
@@ -62,9 +62,9 @@ local function GetPart(self: Types.Entity): BasePart?
 		return model
 	end
 	if model:IsA("Model") then
-		local chronoPrimary = self._chronoPrimary
+		const chronoPrimary = self._chronoPrimary
 		if chronoPrimary then
-			local primary = model:FindFirstChild(chronoPrimary)
+			const primary = model:FindFirstChild(chronoPrimary)
 			if primary and primary:IsA("BasePart") then
 				return primary
 			else
@@ -73,7 +73,7 @@ local function GetPart(self: Types.Entity): BasePart?
 				)
 			end
 		end
-		local primaryPart = model.PrimaryPart
+		const primaryPart = model.PrimaryPart
 		if primaryPart then
 			return primaryPart
 		end
@@ -81,20 +81,20 @@ local function GetPart(self: Types.Entity): BasePart?
 	return nil
 end
 
-local function GetRootPart(entity: Entity): BasePart?
-	local primaryPart = Entity.GetPrimaryPart(entity)
+const function GetRootPart(entity: Entity): BasePart?
+	const primaryPart = Entity.GetPrimaryPart(entity)
 
 	if not primaryPart then
 		return
 	end
 
 	if IS_SERVER and entity._lockedCFReplication then
-		local locker = primaryPart:FindFirstChild("__CHRONO_LOCKER")
+		const locker = primaryPart:FindFirstChild("__CHRONO_LOCKER")
 
 		if not locker then
 			return
 		end
-		local lockerPart = locker:FindFirstChildWhichIsA("BasePart")
+		const lockerPart = locker:FindFirstChildWhichIsA("BasePart")
 		if not lockerPart or not lockerPart:IsA("BasePart") then
 			return primaryPart
 		end
@@ -105,14 +105,14 @@ local function GetRootPart(entity: Entity): BasePart?
 	end
 end
 
-local function LockCFReplication(part: BasePart?): BasePart?
+const function LockCFReplication(part: BasePart?): BasePart?
 	if not part then
 		return
 	end
-	local initCF = part.CFrame
-	local previousLocker = part:FindFirstChild("__CHRONO_LOCKER")
+	const initCF = part.CFrame
+	const previousLocker = part:FindFirstChild("__CHRONO_LOCKER")
 	if previousLocker then
-		local weld = previousLocker:FindFirstChild("__CHRONO_WELD") :: Motor6D
+		const weld = previousLocker:FindFirstChild("__CHRONO_WELD") :: Motor6D
 		if weld then
 			weld.Part1 = part
 			part.CFrame = initCF
@@ -122,12 +122,12 @@ local function LockCFReplication(part: BasePart?): BasePart?
 		end
 	end
 
-	local camera = Instance.new("Camera", part)
+	const camera = Instance.new("Camera", part)
 	camera.Archivable = false
 	camera.Name = "__CHRONO_LOCKER"
-	local weld = Instance.new("Weld", camera)
+	const weld = Instance.new("Weld", camera)
 	weld.Name = "__CHRONO_WELD"
-	local locker = Instance.new("Part")
+	const locker = Instance.new("Part")
 	locker.CustomPhysicalProperties = PhysicalProperties.new(0.0001, 0, 0, 0, 0)
 	locker.Name = "__CHRONO_LOCKER_PART"
 	locker.Parent = camera
@@ -146,19 +146,19 @@ local function LockCFReplication(part: BasePart?): BasePart?
 	return locker
 end
 
-local function SetPartCFrame(entity, cframe: CFrame)
-	local part = GetRootPart(entity)
+const function SetPartCFrame(entity, cframe: CFrame)
+	const part = GetRootPart(entity)
 	if part then
 		part.CFrame = cframe
 	end
 end
 
-local function UnlockCFReplication(part: BasePart?)
+const function UnlockCFReplication(part: BasePart?)
 	if not part then
 		return
 	end
-	local cf = part.CFrame
-	local locker = part:FindFirstChild("__CHRONO_LOCKER")
+	const cf = part.CFrame
+	const locker = part:FindFirstChild("__CHRONO_LOCKER")
 	if locker then
 		-- local weld = locker:FindFirstChild("__CHRONO_WELD") :: Motor6D
 		-- if weld then
@@ -172,7 +172,7 @@ local function UnlockCFReplication(part: BasePart?)
 	end
 end
 
-local function SetValue(entity: Entity, key: string, value: any, bypass: boolean?, specialValue: any)
+const function SetValue(entity: Entity, key: string, value: any, bypass: boolean?, specialValue: any)
 	if not bypass and entity[key] == value then
 		return
 	end
@@ -186,28 +186,28 @@ local function SetValue(entity: Entity, key: string, value: any, bypass: boolean
 	Changes[entity][key] = specialValue or value or false
 end
 
-local function FireEvent(entity: Entity, eventName: string, ...: any)
-	local events = entity._events
+const function FireEvent(entity: Entity, eventName: string, ...: any)
+	const events = entity._events
 	if not events then
 		return
 	end
-	local signal = events[eventName]
+	const signal = events[eventName]
 	if signal then
 		signal:Fire(entity, ...)
 	end
 end
 
-local function CheckNetworkOwner(self: Entity, prev: Player?)
+const function CheckNetworkOwner(self: Entity, prev: Player?)
 	self.isContextOwner = self.networkOwner == LOCAL_PLAYER
-	local isSameOwner = self.networkOwner == prev
+	const isSameOwner = self.networkOwner == prev
 	if not isSameOwner then
 		self.latestTime = 0
 		self.lastClientClock = 0
 	end
 	if IS_SERVER then
-		local part = GetPart(self)
+		const part = GetPart(self)
 		if part then
-			local locked = self._lockedCFReplication
+			const locked = self._lockedCFReplication
 
 			if locked then
 				UnlockCFReplication(part)
@@ -215,7 +215,7 @@ local function CheckNetworkOwner(self: Entity, prev: Player?)
 			SafeSetNetworkOwner(part, self.networkOwner)
 			if locked then
 				LockCFReplication(part)
-				local root = GetRootPart(self)
+				const root = GetRootPart(self)
 				if root then
 					SafeSetNetworkOwner(root, self.networkOwner)
 					root.Anchored = not isSameOwner
@@ -229,10 +229,10 @@ local function CheckNetworkOwner(self: Entity, prev: Player?)
 			self.snapshot = Snapshot(InterpolationMath.Hermite)
 		end
 	else
-		local locked = self._lockedCFReplication
+		const locked = self._lockedCFReplication
 
 		if locked and self.isContextOwner then
-			local part = GetPart(self)
+			const part = GetPart(self)
 			if part then
 				LockCFReplication(part)
 				self._cfLockFailed = nil
@@ -256,9 +256,9 @@ local function CheckNetworkOwner(self: Entity, prev: Player?)
 			self._clientClock:Destroy()
 			self._clientClock = nil
 		end
-		local entityBuffer = self.entityConfig.BUFFER
+		const entityBuffer = self.entityConfig.BUFFER
 		if self.networkOwner or (entityBuffer <= 0 or not entityBuffer) then
-			local networkOwner = self.networkOwner
+			const networkOwner = self.networkOwner
 			self._clientClock = ClientClock.new(
 				self.entityConfig.TICK_RATE,
 				`Entity id: {self.id} plr: {networkOwner and networkOwner.Name or "SERVER"}`,
@@ -271,7 +271,7 @@ local function CheckNetworkOwner(self: Entity, prev: Player?)
 	FireEvent(self, "NetworkOwnerChanged", self.networkOwner, prev)
 
 	if prev then
-		local ownedEntities = clientOwned[prev]
+		const ownedEntities = clientOwned[prev]
 
 		if ownedEntities then
 			ownedEntities[self] = nil
@@ -280,7 +280,7 @@ local function CheckNetworkOwner(self: Entity, prev: Player?)
 		end
 	end
 	if self.networkOwner then
-		local ownedEntities = clientOwned[self.networkOwner]
+		const ownedEntities = clientOwned[self.networkOwner]
 
 		if not ownedEntities then
 			return
@@ -295,12 +295,12 @@ function Entity.SyncOwnerShip(self: Entity)
 	CheckNetworkOwner(self, self.networkOwner)
 end
 
-local function CheckModelReplicationMode(entity: Entity, mode: Types.MODEL_REPLICATION_MODE?): "NATIVE" | "CUSTOM"
+const function CheckModelReplicationMode(entity: Entity, mode: Types.MODEL_REPLICATION_MODE?): "NATIVE" | "CUSTOM"
 	if not mode then
 		mode = entity.modelReplicationMode
 	end
 	if not mode then
-		local config = entity.entityConfig
+		const config = entity.entityConfig
 		mode = config.MODEL_REPLICATION_MODE
 	end
 	mode = (mode :: any):upper()
@@ -316,17 +316,17 @@ local function CheckModelReplicationMode(entity: Entity, mode: Types.MODEL_REPLI
 	return mode :: any
 end
 
-local function SetModel(
+const function SetModel(
 	self: Entity,
 	model: Model | BasePart | string?,
 	modelReplicationMode: Types.MODEL_REPLICATION_MODE?,
 	noDestroy: boolean?
 ): ()
-	local wasCustom = self.modelReplicationMode == "CUSTOM"
+	const wasCustom = self.modelReplicationMode == "CUSTOM"
 
 	if IS_SERVER then
 		if self.modelReplicationMode == "NATIVE" and self._lockedCFReplication then
-			local part = GetPart(self)
+			const part = GetPart(self)
 			self._lockedCFReplication = false
 			UnlockCFReplication(part)
 		end
@@ -338,7 +338,7 @@ local function SetModel(
 		SafeDestroy(self.model)
 		self.model = nil
 	elseif not IS_SERVER and self._lockedCFReplication then
-		local part = GetPart(self)
+		const part = GetPart(self)
 		self._lockedCFReplication = false
 		UnlockCFReplication(part)
 	end
@@ -354,10 +354,10 @@ local function SetModel(
 			(model :: any).Parent = workspace
 		end
 	end
-	local _model: Model? = model :: any
-	local broadPhase = Config._GetBroadPhase(modelString :: string)
+	const _model: Model? = model :: any
+	const broadPhase = Config._GetBroadPhase(modelString :: string)
 
-	local replicationMode: "NATIVE" | "CUSTOM" = CheckModelReplicationMode(self, modelReplicationMode)
+	const replicationMode: "NATIVE" | "CUSTOM" = CheckModelReplicationMode(self, modelReplicationMode)
 	self.modelString = modelString
 	self.model = _model
 
@@ -370,7 +370,7 @@ local function SetModel(
 			_model.Parent = Holder.GetEntityStorageInstance()
 		end
 
-		local chronoPrimary = _model:GetAttribute(CHRONO_PRIMARY)
+		const chronoPrimary = _model:GetAttribute(CHRONO_PRIMARY)
 		if chronoPrimary and type(chronoPrimary) == "string" then
 			self._chronoPrimary = chronoPrimary
 		end
@@ -378,9 +378,9 @@ local function SetModel(
 
 	self.modelReplicationMode = replicationMode
 
-	local primaryPart = GetPart(self)
+	const primaryPart = GetPart(self)
 	if _model and not primaryPart then
-		local warn = IS_SERVER and Warn.high or Warn.low
+		const warn = IS_SERVER and Warn.high or Warn.low
 		warn(`{_model:GetFullName()} must have a PrimaryPart set for things like autoReplication and movement.`)
 	elseif _model and not _model.Archivable then
 		Warn.low(
@@ -393,7 +393,7 @@ local function SetModel(
 		return
 	end
 
-	local initCFrame = primaryPart.CFrame
+	const initCFrame = primaryPart.CFrame
 
 	if not self.latestCFrame then
 		Entity.SetCFrame(self, initCFrame or primaryPart.CFrame)
@@ -426,14 +426,14 @@ function Entity._new(
 
 	-- If the model doesn't exist and there's no init cframe then it won't be able to find a starting cframe
 	if initCFrame == nil and typeof(model) == "string" then
-		local _model = Config._GetEntityModel(model :: string)
+		const _model = Config._GetEntityModel(model :: string)
 		if _model == false then
 			Warn.medium(`Entity's model doesn't exist, initCFrame is required. DEFAULTING to CFrame.new(0, 0, 0)`)
 			initCFrame = CFrame.new(0, 0, 0)
 		end
 	end
 
-	local self: Entity = {
+	const self: Entity = {
 		id = -1,
 
 		registered = false,
@@ -477,7 +477,7 @@ function Entity.new(
 	if not READY then
 		error("Entity.new cannot be called until Chrono.Start() is called.")
 	end
-	local self = Entity._new(entityConfig, model, modelReplicationMode, initCFrame)
+	const self = Entity._new(entityConfig, model, modelReplicationMode, initCFrame)
 	Holder.RegisterEntity(self)
 	return self
 end
@@ -495,10 +495,10 @@ function Entity.SetModel(
 	modelReplicationMode: Types.MODEL_REPLICATION_MODE?,
 	noDestroy: boolean?
 )
-	local old = self.model
+	const old = self.model
 	SetModel(self, model, modelReplicationMode, noDestroy)
 	if IS_SERVER then
-		local toReplicate, metaData = ModelHelper.ReadyModelFromRep(self, nil)
+		const toReplicate, metaData = ModelHelper.ReadyModelFromRep(self, nil)
 		SetValue(self, "model", self.model, true, toReplicate or false)
 		SetValue(self, "_modelMetaData", metaData, true, metaData)
 		CheckNetworkOwner(self, self.networkOwner)
@@ -508,11 +508,11 @@ end
 
 Entity._FireEvent = FireEvent
 
-local function GetEvent(self: Entity, eventName: string): Types.Event<any>
+const function GetEvent(self: Entity, eventName: string): Types.Event<any>
 	if not self._events then
 		self._events = {}
 	end
-	local events = self._events :: { [string]: Types.Signal<any, any> }
+	const events = self._events :: { [string]: Types.Signal<any, any> }
 	if not events[eventName] then
 		events[eventName] = Signal.new()
 	end
@@ -630,14 +630,14 @@ end
 
 Entity["设置网络主控玩家"] = function(self: Entity, player: Player?)
 	if player ~= self.networkOwner then
-		local prev = self.networkOwner
+		const prev = self.networkOwner
 		SetValue(self, "networkOwner", player)
 		CheckNetworkOwner(self, prev)
 		Entity.Clear(self)
 	end
 	self.lastCheckedCFrame = nil
 	if not IS_SERVER and self.modelReplicationMode == "CUSTOM" then
-		local primaryPart = Entity.GetPrimaryPart(self)
+		const primaryPart = Entity.GetPrimaryPart(self)
 		if primaryPart then
 			primaryPart.Anchored = not self.isContextOwner
 		end
@@ -662,7 +662,7 @@ end
 	Clears the entity's snapshot and latest CFrame/time.
 ]=]
 function Entity.Clear(self: Entity)
-	local snapshot = self.snapshot
+	const snapshot = self.snapshot
 	-- self.latestCFrame = nil --< this line
 	self.latestTime = nil
 	self.lastClientClock = nil
@@ -695,16 +695,16 @@ end
 	@return Whether the pushed value is the newest.
 ]=]
 function Entity.Push(self: Entity, time: number, value: CFrame, velocity: Vector3?): boolean
-	local snapshot = self.snapshot
-	local newer = not self.latestTime or time > self.latestTime
+	const snapshot = self.snapshot
+	const newer = not self.latestTime or time > self.latestTime
 	if newer then
 		self.latestTime = time
 		self.latestCFrame = value
 	end
 	if snapshot then
-		local latest = snapshot:GetLatest()
+		const latest = snapshot:GetLatest()
 		if not IS_SERVER and newer and latest and time - latest.t < 5 and not self.isContextOwner then
-			local targetTime = Entity.GetTargetRenderTime(self)
+			const targetTime = Entity.GetTargetRenderTime(self)
 			if math.abs(targetTime - latest.t) > 5 then
 				snapshot:Clear()
 				Warn.low(`Clearing Snapshot due to large time difference`)
@@ -733,7 +733,7 @@ end
 	@return The CFrame value at the specified time, or the latest CFrame if no snapshot exists.
 ]=]
 function Entity.GetAt(self: Entity, time: number): CFrame?
-	local snapshot = self.snapshot
+	const snapshot = self.snapshot
 	if snapshot then
 		return snapshot:GetAt(time)
 	else
@@ -750,7 +750,7 @@ function Entity.GetTargetRenderTime(self: Entity): number
 	local renderCache = self._clientClock
 
 	if not renderCache then
-		local RenderCaches = self.entityConfig.CLIENT_CLOCK
+		const RenderCaches = self.entityConfig.CLIENT_CLOCK
 		if not RenderCaches then
 			return -1
 		end
@@ -777,17 +777,17 @@ end
 	@return The current CFrame of the entity.
 ]=]
 function Entity.GetCFrame(self: Entity): CFrame?
-	local part = GetPart(self)
+	const part = GetPart(self)
 	return self.latestCFrame or (part and part.CFrame)
 end
 
 --[=[
 	Sets the current CFrame of the entity and locks the snapshot to the new time.
 
-	@param cframe The CFrame to set for the entity. 
+	@param cframe The CFrame to set for the entity.
 ]=]
 function Entity.SetCFrame(self: Entity, cframe: CFrame)
-	local latestTime = (self.latestTime or 0) + 0.00002
+	const latestTime = (self.latestTime or 0) + 0.00002
 	if Config.FLAGS.SET_CFRAME_FIX then
 		if IS_SERVER or self.networkOwner then
 			self._teleport = os.clock()
@@ -860,7 +860,7 @@ function Entity.UnlockNativeServerCFrameReplication(self: Entity)
 			return
 		end
 		SetValue(self, "_lockedCFReplication", false)
-		local part = GetPart(self)
+		const part = GetPart(self)
 		UnlockCFReplication(part)
 		CheckNetworkOwner(self, self.networkOwner)
 		FireEvent(self, "LockChanged", false)
@@ -900,8 +900,8 @@ function Entity.Destroy(self: Entity)
 	end
 
 	if not IS_SERVER then
-		local modeType = self.modelReplicationMode
-		local primaryPat = GetPart(self)
+		const modeType = self.modelReplicationMode
+		const primaryPat = GetPart(self)
 		if modeType == "CUSTOM" then
 			SafeDestroy(self.model)
 		elseif primaryPat then

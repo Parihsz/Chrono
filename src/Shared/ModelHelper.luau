@@ -1,33 +1,33 @@
-local Shared = script.Parent
-local Warn = require(script.Parent.Warn)
-local Holder = require(Shared.Holder)
-local Config = require(Shared.Config)
-local Types = require(Shared.Types)
+const Shared = script.Parent
+const Warn = require(script.Parent.Warn)
+const Holder = require(Shared.Holder)
+const Config = require(Shared.Config)
+const Types = require(Shared.Types)
 
-local TAG = "CHRONO_MODEL_REPLICATOR"
-local CHRONO_META_NAME = "__CHRONO_MODEL_META_ID"
-local CHRONO_META_INSTANCE = "__CHRONO_MODEL_META_INSTANCE"
+const TAG = "CHRONO_MODEL_REPLICATOR"
+const CHRONO_META_NAME = "__CHRONO_MODEL_META_ID"
+const CHRONO_META_INSTANCE = "__CHRONO_MODEL_META_INSTANCE"
 
 local ids = 0
-local function ReadyModelFromRep(entity: Types.Entity, playerSpecific: Player?): (Model | string | BasePart?, string?)
-	local model = entity.model
-	local modelString = entity.modelString
-	local replicationMode: "NATIVE" | "CUSTOM" = (entity.modelReplicationMode or "NATIVE") :: any
+const function ReadyModelFromRep(entity: Types.Entity, playerSpecific: Player?): (Model | string | BasePart?, string?)
+	const model = entity.model
+	const modelString = entity.modelString
+	const replicationMode: "NATIVE" | "CUSTOM" = (entity.modelReplicationMode or "NATIVE") :: any
 
 	--//TODO[FIXED]: FIX IF SOMEONE CLONES A MODEL THEN THE META DATA WILL GET CLONED TOO.
 	if replicationMode == "NATIVE" and model then
-		local config = entity.entityConfig
-		local attachMeta = config.ATTACH_MODEL_META_DATA ~= false -- defaults to true
+		const config = entity.entityConfig
+		const attachMeta = config.ATTACH_MODEL_META_DATA ~= false -- defaults to true
 
 		if not attachMeta then
 			return model
 		end
 
-		local metaInstance: Instance = model:FindFirstChild(CHRONO_META_INSTANCE) or Instance.new("Configuration")
+		const metaInstance: Instance = model:FindFirstChild(CHRONO_META_INSTANCE) or Instance.new("Configuration")
 		metaInstance.Name = CHRONO_META_INSTANCE
 		metaInstance.Archivable = false
 		metaInstance.Parent = model
-		local metaStringValue: string? = metaInstance:GetAttribute(CHRONO_META_NAME) :: any
+		const metaStringValue: string? = metaInstance:GetAttribute(CHRONO_META_NAME) :: any
 		local metaData = metaStringValue
 		if not metaStringValue then
 			metaData = "CHRONO_" .. tostring(ids)
@@ -44,7 +44,7 @@ local function ReadyModelFromRep(entity: Types.Entity, playerSpecific: Player?):
 		local ModelReplicator = script.Parent.Parent.Shared._CUSTOM_MODEL_REP
 
 		if playerSpecific then
-			local PlayerGui = playerSpecific.PlayerGui
+			const PlayerGui = playerSpecific.PlayerGui
 			ModelReplicator = PlayerGui:FindFirstChild("_ChronoClientModels") :: Instance
 			if not PlayerGui:FindFirstChild("_ChronoClientModels") then
 				ModelReplicator = Instance.new("ScreenGui")
@@ -55,7 +55,7 @@ local function ReadyModelFromRep(entity: Types.Entity, playerSpecific: Player?):
 		end
 		if model then
 			model.Archivable = true
-			local modelClone = model:Clone()
+			const modelClone = model:Clone()
 			modelClone.Parent = ModelReplicator
 
 			task.delay(2, function()
@@ -69,11 +69,11 @@ local function ReadyModelFromRep(entity: Types.Entity, playerSpecific: Player?):
 	return nil, nil
 end
 
-local function CreateTempModel(): (Model, string)
-	local model = Instance.new("Model")
+const function CreateTempModel(): (Model, string)
+	const model = Instance.new("Model")
 	model.Name = "TempModel"
 
-	local part = Instance.new("Part")
+	const part = Instance.new("Part")
 	part.Name = "Failed To Get Model"
 	part.Size = Vector3.new(3, 5, 3)
 	part.Anchored = true
@@ -85,7 +85,7 @@ local function CreateTempModel(): (Model, string)
 	return model, "CUSTOM"
 end
 
-local function CreateModelFromData(model: Model | string | BasePart?): (Model | string | BasePart?, string?)
+const function CreateModelFromData(model: Model | string | BasePart?): (Model | string | BasePart?, string?)
 	if not model then
 		return
 	end
@@ -103,7 +103,7 @@ local function CreateModelFromData(model: Model | string | BasePart?): (Model | 
 			and model.Parent.Parent:IsA("PlayerGui")
 		)
 	then
-		local clone = model:Clone()
+		const clone = model:Clone()
 		if clone then
 			(clone :: any).Parent = Holder.GetEntityStorageInstance()
 			return clone, "CUSTOM"

@@ -1,20 +1,20 @@
 --!native
 
-local Entity = require(script.Parent.Entity)
-local Events = require(script.Parent.Events)
-local Holder = require(script.Parent.Holder)
-local Types = require(script.Parent.Types)
+const Entity = require(script.Parent.Entity)
+const Events = require(script.Parent.Events)
+const Holder = require(script.Parent.Holder)
+const Types = require(script.Parent.Types)
 
 local timestamp = 0
-local visited = {} :: { [Types.Entity]: number }
-local dp = {} :: { [Types.Entity]: number }
-local world = {} :: { [Types.Entity]: CFrame }
+const visited = {} :: { [Types.Entity]: number }
+const dp = {} :: { [Types.Entity]: number }
+const world = {} :: { [Types.Entity]: CFrame }
 
-local path = {} :: { Types.Entity }
-local mountedEntities = {} :: { [Types.Entity]: true }
+const path = {} :: { Types.Entity }
+const mountedEntities = {} :: { [Types.Entity]: true }
 
-local function SetCFrame(entity: Types.Entity, cframe: CFrame)
-	local root = Entity._GetRootPart(entity)
+const function SetCFrame(entity: Types.Entity, cframe: CFrame)
+	const root = Entity._GetRootPart(entity)
 	if root then
 		root.CFrame = cframe
 		if entity.isContextOwner then
@@ -23,8 +23,8 @@ local function SetCFrame(entity: Types.Entity, cframe: CFrame)
 		end
 	end
 end
-local function ResolveWorldCFrame(entity: Types.Entity): CFrame
-	local currentTime = timestamp
+const function ResolveWorldCFrame(entity: Types.Entity): CFrame
+	const currentTime = timestamp
 	if dp[entity] == currentTime then
 		return world[entity]
 	end
@@ -52,10 +52,10 @@ local function ResolveWorldCFrame(entity: Types.Entity): CFrame
 
 		visited[current] = currentTime
 
-		local parentId = current.mountParentId
+		const parentId = current.mountParentId
 		if not parentId then
 			if current.isContextOwner then
-				local part = Entity.GetPrimaryPart(current)
+				const part = Entity.GetPrimaryPart(current)
 				rootCFrame = if part then part.CFrame else (current.latestCFrame or CFrame.identity)
 			else
 				rootCFrame = Entity.GetAt(current, Entity.GetTargetRenderTime(current))
@@ -67,7 +67,7 @@ local function ResolveWorldCFrame(entity: Types.Entity): CFrame
 			break
 		end
 
-		local parent = Holder.GetEntityFromId(parentId)
+		const parent = Holder.GetEntityFromId(parentId)
 		if not parent or parent.destroyed then
 			rootCFrame = Entity.GetAt(current, Entity.GetTargetRenderTime(current))
 				or current.latestCFrame
@@ -85,7 +85,7 @@ local function ResolveWorldCFrame(entity: Types.Entity): CFrame
 
 	local out = rootCFrame or CFrame.identity
 	for i = n, 1, -1 do
-		local child = path[i]
+		const child = path[i]
 		out = out * (child.mountOffset or CFrame.identity)
 		dp[child] = currentTime
 		world[child] = out
@@ -122,7 +122,7 @@ Events.EntityRemoved:Connect(function(entity: Types.Entity)
 	mountedEntities[entity] = nil
 end, true)
 
-local function ApplyMounts()
+const function ApplyMounts()
 	debug.profilebegin("ApplyMounts")
 	for entity in mountedEntities do
 		if entity.destroyed or dp[entity] == timestamp then

@@ -1,14 +1,14 @@
 --!native
 
-local CLOCK_SCALE = 10000
-local TWO32 = 2 ^ 32
-local TWO31 = 2 ^ 31
-local CLOCK_WRAP = TWO32 / CLOCK_SCALE
+const CLOCK_SCALE = 10000
+const TWO32 = 2 ^ 32
+const TWO31 = 2 ^ 31
+const CLOCK_WRAP = TWO32 / CLOCK_SCALE
 
 export type State = { lastRaw: number?, offset: number }
 export type Store = { [any]: State }
 
-local ClockUnwrap = {}
+const ClockUnwrap = {}
 ClockUnwrap.SCALE = CLOCK_SCALE
 ClockUnwrap.WRAP = CLOCK_WRAP
 
@@ -23,9 +23,9 @@ end
 -- for u32
 function ClockUnwrap.unwrap(state: State, raw: number): number
 	raw %= TWO32
-	local lastRaw = state.lastRaw
+	const lastRaw = state.lastRaw
 	if lastRaw then
-		local diff = (raw - lastRaw) % TWO32
+		const diff = (raw - lastRaw) % TWO32
 		if diff < TWO31 then
 			if raw < lastRaw then
 				state.offset += CLOCK_WRAP
@@ -51,8 +51,8 @@ end
 
 -- for f64 syncing
 function ClockUnwrap.seatFull(state: State, seconds: number): number
-	local scaled = math.floor(seconds * CLOCK_SCALE)
-	local raw = scaled % TWO32
+	const scaled = math.floor(seconds * CLOCK_SCALE)
+	const raw = scaled % TWO32
 	state.lastRaw = raw
 	state.offset = (scaled - raw) / CLOCK_SCALE
 	return scaled / CLOCK_SCALE

@@ -1,13 +1,13 @@
 --!native
 
-local Types = require(script.Parent.Types)
+const Types = require(script.Parent.Types)
 
 type SnapshotData<Value, Velocity> = Types.SnapshotData<Value, Velocity>
 
 type Snapshot<Value, Velocity> = Types.Snapshot<Value, Velocity>
 
-local Config = require(script.Parent.Config)
-local Warn = require(script.Parent.Warn)
+const Config = require(script.Parent.Config)
+const Warn = require(script.Parent.Warn)
 
 local MAX_LENGTH
 
@@ -15,25 +15,25 @@ Config._WaitForLock(function()
 	MAX_LENGTH = Config._GetConfig("MAX_SNAPSHOT_COUNT")
 end)
 
-local function GetBufferIndex(head: number, relativeIndex: number): number
+const function GetBufferIndex(head: number, relativeIndex: number): number
 	return (head + relativeIndex - 2) % MAX_LENGTH + 1
 end
 
-local function BinarySearchInsertionPoint<Value, Velocity>(self: Snapshot<Value, Velocity>, timeStamp: number): number
-	local count = self.count
+const function BinarySearchInsertionPoint<Value, Velocity>(self: Snapshot<Value, Velocity>, timeStamp: number): number
+	const count = self.count
 	if count == 0 then
 		return 1
 	end
 
 	local left = 1
 	local right = count
-	local cache = self.cache
-	local head = self.head
+	const cache = self.cache
+	const head = self.head
 
 	while left <= right do
-		local mid = (left + right) // 2
-		local bufferIndex = GetBufferIndex(head, mid)
-		local midTime = cache[bufferIndex].t
+		const mid = (left + right) // 2
+		const bufferIndex = GetBufferIndex(head, mid)
+		const midTime = cache[bufferIndex].t
 
 		if midTime < timeStamp then
 			left = mid + 1
@@ -45,28 +45,28 @@ local function BinarySearchInsertionPoint<Value, Velocity>(self: Snapshot<Value,
 	return left
 end
 
-local function ShiftElementsRight<Value, Velocity>(self: Snapshot<Value, Velocity>, startPos: number, endPos: number)
-	local cache = self.cache
-	local head = self.head
+const function ShiftElementsRight<Value, Velocity>(self: Snapshot<Value, Velocity>, startPos: number, endPos: number)
+	const cache = self.cache
+	const head = self.head
 
 	for i = endPos, startPos, -1 do
-		local fromIndex = GetBufferIndex(head, i)
-		local toIndex = GetBufferIndex(head, i + 1)
+		const fromIndex = GetBufferIndex(head, i)
+		const toIndex = GetBufferIndex(head, i + 1)
 		cache[toIndex] = cache[fromIndex]
 	end
 end
 
-local function GetLatest<Value, Velocity>(self: Snapshot<Value, Velocity>): SnapshotData<Value, Velocity>?
+const function GetLatest<Value, Velocity>(self: Snapshot<Value, Velocity>): SnapshotData<Value, Velocity>?
 	if self.count == 0 then
 		return nil
 	end
 
-	local lastIndex = GetBufferIndex(self.head, self.count)
+	const lastIndex = GetBufferIndex(self.head, self.count)
 	return self.cache[lastIndex]
 end
 
-local function Push<Value, Velocity>(self: Snapshot<Value, Velocity>, timeStamp: number, value: Value, velocity: Velocity)
-	local newData = { t = timeStamp, value = value, velocity = velocity }
+const function Push<Value, Velocity>(self: Snapshot<Value, Velocity>, timeStamp: number, value: Value, velocity: Velocity)
+	const newData = { t = timeStamp, value = value, velocity = velocity }
 
 	if self.count == 0 then
 		self.cache[self.head] = newData
@@ -74,105 +74,105 @@ local function Push<Value, Velocity>(self: Snapshot<Value, Velocity>, timeStamp:
 		return
 	end
 
-	local insertionPos = BinarySearchInsertionPoint(self, timeStamp)
+	const insertionPos = BinarySearchInsertionPoint(self, timeStamp)
 
 	if insertionPos > self.count then
 		if self.count < MAX_LENGTH then
-			local newIndex = GetBufferIndex(self.head, self.count + 1)
+			const newIndex = GetBufferIndex(self.head, self.count + 1)
 			self.cache[newIndex] = newData
 			self.count += 1
 		else
-			local newIndex = self.head
+			const newIndex = self.head
 			self.cache[newIndex] = newData
 			self.head = self.head % MAX_LENGTH + 1
 		end
 	else
 		if self.count < MAX_LENGTH then
 			ShiftElementsRight(self, insertionPos, self.count)
-			local insertIndex = GetBufferIndex(self.head, insertionPos)
+			const insertIndex = GetBufferIndex(self.head, insertionPos)
 			self.cache[insertIndex] = newData
 			self.count += 1
 		else
 			for i = 1, insertionPos - 1 do
-				local fromIndex = GetBufferIndex(self.head, i + 1)
-				local toIndex = GetBufferIndex(self.head, i)
+				const fromIndex = GetBufferIndex(self.head, i + 1)
+				const toIndex = GetBufferIndex(self.head, i)
 				self.cache[toIndex] = self.cache[fromIndex]
 			end
-			local insertIndex = GetBufferIndex(self.head, insertionPos)
+			const insertIndex = GetBufferIndex(self.head, insertionPos)
 			self.cache[insertIndex] = newData
 		end
 	end
 end
 
-local function PushWithCheck<Value, Velocity>(
+const function PushWithCheck<Value, Velocity>(
 	self: Snapshot<Value, Velocity>,
 	timeStamp: number,
 	value: Value,
 	velocity: Velocity,
 	tickrate: number
 )
-	local latestData = GetLatest(self)
+	const latestData = GetLatest(self)
 	if latestData and timeStamp - latestData.t > tickrate * 3 and Config.FLAGS.SNAPSHOT_INTERPOLATION_FIX then
 		Push(self, timeStamp - tickrate, latestData.value, vector.zero, true)
 	end
 	Push(self, timeStamp, value, velocity)
 end
 
-local function GetAt<Value, Velocity>(self: Snapshot<Value, Velocity>, at: number, bypassLock: boolean?): Value?
-	local count = self.count
+const function GetAt<Value, Velocity>(self: Snapshot<Value, Velocity>, at: number, bypassLock: boolean?): Value?
+	const count = self.count
 	if count == 0 then
 		return nil
 	end
 
 	if count == 1 then
-		local index = GetBufferIndex(self.head, 1)
+		const index = GetBufferIndex(self.head, 1)
 		return self.cache[index].value
 	end
 
 	if at < 0 then
-		local latest = GetLatest(self)
+		const latest = GetLatest(self)
 		return latest and latest.value or nil
 	end
 
-	local cache = self.cache
-	local head = self.head
-	local lerpFunction = self.Lerp
-	local lockedTime = self.lockedTime
+	const cache = self.cache
+	const head = self.head
+	const lerpFunction = self.Lerp
+	const lockedTime = self.lockedTime
 
 	if at < lockedTime and not bypassLock then
 		at = lockedTime
 	end
 
-	local insertionPos = BinarySearchInsertionPoint(self, at)
+	const insertionPos = BinarySearchInsertionPoint(self, at)
 
-	local beforePos = insertionPos - 1
-	local afterPos = insertionPos
+	const beforePos = insertionPos - 1
+	const afterPos = insertionPos
 
 	local beforeData: SnapshotData<Value, Velocity>?
 	local afterData: SnapshotData<Value, Velocity>?
 
 	if beforePos >= 1 and beforePos <= count then
-		local beforeIndex = GetBufferIndex(head, beforePos)
+		const beforeIndex = GetBufferIndex(head, beforePos)
 		beforeData = cache[beforeIndex]
 	end
 
 	if afterPos >= 1 and afterPos <= count then
-		local afterIndex = GetBufferIndex(head, afterPos)
+		const afterIndex = GetBufferIndex(head, afterPos)
 		afterData = cache[afterIndex]
 	end
 
 	if beforeData and afterData then
-		local dt = afterData.t - beforeData.t
+		const dt = afterData.t - beforeData.t
 		if dt == 0 then
 			return beforeData.value
 		end
-		local alpha = (at - beforeData.t) / dt
+		const alpha = (at - beforeData.t) / dt
 
-		local p0, p1 = (beforeData.value :: any).Position, (afterData.value :: any).Position
-		local v0, v1 = beforeData.velocity, afterData.velocity
+		const p0, p1 = (beforeData.value :: any).Position, (afterData.value :: any).Position
+		const v0, v1 = beforeData.velocity, afterData.velocity
 
-		local position = lerpFunction(p0, p1, v0, v1, alpha, dt)
-		local cf = (beforeData.value :: any):Lerp(afterData.value, alpha)
+		const position = lerpFunction(p0, p1, v0, v1, alpha, dt)
+		const cf = (beforeData.value :: any):Lerp(afterData.value, alpha)
 
 		return CFrame.new(position) * cf.Rotation
 	elseif beforeData then
@@ -186,16 +186,16 @@ local function GetAt<Value, Velocity>(self: Snapshot<Value, Velocity>, at: numbe
 	return nil
 end
 
-local function Clear<Value, Velocity>(self: Snapshot<Value, Velocity>)
+const function Clear<Value, Velocity>(self: Snapshot<Value, Velocity>)
 	self.head = 1
 	self.count = 0
 	self.lockedTime = 0
 end
 
-local function New<Value, Velocity>(
+const function New<Value, Velocity>(
 	lerpFunction: (Vector3, Vector3, Velocity, Velocity, number, number) -> Vector3
 ): Snapshot<Value, Velocity>
-	local cache = table.create(MAX_LENGTH)
+	const cache = table.create(MAX_LENGTH)
 	for i = 1, MAX_LENGTH do
 		cache[i] = { t = 0, value = (nil :: any) :: Value, velocity = (nil :: any) :: Velocity }
 	end

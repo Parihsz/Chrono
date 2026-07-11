@@ -1,29 +1,29 @@
-local RunService = game:GetService("RunService")
+const RunService = game:GetService("RunService")
 
-local Ticker = require(script.Parent.Parent.Shared.Ticker)
-local EntityGrid = require(script.Parent.EntityGrid)
-local Types = require(script.Parent.Parent.Shared.Types)
-local Shared = script.Parent.Parent.Shared
-local ModelHelper = require(Shared.ModelHelper)
-local ClockUnwrap = require(Shared.ClockUnwrap)
-local Stats = require(Shared.Stats).SERVER
+const Ticker = require(script.Parent.Parent.Shared.Ticker)
+const EntityGrid = require(script.Parent.EntityGrid)
+const Types = require(script.Parent.Parent.Shared.Types)
+const Shared = script.Parent.Parent.Shared
+const ModelHelper = require(Shared.ModelHelper)
+const ClockUnwrap = require(Shared.ClockUnwrap)
+const Stats = require(Shared.Stats).SERVER
 
-local FULL_BYTES = 4 * 3 + 2 * 3 + 2
-local YAW_BYTES = 4 * 3 + 2 + 2
-local MAX_BUFFER_SIZE = 900
+const FULL_BYTES = 4 * 3 + 2 * 3 + 2
+const YAW_BYTES = 4 * 3 + 2 + 2
+const MAX_BUFFER_SIZE = 900
 
 local BytesSentPerSec = 0
 local PacketsSentPerSec = 0
 
-local BUFFER = buffer.create(MAX_BUFFER_SIZE + 51)
+const BUFFER = buffer.create(MAX_BUFFER_SIZE + 51)
 
 type BufferHolder = { [Types.Ticker]: { buffer } }
-local UnreliableEvent = Shared.Remotes.Replicate
-local ReliableEvent = Shared.Remotes.ReplicateFull
+const UnreliableEvent = Shared.Remotes.Replicate
+const ReliableEvent = Shared.Remotes.ReplicateFull
 
-local function WriteTickerHeader(b: buffer, index: number, ticker: Types.Ticker, isHalf: boolean?): number
-	local lastTicked = ticker.lastTicked
-	local sendFull = ticker.config.FULL_ROTATION
+const function WriteTickerHeader(b: buffer, index: number, ticker: Types.Ticker, isHalf: boolean?): number
+	const lastTicked = ticker.lastTicked
+	const sendFull = ticker.config.FULL_ROTATION
 
 	buffer.writeu32(b, index, ClockUnwrap.quantize(lastTicked)) -- changed to u32 fixed-point precision
 	index += 4
@@ -39,8 +39,8 @@ local function WriteTickerHeader(b: buffer, index: number, ticker: Types.Ticker,
 	return index
 end
 
-local function Flush(player, index: number, id)
-	local copy = buffer.create(index)
+const function Flush(player, index: number, id)
+	const copy = buffer.create(index)
 	buffer.copy(copy, 0, BUFFER, 0, index)
 
 	UnreliableEvent:FireClient(player, id, copy)
@@ -48,11 +48,11 @@ local function Flush(player, index: number, id)
 	PacketsSentPerSec += 1
 end
 
-local function FlushClientOwned(player, buffersT: { [number]: { buffer } })
+const function FlushClientOwned(player, buffersT: { [number]: { buffer } })
 	local index = 0
 
 	for time, buffers in buffersT do
-		local quantized = ClockUnwrap.quantize(time)
+		const quantized = ClockUnwrap.quantize(time)
 		buffer.writeu32(BUFFER, index, quantized)
 		index += 4
 		local indexToWriteLength = index
@@ -60,7 +60,7 @@ local function FlushClientOwned(player, buffersT: { [number]: { buffer } })
 
 		local length = 0
 		for _, buf in buffers do
-			local sizeOffset = buffer.len(buf)
+			const sizeOffset = buffer.len(buf)
 
 			if index + sizeOffset > MAX_BUFFER_SIZE then
 				buffer.writeu8(BUFFER, indexToWriteLength, length)
@@ -86,11 +86,11 @@ local function FlushClientOwned(player, buffersT: { [number]: { buffer } })
 	end
 end
 
-local function FlushEntities(player, buffers: BufferHolder, isHalf: boolean?)
+const function FlushEntities(player, buffers: BufferHolder, isHalf: boolean?)
 	local index = 0
-	local BUFFER = BUFFER
+	const BUFFER = BUFFER
 	for ticker, bufferT in buffers do
-		local sizeOffset = ticker.config.FULL_ROTATION and FULL_BYTES or YAW_BYTES
+		const sizeOffset = ticker.config.FULL_ROTATION and FULL_BYTES or YAW_BYTES
 		index = WriteTickerHeader(BUFFER, index, ticker, isHalf)
 		local indexToWriteLength = index
 		index += 1
@@ -120,11 +120,11 @@ local function FlushEntities(player, buffers: BufferHolder, isHalf: boolean?)
 end
 
 --//honestly tables should beeeee fine for nowww, could buffer it later if reallllly needed
-local function GetEntityFullData(player: Player, entity: Types.Entity): Types.EntityReceivePacket?
+const function GetEntityFullData(player: Player, entity: Types.Entity): Types.EntityReceivePacket?
 	if entity.destroyed then
 		return nil
 	end
-	local modelData, metaData = ModelHelper.ReadyModelFromRep(entity, player)
+	const modelData, metaData = ModelHelper.ReadyModelFromRep(entity, player)
 
 	local configName: string? = entity.entityConfig.NAME
 	if configName == "DEFAULT" then
@@ -155,38 +155,38 @@ end
 
 local playerReplicateTotal = 0
 local playerReplicateCount = 0
-local function ReplicatePlayer(player: Player)
-	local holder = EntityGrid.GetEntityHolder(player)
+const function ReplicatePlayer(player: Player)
+	const holder = EntityGrid.GetEntityHolder(player)
 	if not holder then
 		return
 	end
 	debug.profilebegin("ReplicatePlayer")
-	local replicatedOLD = holder.REPLICATED -- Leftovers will be removed
-	local replicated = table.clone(replicatedOLD)
+	const replicatedOLD = holder.REPLICATED -- Leftovers will be removed
+	const replicated = table.clone(replicatedOLD)
 	holder.REPLICATED = replicated
 
-	local holderEntityAdded = holder.EntityAdded
-	local holderEntityRemoving = holder.EntityRemoving
-	local normal = holder.NORMAL
-	local half = holder.HALF
+	const holderEntityAdded = holder.EntityAdded
+	const holderEntityRemoving = holder.EntityRemoving
+	const normal = holder.NORMAL
+	const half = holder.HALF
 
-	local toSendFull = {}
-	local toRemove = {}
-	local clientOwned = {}
-	local entityChanges = {}
+	const toSendFull = {}
+	const toRemove = {}
+	const clientOwned = {}
+	const entityChanges = {}
 
-	local normalBuffers: BufferHolder = {}
-	local halfBuffers: BufferHolder = {}
-	local frameTimeNow = Ticker.GetGlobalTick()
+	const normalBuffers: BufferHolder = {}
+	const halfBuffers: BufferHolder = {}
+	const frameTimeNow = Ticker.GetGlobalTick()
 
-	local function HandleClientEntities(entity: Types.Entity)
+	const function HandleClientEntities(entity: Types.Entity)
 		if entity.arriveFrame ~= frameTimeNow then -- (time will be the same during the same frame)
 			return
 		end
 		if entity.networkOwner == player then
 			return
 		end
-		local clientTime = entity.lastClientClock or 0
+		const clientTime = entity.lastClientClock or 0
 		if not clientOwned[clientTime] then
 			clientOwned[clientTime] = {}
 		end
@@ -194,7 +194,7 @@ local function ReplicatePlayer(player: Player)
 		table.insert(clientOwned[clientTime], entity.cframeBuffer :: buffer)
 	end
 
-	local function Handle(entity: Types.Entity, isNormal: boolean)
+	const function Handle(entity: Types.Entity, isNormal: boolean)
 		if entity.destroyed then
 			return
 		end
@@ -212,24 +212,24 @@ local function ReplicatePlayer(player: Player)
 			return
 		end
 
-		local isServerOwned = entity.isContextOwner
+		const isServerOwned = entity.isContextOwner
 		if not isServerOwned then
 			HandleClientEntities(entity)
 			return
 		end
 
-		local ticker = entity._ticker
+		const ticker = entity._ticker
 		if not (ticker and ticker.tickedFrame == frameTimeNow and entity.cframeBuffer) then
 			return
 		end
 
-		local isHalf = entity.isHalfTicked or not isNormal
+		const isHalf = entity.isHalfTicked or not isNormal
 
 		if isHalf and not ticker.tickedHalf then
 			return
 		end
 
-		local buffers = if isHalf then halfBuffers else normalBuffers
+		const buffers = if isHalf then halfBuffers else normalBuffers
 		local bufferTable = buffers[ticker]
 		if not bufferTable then
 			bufferTable = {}
@@ -237,7 +237,7 @@ local function ReplicatePlayer(player: Player)
 		end
 		table.insert(bufferTable, entity.cframeBuffer)
 	end
-	local startTime = os.clock()
+	const startTime = os.clock()
 	for _, entity in normal do
 		Handle(entity, true)
 	end
@@ -269,7 +269,7 @@ local function ReplicatePlayer(player: Player)
 		ReliableEvent:FireClient(player, toSendFull, toRemove, entityChanges)
 	end
 	debug.profileend()
-	local endTime = os.clock()
+	const endTime = os.clock()
 	playerReplicateTotal += endTime - startTime
 	playerReplicateCount += 1
 end

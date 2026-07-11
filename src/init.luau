@@ -1,19 +1,19 @@
-local RunService = game:GetService("RunService")
+const RunService = game:GetService("RunService")
 
-local IS_SERVER = RunService:IsServer()
-local Config = require(script.Shared.Config)
-local HTTPS = game:GetService("HttpService")
-local Stats = require(script.Shared.Stats)
-local Player = require(script.Server.Player)
-local Receiver = require(script.Server.Receiver)
-local ServerClock = require(script.Server.ServerClock)
-local Entity = require(script.Shared.Entity)
-local Events = require(script.Shared.Events)
-local Holder = require(script.Shared.Holder)
-local ReplicationRules = require(script.Shared.ReplicationRules)
-local Snapshots = require(script.Shared.Snapshots)
-local Types = require(script.Shared.Types)
-local EntityGrid = require(script.Server.EntityGrid)
+const IS_SERVER = RunService:IsServer()
+const Config = require(script.Shared.Config)
+const HTTPS = game:GetService("HttpService")
+const Stats = require(script.Shared.Stats)
+const Player = require(script.Server.Player)
+const Receiver = require(script.Server.Receiver)
+const ServerClock = require(script.Server.ServerClock)
+const Entity = require(script.Shared.Entity)
+const Events = require(script.Shared.Events)
+const Holder = require(script.Shared.Holder)
+const ReplicationRules = require(script.Shared.ReplicationRules)
+const Snapshots = require(script.Shared.Snapshots)
+const Types = require(script.Shared.Types)
+const EntityGrid = require(script.Server.EntityGrid)
 
 export type SnapshotData<Value, Velocity> = Types.SnapshotData<Value, Velocity>
 export type Signal<fx, T...> = Types.Signal<fx, T...>
@@ -33,19 +33,19 @@ export type EntityReceivePacket = Types.EntityReceivePacket
 export type Entity = Types.Entity
 export type PlayerEntityHolder = Types.PlayerEntityHolder
 
-local function CheckVersion()
+const function CheckVersion()
 	task.spawn(function()
 		pcall(function()
-			local url = "https://api.github.com/repos/Parihsz/Chrono/releases/latest"
-			local success, result = pcall(function()
+			const url = "https://api.github.com/repos/Parihsz/Chrono/releases/latest"
+			const success, result = pcall(function()
 				return HTTPS:GetAsync(url)
 			end)
 			if not success then
 				return
 			end
-			local data = HTTPS:JSONDecode(result)
-			local latestVersion = data.tag_name
-			local currentVersion = Config._GetConfig("__VERSION")
+			const data = HTTPS:JSONDecode(result)
+			const latestVersion = data.tag_name
+			const currentVersion = Config._GetConfig("__VERSION")
 			if latestVersion ~= currentVersion then
 				warn(
 					("Chrono: A new version is available! You are using version %s, but the latest version is %s."):format(
@@ -77,7 +77,7 @@ return {
 		if IS_SERVER and Config._GetConfig("CHECK_NEW_VERSION") then
 			CheckVersion()
 		end
-		local currentVersion = Config._GetConfig("__VERSION")
+		const currentVersion = Config._GetConfig("__VERSION")
 		print(`Chrono {currentVersion} Started.`)
 	end,
 

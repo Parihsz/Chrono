@@ -1,17 +1,17 @@
 --!native
-local Players = game:GetService("Players")
+const Players = game:GetService("Players")
 
-local RunService = game:GetService("RunService")
+const RunService = game:GetService("RunService")
 
-local Warn = require(script.Parent.Parent.Shared.Warn)
-local Config = require(script.Parent.Parent.Shared.Config)
-local Entity = require(script.Parent.Parent.Shared.Entity)
-local Holder = require(script.Parent.Parent.Shared.Holder)
-local Types = require(script.Parent.Parent.Shared.Types)
+const Warn = require(script.Parent.Parent.Shared.Warn)
+const Config = require(script.Parent.Parent.Shared.Config)
+const Entity = require(script.Parent.Parent.Shared.Entity)
+const Holder = require(script.Parent.Parent.Shared.Holder)
+const Types = require(script.Parent.Parent.Shared.Types)
 
-local playerEntities = Holder._playerChars
+const playerEntities = Holder._playerChars
 
-local function RegisterPlayer(
+const function RegisterPlayer(
 	player: Player,
 	character: Model,
 	configuration: {
@@ -19,28 +19,28 @@ local function RegisterPlayer(
 		modelRepMode: Types.MODEL_REPLICATION_MODE?,
 	}
 ): Types.Entity
-	local entity = playerEntities[player]
+	const entity = playerEntities[player]
 
 	if entity then
 		Entity.Destroy(entity)
 	end
 
-	local config = configuration.config or "PLAYER"
+	const config = configuration.config or "PLAYER"
 	local modelRepMode: Types.MODEL_REPLICATION_MODE? = configuration.modelRepMode
-	local configData = Config._EntityConfigs[config] or {} :: any
+	const configData = Config._EntityConfigs[config] or {} :: any
 	modelRepMode = modelRepMode or configData.MODEL_REPLICATION_MODE
 	character.Archivable = true
 
-	local humanoid = character:FindFirstChildWhichIsA("Humanoid")
-	local hrp = character:FindFirstChild("HumanoidRootPart")
+	const humanoid = character:FindFirstChildWhichIsA("Humanoid")
+	const hrp = character:FindFirstChild("HumanoidRootPart")
 	if humanoid and hrp then
-		local rigType = humanoid.RigType
+		const rigType = humanoid.RigType
 		if rigType == Enum.HumanoidRigType.R6 and character.PrimaryPart == character:FindFirstChild("Head") then
 			Config.SetModelPrimaryForChrono(character, "HumanoidRootPart")
 		end
 	end
 
-	local newEntity = Entity.new(config, character, modelRepMode :: any)
+	const newEntity = Entity.new(config, character, modelRepMode :: any)
 
 	Holder.SetAsCharacter(player, newEntity)
 	Entity.SetNetworkOwner(newEntity, player)
@@ -54,22 +54,22 @@ local function RegisterPlayer(
 	return newEntity
 end
 
-local function UnregisterPlayer(player: Player)
-	local entity = playerEntities[player]
+const function UnregisterPlayer(player: Player)
+	const entity = playerEntities[player]
 	if entity then
 		Entity.Destroy(entity)
 	end
 end
 
-local function OnCharacterAdded(character: Model, player: Player)
+const function OnCharacterAdded(character: Model, player: Player)
 	task.wait(0.1)
 	RegisterPlayer(player, character, {
 		config = "PLAYER",
 	})
 end
 
-local function OnPlayerAdded(player: Player)
-	local connection = player.CharacterAdded:Connect(function(character: Model)
+const function OnPlayerAdded(player: Player)
+	const connection = player.CharacterAdded:Connect(function(character: Model)
 		OnCharacterAdded(character, player)
 	end)
 	if player.Character then
@@ -92,13 +92,13 @@ Config._WaitForLock(function()
 		Warn.low("automatic player replication is disabled")
 		return
 	end
-	local deathRemote = script.Parent.Parent.Shared.Remotes.Death
-	local ReplicateMode: "NONE" | "PLAYER_ENTITIES" | "PLAYER_CHARACTERS" = Config._GetConfig("REPLICATE_DEATHS")
+	const deathRemote = script.Parent.Parent.Shared.Remotes.Death
+	const ReplicateMode: "NONE" | "PLAYER_ENTITIES" | "PLAYER_CHARACTERS" = Config._GetConfig("REPLICATE_DEATHS")
 	deathRemote.OnServerEvent:Connect(function(plr, id)
 		if ReplicateMode == "NONE" then
 			return
 		end
-		local entity = Holder.GetEntityFromId(id)
+		const entity = Holder.GetEntityFromId(id)
 		if not entity then
 			return
 		end
@@ -110,9 +110,9 @@ Config._WaitForLock(function()
 			return
 		end
 
-		local model = entity.model
+		const model = entity.model
 		if model then
-			local humanoid: Humanoid? = model:FindFirstChildWhichIsA("Humanoid")
+			const humanoid: Humanoid? = model:FindFirstChildWhichIsA("Humanoid")
 			task.wait()
 			if humanoid and humanoid:GetState() ~= Enum.HumanoidStateType.Dead then
 				humanoid.Health = 0

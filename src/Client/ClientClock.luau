@@ -1,14 +1,14 @@
-local RunService = game:GetService("RunService")
+const RunService = game:GetService("RunService")
 
-local Warn = require(script.Parent.Parent.Shared.Warn)
-local Config = require(script.Parent.Parent.Shared.Config)
-local Types = require(script.Parent.Parent.Shared.Types)
-local BufferTracker = require(script.Parent.InterpolationBuffer)
+const Warn = require(script.Parent.Parent.Shared.Warn)
+const Config = require(script.Parent.Parent.Shared.Config)
+const Types = require(script.Parent.Parent.Shared.Types)
+const BufferTracker = require(script.Parent.InterpolationBuffer)
 
-local ClientClocks = {}
-local _ServerOwnedClocks = {}
+const ClientClocks = {}
+const _ServerOwnedClocks = {}
 
-local function GetBuffer(clientClock: Types.ClientClock): number
+const function GetBuffer(clientClock: Types.ClientClock): number
 	if clientClock.buffer then
 		return BufferTracker.GetBuffer(clientClock.buffer, clientClock.tickRate)
 	else
@@ -16,7 +16,7 @@ local function GetBuffer(clientClock: Types.ClientClock): number
 	end
 end
 
-local function Clear(clientClock: Types.ClientClock)
+const function Clear(clientClock: Types.ClientClock)
 	clientClock.lastClockAt = nil
 	clientClock.lastClockDuration = 0
 	clientClock.renderAt = nil
@@ -26,7 +26,7 @@ local function Clear(clientClock: Types.ClientClock)
 	end
 end
 
-local function GetTargetRenderTime(clientClock: Types.ClientClock): number
+const function GetTargetRenderTime(clientClock: Types.ClientClock): number
 	if not clientClock.renderAt then
 		Warn.low("ClientClock: Render time not yet established for", clientClock.name)
 		return 0
@@ -35,7 +35,7 @@ local function GetTargetRenderTime(clientClock: Types.ClientClock): number
 	return clientClock.renderAt
 end
 
-local function GetEstimatedServerTime(clientClock: Types.ClientClock): number
+const function GetEstimatedServerTime(clientClock: Types.ClientClock): number
 	if not clientClock.lastClockAt then
 		Warn.low("ClientClock: Estimated server time not yet established for", clientClock.name)
 		return 0
@@ -44,7 +44,7 @@ local function GetEstimatedServerTime(clientClock: Types.ClientClock): number
 	return clientClock.lastClockAt + (os.clock() - clientClock.lastClockDuration)
 end
 
-local function CheckHasLastClockAt(clientClock: Types.ClientClock, sendTime: number)
+const function CheckHasLastClockAt(clientClock: Types.ClientClock, sendTime: number)
 	if not clientClock.lastClockAt then
 		clientClock.lastClockAt = sendTime
 		clientClock.lastClockDuration = os.clock()
@@ -52,7 +52,7 @@ local function CheckHasLastClockAt(clientClock: Types.ClientClock, sendTime: num
 	end
 end
 
-local function Refresh(clientClock: Types.ClientClock, currentSendTime: number): boolean
+const function Refresh(clientClock: Types.ClientClock, currentSendTime: number): boolean
 	if not clientClock.lastClockAt then
 		CheckHasLastClockAt(clientClock, currentSendTime)
 		return false
@@ -67,7 +67,7 @@ local function Refresh(clientClock: Types.ClientClock, currentSendTime: number):
 	return false
 end
 
-local function OnSnapShot(clientClock: Types.ClientClock, currentSendTime: number)
+const function OnSnapShot(clientClock: Types.ClientClock, currentSendTime: number)
 	if not clientClock.lastClockAt then
 		CheckHasLastClockAt(clientClock, currentSendTime)
 		return
@@ -82,7 +82,7 @@ local function OnSnapShot(clientClock: Types.ClientClock, currentSendTime: numbe
 	end
 end
 
-local function SetTickRate(clientClock: Types.ClientClock, tickRate: number)
+const function SetTickRate(clientClock: Types.ClientClock, tickRate: number)
 	if clientClock.tickRate == tickRate then
 		return
 	end
@@ -90,23 +90,23 @@ local function SetTickRate(clientClock: Types.ClientClock, tickRate: number)
 	--//Do something here maybe?
 end
 
-local function Destroy(clientClock: Types.ClientClock)
+const function Destroy(clientClock: Types.ClientClock)
 	ClientClocks[clientClock] = nil
 	if _ServerOwnedClocks[clientClock] then
 		_ServerOwnedClocks[clientClock] = nil
 	end
 end
 
-local function Update(clientClock: Types.ClientClock, dt: number)
-	local now = os.clock()
-	local delay = GetBuffer(clientClock)
+const function Update(clientClock: Types.ClientClock, dt: number)
+	const now = os.clock()
+	const delay = GetBuffer(clientClock)
 	if not clientClock.lastClockAt then
 		return
 	end
-	local estimatedServerTime = clientClock.lastClockAt + (now - clientClock.lastClockDuration)
+	const estimatedServerTime = clientClock.lastClockAt + (now - clientClock.lastClockDuration)
 	local renderAt = (clientClock.renderAt or (estimatedServerTime - delay)) + dt
 
-	local renderTimeError = delay - (estimatedServerTime - renderAt)
+	const renderTimeError = delay - (estimatedServerTime - renderAt)
 
 	if math.abs(renderTimeError) > 0.1 then
 		renderAt = estimatedServerTime - delay
@@ -119,8 +119,8 @@ local function Update(clientClock: Types.ClientClock, dt: number)
 	clientClock.renderAt = renderAt
 end
 
-local function new(tickRate: number, name: string, bufferNumber: number?, networkOwner: Player?): Types.ClientClock
-	local self: Types.ClientClock = {
+const function new(tickRate: number, name: string, bufferNumber: number?, networkOwner: Player?): Types.ClientClock
+	const self: Types.ClientClock = {
 		name = name,
 		lastClockAt = nil,
 		lastClockDuration = 0,
@@ -151,7 +151,7 @@ local function new(tickRate: number, name: string, bufferNumber: number?, networ
 	return self
 end
 
-local function UpdateAll(dt: number)
+const function UpdateAll(dt: number)
 	for clientClock, _ in ClientClocks do
 		Update(clientClock, dt)
 	end
@@ -162,7 +162,7 @@ Config._WaitForLock(function()
 		return
 	end
 	for name, config in Config._EntityConfigs do
-		local clientClocks = config.CLIENT_CLOCK
+		const clientClocks = config.CLIENT_CLOCK
 		if not clientClocks then
 			Warn.high("Entity Config", name, "is missing client clocks")
 			return
