@@ -1,25 +1,25 @@
-local Shared = script.Parent.Parent.Shared
+const Shared = script.Parent.Parent.Shared
 
-local RunService = game:GetService("RunService")
+const RunService = game:GetService("RunService")
 
-local Ticker = require(Shared.Ticker)
-local Warn = require(Shared.Warn)
-local StatsALL = require(script.Parent.Parent.Shared.Stats)
-local ApplyMounts = require(script.Parent.Parent.Shared.ApplyMounts)
-local RenderCache = require(script.Parent.ClientClock)
-local ModelResolver = require(script.Parent.ModelResolver)
-local Entity = require(Shared.Entity)
-local Holder = require(Shared.Holder)
-local Config = require(Shared.Config)
-local Types = require(Shared.Types)
-local Sender = require(script.Parent.Sender)
-local Stats = require(Shared.Stats).CLIENT
+const Ticker = require(Shared.Ticker)
+const Warn = require(Shared.Warn)
+const StatsALL = require(script.Parent.Parent.Shared.Stats)
+const ApplyMounts = require(script.Parent.Parent.Shared.ApplyMounts)
+const RenderCache = require(script.Parent.ClientClock)
+const ModelResolver = require(script.Parent.ModelResolver)
+const Entity = require(Shared.Entity)
+const Holder = require(Shared.Holder)
+const Config = require(Shared.Config)
+const Types = require(Shared.Types)
+const Sender = require(script.Parent.Sender)
+const Stats = require(Shared.Stats).CLIENT
 
-local CLIENT_CLOCK_SYNC_RATE = 15 -- should be fine having lower then server
+const CLIENT_CLOCK_SYNC_RATE = 15 -- should be fine having lower then server
 require(script.Parent.Player)
 require(script.Parent.Receiver)
 
-local idMap = Holder.idMap
+const idMap = Holder.idMap
 
 local FrustumLookVector = vector.create(0, 0, -1)
 local FrustumRightVector = vector.create(1, 0, 0)
@@ -28,64 +28,64 @@ local FrustumPosition = vector.create(0, 0, 0)
 local TanHorizontal = 0
 local TanVertical = 0
 
-local function PrepareFrustumCheck()
-	local cframe: CFrame = workspace.CurrentCamera.CFrame
+const function PrepareFrustumCheck()
+	const cframe: CFrame = workspace.CurrentCamera.CFrame
 	FrustumLookVector = cframe.LookVector :: any
 	FrustumRightVector = cframe.RightVector :: any
 	FrustumUpVector = cframe.UpVector :: any
 
 	FrustumPosition = cframe.Position :: any
 
-	local cam = workspace.CurrentCamera
-	local halfFov = math.rad(cam.FieldOfView / 2)
-	local aspectRatio = cam.ViewportSize.X / cam.ViewportSize.Y
+	const cam = workspace.CurrentCamera
+	const halfFov = math.rad(cam.FieldOfView / 2)
+	const aspectRatio = cam.ViewportSize.X / cam.ViewportSize.Y
 	TanHorizontal = math.tan(halfFov) * aspectRatio
 	TanVertical = math.tan(halfFov)
 end
 
-local function CheckPointInFrustum(pos: vector)
-	local diff = pos - FrustumPosition
+const function CheckPointInFrustum(pos: vector)
+	const diff = pos - FrustumPosition
 
-	local magnitude = vector.magnitude(diff)
+	const magnitude = vector.magnitude(diff)
 
 	if magnitude == 0 then
 		return true
 	end
 
-	local forwardDis = vector.dot(diff, FrustumLookVector)
+	const forwardDis = vector.dot(diff, FrustumLookVector)
 
-	local forwardDot = forwardDis / magnitude
+	const forwardDot = forwardDis / magnitude
 	if forwardDot < 0 then
 		return false
 	end
 	if forwardDis < 1 then
 		return true
 	end
-	local unit = diff / magnitude
-	local rightDot = vector.dot(unit, FrustumRightVector)
+	const unit = diff / magnitude
+	const rightDot = vector.dot(unit, FrustumRightVector)
 
 	if math.abs(rightDot) > forwardDot * TanHorizontal then
 		return false
 	end
 
-	local upDot = vector.dot(unit, FrustumUpVector)
+	const upDot = vector.dot(unit, FrustumUpVector)
 	if math.abs(upDot) > forwardDot * TanVertical then
 		return false
 	end
 	return true
 end
 
-local function CheckBroadPhaseInFrustum(center: vector, size: vector)
+const function CheckBroadPhaseInFrustum(center: vector, size: vector)
 	if size == vector.zero then
 		return CheckPointInFrustum(center)
 	end
-	local halfSize = size * 0.5
-	local halfX = halfSize.x
-	local halfY = halfSize.y
-	local halfZ = halfSize.z
-	local negX = -halfX
-	local negY = -halfY
-	local negZ = -halfZ
+	const halfSize = size * 0.5
+	const halfX = halfSize.x
+	const halfY = halfSize.y
+	const halfZ = halfSize.z
+	const negX = -halfX
+	const negY = -halfY
+	const negZ = -halfZ
 
 	return CheckPointInFrustum(center + vector.create(halfX, halfY, halfZ))
 		or CheckPointInFrustum(center + vector.create(negX, halfY, halfZ))
@@ -96,7 +96,7 @@ local function CheckBroadPhaseInFrustum(center: vector, size: vector)
 		or CheckPointInFrustum(center + vector.create(halfX, negY, negZ))
 		or CheckPointInFrustum(center + vector.create(negX, negY, negZ))
 end
-local Ticks = 4
+const Ticks = 4
 local OutOfBroadPhaseTick = 0
 local CurrentTick = 0
 local TotalInterpolationTime = 0
@@ -106,12 +106,12 @@ local CheckedThisFrame = 0
 local TotalCulled = 0
 local MovedThisFrame = 0
 
-local function Interpolate(entity: Types.Entity)
-	local config = entity.entityConfig
+const function Interpolate(entity: Types.Entity)
+	const config = entity.entityConfig
 	if not entity.interpolation or config.CUSTOM_INTERPOLATION then
 		return
 	end
-	local primaryPart = Entity.GetPrimaryPart(entity)
+	const primaryPart = Entity.GetPrimaryPart(entity)
 
 	if not primaryPart then
 		return
@@ -132,36 +132,36 @@ local function Interpolate(entity: Types.Entity)
 		end
 	end
 
-	local currentEntityTick = entity._outofBroadPhaseTick
+	const currentEntityTick = entity._outofBroadPhaseTick
 	if currentEntityTick and currentEntityTick ~= CurrentTick then
 		return
 	end
 
-	local snapshot = entity.snapshot
+	const snapshot = entity.snapshot
 	if not snapshot then
 		Warn.medium("No snapshot for entity", entity)
 		return
 	end
 	CheckedThisFrame += 1
 	debug.profilebegin("Get Render CFrame")
-	local targetTime = Entity.GetTargetRenderTime(entity)
-	local targetCFrame = snapshot:GetAt(targetTime)
+	const targetTime = Entity.GetTargetRenderTime(entity)
+	const targetCFrame = snapshot:GetAt(targetTime)
 	debug.profileend()
 	if not targetCFrame then
 		return
 	end
-	local broadPhase: vector? = entity.broadPhase
+	const broadPhase: vector? = entity.broadPhase
 
 	if broadPhase then
-		local toCheck = targetCFrame :: any
-		local lastCheckedCFrame = entity.lastCheckedCFrame
+		const toCheck = targetCFrame :: any
+		const lastCheckedCFrame = entity.lastCheckedCFrame
 		debug.profilebegin("Prepare Frustum")
-		local passed = CheckBroadPhaseInFrustum(toCheck.Position, broadPhase)
+		const passed = CheckBroadPhaseInFrustum(toCheck.Position, broadPhase)
 		debug.profileend()
 		if not passed then
 			if lastCheckedCFrame and lastCheckedCFrame.Position ~= toCheck.Position then
 				debug.profilebegin("Check Last CFrame")
-				local passLast = CheckBroadPhaseInFrustum(lastCheckedCFrame.Position :: any, broadPhase)
+				const passLast = CheckBroadPhaseInFrustum(lastCheckedCFrame.Position :: any, broadPhase)
 				debug.profileend()
 				if not passLast then
 					TotalCulled += 1
@@ -193,25 +193,25 @@ local function Interpolate(entity: Types.Entity)
 	debug.profileend()
 end
 
-local function updateEntityStats()
+const function updateEntityStats()
 	if not StatsALL.SERVER._SHOULD_REPLICATE or Stats._PAUSE then
 		return
 	end
-	local entities = {}
+	const entities = {}
 	for _, entity in idMap do
-		local id = entity.id
-		local config = entity.entityConfig
-		local configName = config and config.NAME or "DEFAULT"
-		local networkOwner = entity.networkOwner
-		local isCharacter = entity._player ~= nil
+		const id = entity.id
+		const config = entity.entityConfig
+		const configName = config and config.NAME or "DEFAULT"
+		const networkOwner = entity.networkOwner
+		const isCharacter = entity._player ~= nil
 
-		local lastRecvTime = entity.latestTime or 0
-		local lastReplicatedTime = entity.lastReplicatedTime or 0
+		const lastRecvTime = entity.latestTime or 0
+		const lastReplicatedTime = entity.lastReplicatedTime or 0
 
 		local renderCache = entity._clientClock
 
 		if not renderCache then
-			local RenderCaches = entity.entityConfig.CLIENT_CLOCK
+			const RenderCaches = entity.entityConfig.CLIENT_CLOCK
 			if RenderCaches then
 				renderCache = entity.isHalfTicked and RenderCaches.HALF or RenderCaches.NORMAL
 			end
@@ -224,17 +224,17 @@ local function updateEntityStats()
 
 		if renderCache then
 			targetRender = renderCache:GetTargetRenderTime()
-			local interpolationBuff = renderCache.buffer
+			const interpolationBuff = renderCache.buffer
 			if interpolationBuff then
 				averageLatency = interpolationBuff.averageLatency
 				deviation = interpolationBuff.deviation
 			end
 			bufferedTime = RenderCache._getBuffer(renderCache)
 		end
-		local primaryPart = Entity.GetPrimaryPart(entity)
-		local snapshot = entity.snapshot
-		local currentPosition = primaryPart and primaryPart.Position
-		local snapshots = {}
+		const primaryPart = Entity.GetPrimaryPart(entity)
+		const snapshot = entity.snapshot
+		const currentPosition = primaryPart and primaryPart.Position
+		const snapshots = {}
 		if snapshot then
 			for _, snap in snapshot.cache do
 				table.insert(snapshots, { t = snap.t, value = snap.value, velocity = snap.velocity })
@@ -243,7 +243,7 @@ local function updateEntityStats()
 				return a.t > b.t
 			end)
 		end
-		local data = {
+		const data = {
 			id = id,
 			entity = entity,
 			networkOwner = networkOwner,
@@ -275,7 +275,7 @@ Config._WaitForLock(function()
 		PrepareFrustumCheck()
 		debug.profileend()
 		local total = 0
-		local startTime = os.clock()
+		const startTime = os.clock()
 		debug.profilebegin("Interpolate Entities")
 		for _, entity in idMap do
 			ModelResolver(entity)
@@ -289,7 +289,7 @@ Config._WaitForLock(function()
 			Interpolate(entity)
 		end
 		debug.profileend()
-		local endTime = os.clock()
+		const endTime = os.clock()
 		debug.profilebegin("Update Entity Stats")
 		updateEntityStats()
 		debug.profileend()
@@ -316,7 +316,7 @@ Config._WaitForLock(function()
 	-- epoch directly (remotes serialize numbers as f64 anyway, so it's the same bytes as a u32).
 	-- Keeps the server's view fresh + correct even for a still (macro/auto-click) player that
 	-- sends no entity packets. See ClockUnwrap.
-	local ClientHeartbeatRemote = Shared.Remotes.ClientHeartbeat
+	const ClientHeartbeatRemote = Shared.Remotes.ClientHeartbeat
 	ClientHeartbeatRemote:FireServer(os.clock()) -- seed on join
 	local clientHeartbeatAcc = 0
 	RunService.Heartbeat:Connect(function(dt: number)

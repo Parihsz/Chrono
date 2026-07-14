@@ -1,9 +1,9 @@
-local Types = require(script.Parent.Types)
-local Signal = require(script.Parent.Signal)
+const Types = require(script.Parent.Types)
+const Signal = require(script.Parent.Signal)
 type Signal<fx, T...> = Types.Signal<fx, T...>
 
-local Signals = {}
-local Events = {}
+const Signals = {}
+const Events = {}
 
 Signals.EntityAdded = Signal.new() :: Signal<(entity: Types.Entity) -> (), Types.Entity>
 Events.EntityAdded = Signals.EntityAdded.Event

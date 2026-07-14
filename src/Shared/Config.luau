@@ -1,7 +1,7 @@
-local Types = require(script.Parent.Types)
+const Types = require(script.Parent.Types)
 
-local IS_SERVER = game:GetService("RunService"):IsServer()
-local CHRONO_PRIMARY = "__CHRONO_PRIMARY"
+const IS_SERVER = game:GetService("RunService"):IsServer()
+const CHRONO_PRIMARY = "__CHRONO_PRIMARY"
 
 export type WarningLevels = "NONE" | "LOW" | "MEDIUM" | "HIGH"
 
@@ -38,7 +38,7 @@ export type SetConfig =
 	& ("GRID_UPDATE_INTERVAL", number) -> ()
 	& ("GRID_MAX_UPDATE_TIME", number) -> ()
 local LOCKED = false
-local BASE_CONFIG = {
+const BASE_CONFIG = {
 	__VERSION = "v2.1.4",
 	CHECK_NEW_VERSION = true,
 	MAX_TOTAL_BYTES_PER_FRAME_PER_PLAYER = 300, -- Base line value
@@ -93,7 +93,7 @@ local BASE_CONFIG = {
 	]]
 	MAX_SNAPSHOT_COUNT = 30,
 }
-local ENTITY_TYPES: { [string]: Types.EntityConfig } = {
+const ENTITY_TYPES: { [string]: Types.EntityConfig } = {
 	DEFAULT = {
 		NAME = "DEFAULT",
 		TICK_RATE = 1 / 20,
@@ -114,8 +114,8 @@ local ENTITY_TYPES: { [string]: Types.EntityConfig } = {
 		ASSEMBLY_ROOT_PART_CHECK = true,
 	},
 }
-local ENTITY_MODELS = {}
-local MODEL_BROAD_PHASES = {}
+const ENTITY_MODELS = {}
+const MODEL_BROAD_PHASES = {}
 
 --[=[
 	Registers an entity type configuration.
@@ -124,20 +124,20 @@ local MODEL_BROAD_PHASES = {}
 	@param name The name of the entity type.
 	@param config The configuration for the entity type.
 ]=]
-local function RegisterEntityType(name: string, config: Types.EntityConfigInput)
+const function RegisterEntityType(name: string, config: Types.EntityConfigInput)
 	assert(not LOCKED, "Config is locked and cannot be modified after startup.")
 	ENTITY_TYPES[name] = config :: any
 end
 
 --[=[
-	Registers an entity model. This can be registered after the config is locked. 
+	Registers an entity model. This can be registered after the config is locked.
 	Server and client may have different models registered under the same name.
 
 	@param name The name of the entity model.
 	@param model The model or part to use for the entity.
 	@param broadPhase Optional broad phase vector or size for frustum culling on the client. If vector is zero then only do 1 check in the center instead of a box check.
 ]=]
-local function RegisterEntityModel(name: string, model: Model | BasePart | false, broadPhase: vector | Vector3?)
+const function RegisterEntityModel(name: string, model: Model | BasePart | false, broadPhase: vector | Vector3?)
 	if model ~= false and model:IsA("Model") and not model.PrimaryPart then
 		error(name .. " must have a PrimaryPart to be registered as an entity model.")
 	end
@@ -145,16 +145,16 @@ local function RegisterEntityModel(name: string, model: Model | BasePart | false
 	MODEL_BROAD_PHASES[name] = broadPhase
 end
 
-local SetConfig = function(name, value)
+const SetConfig = function(name, value)
 	assert(not LOCKED, "Config is locked and cannot be modified after startup.")
 	BASE_CONFIG[name] = value
 end :: SetConfig
 
-local function GetEntityType(name: string?): Types.EntityConfig
+const function GetEntityType(name: string?): Types.EntityConfig
 	return name and ENTITY_TYPES[name] or ENTITY_TYPES["DEFAULT"]
 end
 
-local function GetEntityModel(name: string): Model | BasePart | false?
+const function GetEntityModel(name: string): Model | BasePart | false?
 	if ENTITY_MODELS[name] == nil then
 		warn(`Entity model {name} not found in Config.`)
 		return nil
@@ -162,16 +162,16 @@ local function GetEntityModel(name: string): Model | BasePart | false?
 	return ENTITY_MODELS[name]
 end
 
-local function GetBroadPhase(name: string): vector?
+const function GetBroadPhase(name: string): vector?
 	return MODEL_BROAD_PHASES[name] :: any
 end
 
-local function GetConfig(name: Configs)
+const function GetConfig(name: Configs)
 	return BASE_CONFIG[name]
 end
 
-local waiting = {}
-local function WaitForLock(fx: () -> ())
+const waiting = {}
+const function WaitForLock(fx: () -> ())
 	if LOCKED then
 		fx()
 	else
@@ -179,21 +179,21 @@ local function WaitForLock(fx: () -> ())
 	end
 end
 
-local function SetWarningSeverity(level: WarningLevels)
+const function SetWarningSeverity(level: WarningLevels)
 	if level ~= "NONE" and level ~= "LOW" and level ~= "MEDIUM" and level ~= "HIGH" then
 		error("Invalid warning level: " .. tostring(level))
 	end
 	BASE_CONFIG.WARNING_SEVERITY = level
 end
 
-local function Lock()
+const function Lock()
 	(require)(script.Parent.Warn).low("Config is now locked")
 
 	LOCKED = true
-	local DEFAULT_NORMAL_TICK_DISTANCE = BASE_CONFIG.DEFAULT_NORMAL_TICK_DISTANCE
-	local DEFAULT_HALF_TICK_DISTANCE = BASE_CONFIG.DEFAULT_HALF_TICK_DISTANCE
+	const DEFAULT_NORMAL_TICK_DISTANCE = BASE_CONFIG.DEFAULT_NORMAL_TICK_DISTANCE
+	const DEFAULT_HALF_TICK_DISTANCE = BASE_CONFIG.DEFAULT_HALF_TICK_DISTANCE
 	for i, v in ENTITY_TYPES do
-		local cloned = table.clone(v)
+		const cloned = table.clone(v)
 		cloned.NAME = i
 		cloned.AUTO_UPDATE_POSITION = cloned.AUTO_UPDATE_POSITION ~= false
 		cloned.FULL_ROTATION = cloned.FULL_ROTATION or false

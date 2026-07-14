@@ -1,14 +1,14 @@
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
+const Players = game:GetService("Players")
+const RunService = game:GetService("RunService")
 
-local Config = require(script.Parent.Config)
-local Entity = require(script.Parent.Entity)
-local Holder = require(script.Parent.Holder)
-local Types = require(script.Parent.Types)
+const Config = require(script.Parent.Config)
+const Entity = require(script.Parent.Entity)
+const Holder = require(script.Parent.Holder)
+const Types = require(script.Parent.Types)
 
-local ShowEntityLocations = true
-local HasDebuggerOpened = {}
-local Stats = {
+const ShowEntityLocations = true
+const HasDebuggerOpened = {}
+const Stats = {
 	REPLICATE_PERMISSIONS = {
 		--[123456789] = true,
 	} :: { [number]: boolean },
@@ -50,7 +50,7 @@ local Stats = {
 	},
 }
 
-local function processID(id: number, replicate)
+const function processID(id: number, replicate)
 	script:SetAttribute(tostring(id), replicate)
 end
 
@@ -89,7 +89,7 @@ for i, v in Stats.REPLICATE_PERMISSIONS do
 	processID(i, v)
 end
 
-local function updateStat(type: string, name: string, value: any)
+const function updateStat(type: string, name: string, value: any)
 	if name == "WARNING_SEVERITY" then
 		Config.SetWarningSeverity(value)
 	end
@@ -98,7 +98,7 @@ local function updateStat(type: string, name: string, value: any)
 	end
 end
 
-local StatsRemoteHeaders = {
+const StatsRemoteHeaders = {
 	REPLICATE_SERVER_STATS = "REPLICATE_SERVER_STATS",
 	UPDATE_STAT = "UPDATE_STAT",
 	DEBUGGER_OPENED = "DEBUGGER_OPENED",
@@ -106,7 +106,7 @@ local StatsRemoteHeaders = {
 }
 
 if RunService:IsServer() then
-	local statsRemote = Instance.new("RemoteEvent", script)
+	const statsRemote = Instance.new("RemoteEvent", script)
 	statsRemote.Name = "Stats"
 
 	RunService.Heartbeat:Connect(function()
@@ -125,7 +125,7 @@ if RunService:IsServer() then
 
 	statsRemote.OnServerEvent:Connect(function(plr: Player, header: string, ...)
 		if header == StatsRemoteHeaders.DEBUGGER_OPENED then
-			local opened = ...
+			const opened = ...
 			HasDebuggerOpened[plr.UserId] = opened
 			return
 		end
@@ -135,17 +135,17 @@ if RunService:IsServer() then
 		end
 
 		if header == StatsRemoteHeaders.UPDATE_STAT then
-			local type, name, value = ...
+			const type, name, value = ...
 			updateStat(type, name, value)
 			statsRemote:FireAllClients(StatsRemoteHeaders.UPDATE_STAT, type, name, value)
 		elseif header == StatsRemoteHeaders.CLIENT_STATS_ACTION then
-			local actionType, id = ...
-			local entity = Holder.GetEntityFromId(id)
+			const actionType, id = ...
+			const entity = Holder.GetEntityFromId(id)
 			if not entity then
 				return
 			end
 			if actionType == "CHANGE_NATIVE" then
-				local mode = Entity.GetModelReplicationType(entity)
+				const mode = Entity.GetModelReplicationType(entity)
 				if mode == "NATIVE" then
 					Entity.LockNativeServerCFrameReplication(entity)
 				elseif mode == "NATIVE_WITH_LOCK" then
@@ -158,17 +158,17 @@ if RunService:IsServer() then
 					Entity.PauseReplication(entity)
 				end
 			elseif actionType == "CHANGE_CONFIG" then
-				local configName = select(3, ...)
+				const configName = select(3, ...)
 				Entity.SetConfig(entity, configName)
 			end
 		end
 	end)
 else
-	local statsRemote = script:WaitForChild("Stats") :: RemoteEvent
+	const statsRemote = script:WaitForChild("Stats") :: RemoteEvent
 
-	local function handleServerEvent(header: string, ...)
+	const function handleServerEvent(header: string, ...)
 		if header == StatsRemoteHeaders.REPLICATE_SERVER_STATS then
-			local serverStats = ...
+			const serverStats = ...
 			if Stats.CLIENT._PAUSE then
 				return
 			end
@@ -176,7 +176,7 @@ else
 				Stats.SERVER[statName] = value
 			end
 		elseif header == StatsRemoteHeaders.UPDATE_STAT then
-			local type, name, value = ...
+			const type, name, value = ...
 			updateStat(type, name, value)
 		end
 	end

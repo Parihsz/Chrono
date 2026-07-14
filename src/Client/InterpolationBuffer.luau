@@ -1,16 +1,16 @@
-local Warn = require(script.Parent.Parent.Shared.Warn)
-local Config = require(script.Parent.Parent.Shared.Config)
-local Types = require(script.Parent.Parent.Shared.Types)
+const Warn = require(script.Parent.Parent.Shared.Warn)
+const Config = require(script.Parent.Parent.Shared.Config)
+const Types = require(script.Parent.Parent.Shared.Types)
 
 local MIN_BUFFER
 local MAX_BUFFER
-local ALPHA = 0.1
+const ALPHA = 0.1
 
 Config._WaitForLock(function()
 	MIN_BUFFER = Config._GetConfig("MIN_BUFFER")
 	MAX_BUFFER = Config._GetConfig("MAX_BUFFER")
 end)
-local Buffer = {}
+const Buffer = {}
 
 function Buffer.new(clientClock: Types.ClientClock)
 	return {
@@ -24,9 +24,9 @@ function Buffer.new(clientClock: Types.ClientClock)
 end
 
 function Buffer.Register(data: Types.InterpolationBuffer, time: number)
-	local clientClock = data.clientClock
-	local clientNow = clientClock:GetEstimatedServerTime()
-	local latency = clientNow - time
+	const clientClock = data.clientClock
+	const clientNow = clientClock:GetEstimatedServerTime()
+	const latency = clientNow - time
 
 	if math.abs(latency) > 1 then
 		clientClock:Clear()
@@ -44,7 +44,7 @@ function Buffer.Register(data: Types.InterpolationBuffer, time: number)
 	end
 
 	if data.lastLatency then
-		local delta = math.abs(latency - data.lastLatency)
+		const delta = math.abs(latency - data.lastLatency)
 		--deviation is essentially jitter, and we calculate that using RFC 3550 jitter estimation
 		--see: https://tech.ebu.ch/docs/tech/tech3337.pdf
 		data.deviation = data.deviation + (delta - data.deviation) * ALPHA
@@ -59,8 +59,8 @@ function Buffer.GetBuffer(data: Types.InterpolationBuffer, tickRate: number)
 		return MIN_BUFFER
 	end
 
-	local deviationMargin = data.deviation * 2
-	local rawBuffer = tickRate + deviationMargin
+	const deviationMargin = data.deviation * 2
+	const rawBuffer = tickRate + deviationMargin
 
 	local buffer = if rawBuffer < MIN_BUFFER then MIN_BUFFER + (MIN_BUFFER - rawBuffer) * 0.2 else rawBuffer
 	if buffer > MAX_BUFFER then

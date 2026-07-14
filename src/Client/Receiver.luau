@@ -1,86 +1,86 @@
-local RunService = game:GetService("RunService")
-local Players = game:GetService("Players")
-local Shared = script.Parent.Parent.Shared
+const RunService = game:GetService("RunService")
+const Players = game:GetService("Players")
+const Shared = script.Parent.Parent.Shared
 
-local Warn = require(Shared.Warn)
-local Entity = require(Shared.Entity)
-local Events = require(Shared.Events)
-local Holder = require(Shared.Holder)
-local ModelHelper = require(Shared.ModelHelper)
-local Types = require(Shared.Types)
-local ClockUnwrap = require(Shared.ClockUnwrap)
-local Stats = require(Shared.Stats).CLIENT
-local ClientClock = require(script.Parent.ClientClock)
+const Warn = require(Shared.Warn)
+const Entity = require(Shared.Entity)
+const Events = require(Shared.Events)
+const Holder = require(Shared.Holder)
+const ModelHelper = require(Shared.ModelHelper)
+const Types = require(Shared.Types)
+const ClockUnwrap = require(Shared.ClockUnwrap)
+const Stats = require(Shared.Stats).CLIENT
+const ClientClock = require(script.Parent.ClientClock)
 
 local BytesReceived = 0
 local NewPerSec = 0
 local RemovedPerSec = 0
 local ChangesPerSec = 0
 
-local SetTickMode = Entity._SetTickMode
+const SetTickMode = Entity._SetTickMode
 
-local UnreliableEvent = Shared.Remotes.Replicate
-local ReliableEvent = Shared.Remotes.ReplicateFull
-local HeartbeatRemote = Shared.Remotes.Heartbeat
-local ClientClockRelayRemote = Shared.Remotes.ClientClockRelay
+const UnreliableEvent = Shared.Remotes.Replicate
+const ReliableEvent = Shared.Remotes.ReplicateFull
+const HeartbeatRemote = Shared.Remotes.Heartbeat
+const ClientClockRelayRemote = Shared.Remotes.ClientClockRelay
 
-local ServerWrap = ClockUnwrap.new()
-local ClientOwnedWrap: ClockUnwrap.Store = {}
+const ServerWrap = ClockUnwrap.new()
+const ClientOwnedWrap: ClockUnwrap.Store = {}
 
-local TickerHeaderBytes = 4 + 1
-local FULL_BYTES = 4 * 3 + 2 * 3
-local YAW_BYTES = 4 * 3 + 2
+const TickerHeaderBytes = 4 + 1
+const FULL_BYTES = 4 * 3 + 2 * 3
+const YAW_BYTES = 4 * 3 + 2
 
-local TAU = 2 * math.pi
+const TAU = 2 * math.pi
 
-local function UnmapRotation(u16: number): number
+const function UnmapRotation(u16: number): number
 	return (u16 / 65535) * TAU - math.pi
 end
 
-local function ReadTickerHeader(b: buffer, index: number): (number, boolean, boolean)
-	local lastTicked = ClockUnwrap.unwrap(ServerWrap, buffer.readu32(b, index))
-	local packed = buffer.readu8(b, index + 4)
+const function ReadTickerHeader(b: buffer, index: number): (number, boolean, boolean)
+	const lastTicked = ClockUnwrap.unwrap(ServerWrap, buffer.readu32(b, index))
+	const packed = buffer.readu8(b, index + 4)
 
-	local isHalfTickRate = bit32.band(packed, 1) == 1
-	local isFull = bit32.band(packed, 2) == 2
+	const isHalfTickRate = bit32.band(packed, 1) == 1
+	const isFull = bit32.band(packed, 2) == 2
 
 	return lastTicked, isFull, isHalfTickRate
 end
 
-local function DeserializeFull(b: buffer, index: number): CFrame
-	local x = buffer.readf32(b, index)
+const function DeserializeFull(b: buffer, index: number): CFrame
+	const x = buffer.readf32(b, index)
 	index += 4
-	local y = buffer.readf32(b, index)
+	const y = buffer.readf32(b, index)
 	index += 4
-	local z = buffer.readf32(b, index)
+	const z = buffer.readf32(b, index)
 	index += 4
 
-	local rx = UnmapRotation(buffer.readu16(b, index))
+	const rx = UnmapRotation(buffer.readu16(b, index))
 	index += 2
-	local ry = UnmapRotation(buffer.readu16(b, index))
+	const ry = UnmapRotation(buffer.readu16(b, index))
 	index += 2
-	local rz = UnmapRotation(buffer.readu16(b, index))
+	const rz = UnmapRotation(buffer.readu16(b, index))
 	index += 2
 
 	return CFrame.new(x, y, z) * CFrame.fromOrientation(rx, ry, rz)
 end
 
-local function DeserializeYaw(b: buffer, index: number): CFrame
-	local x = buffer.readf32(b, index)
+const function DeserializeYaw(b: buffer, index: number): CFrame
+	const x = buffer.readf32(b, index)
 	index += 4
-	local y = buffer.readf32(b, index)
+	const y = buffer.readf32(b, index)
 	index += 4
-	local z = buffer.readf32(b, index)
+	const z = buffer.readf32(b, index)
 	index += 4
 
-	local ry = UnmapRotation(buffer.readu16(b, index))
+	const ry = UnmapRotation(buffer.readu16(b, index))
 	index += 2
 
 	return CFrame.new(x, y, z) * CFrame.fromOrientation(0, ry, 0)
 end
 
-local function HandleRemoved(id: number)
-	local entity = Holder.GetEntityFromId(id)
+const function HandleRemoved(id: number)
+	const entity = Holder.GetEntityFromId(id)
 	if entity then
 		Entity.Destroy(entity)
 		return
@@ -88,16 +88,16 @@ local function HandleRemoved(id: number)
 	Warn.high("Tried to remove non existent entity with id", id)
 end
 
-local function SetMountId(entity: Types.Entity, mountParentId: number?)
+const function SetMountId(entity: Types.Entity, mountParentId: number?)
 	entity.mountParentId = mountParentId
 	Events._Signals.EntityMountChanged:Fire(entity, mountParentId)
 end
 
-local function SetMountOffset(entity: Types.Entity, mountOffset: CFrame?)
+const function SetMountOffset(entity: Types.Entity, mountOffset: CFrame?)
 	entity.mountOffset = mountOffset or CFrame.identity
 end
 
-local ValueChanges = {
+const ValueChanges = {
 	networkOwner = Entity["设置网络主控玩家"],
 	isHalfTicked = SetTickMode,
 	_data = Entity.SetData,
@@ -108,18 +108,18 @@ local ValueChanges = {
 	broadPhase = Entity.SetBroadPhase,
 }
 
-local function HandleChanges(changes: { id: number, data: { { any } } })
-	local entity = Holder.GetEntityFromId(changes.id)
+const function HandleChanges(changes: { id: number, data: { { any } } })
+	const entity = Holder.GetEntityFromId(changes.id)
 	if not entity then
 		return
 	end
 	local hasMetadata
 	local modelData
 	for _, pair in changes.data do
-		local key = pair[1]
-		local value = pair[2]
+		const key = pair[1]
+		const value = pair[2]
 
-		local handler = ValueChanges[key]
+		const handler = ValueChanges[key]
 		if handler then
 			handler(entity, value)
 		elseif key == "latestCFrame" then
@@ -143,7 +143,7 @@ local function HandleChanges(changes: { id: number, data: { { any } } })
 		elseif key == "_lockedCFReplication" then
 			entity._lockedCFReplication = value
 			if not value then
-				local part = Entity._GetPart(entity)
+				const part = Entity._GetPart(entity)
 				if part then
 					Entity._UnlockPartPhysicsReplication(part)
 				end
@@ -156,15 +156,15 @@ local function HandleChanges(changes: { id: number, data: { { any } } })
 	end
 
 	if modelData ~= nil then
-		local model, modelType = ModelHelper.CreateModelFromData(modelData)
+		const model, modelType = ModelHelper.CreateModelFromData(modelData)
 		Entity.SetModel(entity, model, modelType :: any)
 		entity._modelMetaData = hasMetadata
 	end
 end
 
-local function HandleNewEntity(data: Types.EntityReceivePacket)
-	local model, modelType = ModelHelper.CreateModelFromData(data.model)
-	local entity = Entity._new(data.config, model, modelType, data.cframe)
+const function HandleNewEntity(data: Types.EntityReceivePacket)
+	const model, modelType = ModelHelper.CreateModelFromData(data.model)
+	const entity = Entity._new(data.config, model, modelType, data.cframe)
 
 	entity.id = data.id
 	entity._player = data._player
@@ -184,7 +184,7 @@ local function HandleNewEntity(data: Types.EntityReceivePacket)
 	Holder.RegisterEntity(entity)
 end
 
-local function PushCFrameFor(
+const function PushCFrameFor(
 	id: number,
 	clientOwned: boolean,
 	cframe: CFrame,
@@ -192,13 +192,13 @@ local function PushCFrameFor(
 	isHalfTick: boolean,
 	teleport: boolean?
 ): boolean
-	local entity = Holder.GetEntityFromId(id)
+	const entity = Holder.GetEntityFromId(id)
 	if not entity then
 		Warn.high("Received update for non existent entity with id", id)
 		return false
 	end
 
-	local withinTeleportThreshold = entity._teleport and os.clock() - entity._teleport < 0.5
+	const withinTeleportThreshold = entity._teleport and os.clock() - entity._teleport < 0.5
 	if withinTeleportThreshold then
 		if teleport then
 			entity._teleport = nil
@@ -208,7 +208,7 @@ local function PushCFrameFor(
 	end
 
 	if clientOwned then
-		local renderCache = entity._clientClock
+		const renderCache = entity._clientClock
 		if renderCache then
 			if isHalfTick then
 				renderCache:SetTickRate(renderCache._baseTickRate * 2)
@@ -218,9 +218,9 @@ local function PushCFrameFor(
 			renderCache:OnSnapShot(time)
 		end
 	else
-		local renderCaches = entity.entityConfig.CLIENT_CLOCK
+		const renderCaches = entity.entityConfig.CLIENT_CLOCK
 		if renderCaches then
-			local renderCache = isHalfTick and renderCaches.HALF or renderCaches.NORMAL
+			const renderCache = isHalfTick and renderCaches.HALF or renderCaches.NORMAL
 			if renderCache then
 				renderCache:OnSnapShot(time)
 			end
@@ -236,24 +236,24 @@ local function PushCFrameFor(
 	return true
 end
 
-local function HandleClientOwned(b: buffer)
+const function HandleClientOwned(b: buffer)
 	BytesReceived += buffer.len(b)
-	local bLen = buffer.len(b)
+	const bLen = buffer.len(b)
 	local index = 0
 
 	while index < bLen do
-		local rawTime = buffer.readu32(b, index)
+		const rawTime = buffer.readu32(b, index)
 		index += 4
-		local length = buffer.readu8(b, index)
+		const length = buffer.readu8(b, index)
 		index += 1
 		for i = 1, length do
-			local id = buffer.readu16(b, index)
+			const id = buffer.readu16(b, index)
 			index += 2
-			local packed = buffer.readu8(b, index)
+			const packed = buffer.readu8(b, index)
 			index += 1
-			local isFull = bit32.band(packed, 1) == 1
-			local isHalfTickRate = bit32.band(packed, 2) == 2
-			local teleport = bit32.band(packed, 4) == 4
+			const isFull = bit32.band(packed, 1) == 1
+			const isHalfTickRate = bit32.band(packed, 2) == 2
+			const teleport = bit32.band(packed, 4) == 4
 			local cf: CFrame
 			if isFull then
 				cf = DeserializeFull(b, index)
@@ -262,30 +262,30 @@ local function HandleClientOwned(b: buffer)
 				cf = DeserializeYaw(b, index)
 				index += YAW_BYTES
 			end
-			local entity = Holder.GetEntityFromId(id)
+			const entity = Holder.GetEntityFromId(id)
 			if not entity then
 				Warn.medium("Received update for non existent entity with id", id)
 				continue
 			end
 			-- Unwrap in the source player's frame (delta-based, offset-0). Shares state with
 			-- this player's other entity packets + the clock relay.
-			local time = ClockUnwrap.unwrapFor(ClientOwnedWrap, entity.networkOwner or "__unknown", rawTime)
+			const time = ClockUnwrap.unwrapFor(ClientOwnedWrap, entity.networkOwner or "__unknown", rawTime)
 			PushCFrameFor(id, true, cf, time, isHalfTickRate, teleport)
 		end
 	end
 end
 
-local function HandleServerOwned(b: buffer)
-	local bLen = buffer.len(b)
+const function HandleServerOwned(b: buffer)
+	const bLen = buffer.len(b)
 	BytesReceived += bLen
 	local index = 0
 	while index < bLen do
-		local lastTicked, isFull, isHalfTickRate = ReadTickerHeader(b, index)
+		const lastTicked, isFull, isHalfTickRate = ReadTickerHeader(b, index)
 		index += TickerHeaderBytes
-		local length = buffer.readu8(b, index)
+		const length = buffer.readu8(b, index)
 		index += 1
 		for i = 1, length do
-			local id = buffer.readu16(b, index)
+			const id = buffer.readu16(b, index)
 			index += 2
 			local cframe
 			if isFull then
@@ -300,7 +300,7 @@ local function HandleServerOwned(b: buffer)
 	end
 end
 
-local function HandleUnreliable(id: string, data: buffer)
+const function HandleUnreliable(id: string, data: buffer)
 	if id == "X" then -- Server Owned
 		HandleServerOwned(data)
 	elseif id == "O" then -- Client Owned
@@ -310,7 +310,7 @@ local function HandleUnreliable(id: string, data: buffer)
 	end
 end
 
-local function HandleReliable(newEntities: {}, removedEntities: { number }, entityChanges: { any })
+const function HandleReliable(newEntities: {}, removedEntities: { number }, entityChanges: { any })
 	--RunService.PreAnimation:Wait() -- was encountering an issues where instances were not replicated prob was streaming endabled?
 	if removedEntities then
 		for _, id in removedEntities do
@@ -340,7 +340,7 @@ ReliableEvent.OnClientEvent:Connect(HandleReliable)
 HeartbeatRemote.OnClientEvent:Connect(function(time: number)
 	-- Reduce the full-precision server time into the same offset-0 frame as the buffered
 	-- server-owned headers, otherwise the two feeds would disagree and freeze the clock.
-	local unwrapped = ClockUnwrap.unwrap(ServerWrap, ClockUnwrap.quantize(time))
+	const unwrapped = ClockUnwrap.unwrap(ServerWrap, ClockUnwrap.quantize(time))
 	for clock in ClientClock.serverOwnedClocks do
 		-- Refresh, not OnSnapShot: keep the clock fresh without feeding the heartbeat
 		-- cadence into the interpolation buffer's jitter estimate.
@@ -356,9 +356,9 @@ ClientClockRelayRemote.OnClientEvent:Connect(function(list: { { player: Player, 
 		return
 	end
 	for _, entry in list do
-		local player = entry.player
-		local raw = entry.raw
-		local offset = entry.offset
+		const player = entry.player
+		const raw = entry.raw
+		const offset = entry.offset
 		if player and type(raw) == "number" and type(offset) == "number" then
 			local state = ClientOwnedWrap[player]
 			if not state then

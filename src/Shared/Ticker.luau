@@ -1,20 +1,20 @@
-local RunService = game:GetService("RunService")
-local Ticker = {}
+const RunService = game:GetService("RunService")
+const Ticker = {}
 
 --//TODO: this should be in server since client don't use it, maybe move later
 
-local function popSwap(t, item, index)
-	local lastIndex = #t
+const function popSwap(t, item, index)
+	const lastIndex = #t
 	if index ~= lastIndex then
-		local lastItem = t[lastIndex]
+		const lastItem = t[lastIndex]
 		t[index] = lastItem
 		lastItem._tickerIndex = index
 	end
 	t[lastIndex] = nil
 end
 
-local Types = require(script.Parent.Types)
-local Warn = require(script.Parent.Warn)
+const Types = require(script.Parent.Types)
+const Warn = require(script.Parent.Warn)
 type Entity = Types.Entity
 type Ticker = Types.Ticker
 
@@ -29,7 +29,7 @@ function Ticker.GetGlobalTick()
 end
 
 function Ticker.new(config: Types.EntityConfig): Ticker
-	local ticker = {
+	const ticker = {
 		tickedHalf = false,
 		tickHalfRate = config.TICK_RATE * 2,
 		tickRate = config.TICK_RATE,
@@ -49,7 +49,7 @@ function Ticker.AddCallback(ticker: Ticker, callback: (ticker: Ticker, dt: numbe
 end
 
 function Ticker.RemoveCallback(ticker: Ticker, callback: (ticker: Ticker, dt: number) -> ())
-	local index = table.find(ticker.callbacks, callback)
+	const index = table.find(ticker.callbacks, callback)
 	if index then
 		table.remove(ticker.callbacks, index)
 	end
@@ -62,7 +62,7 @@ function Ticker.Add(ticker: Ticker, object: Entity)
 end
 
 function Ticker.Remove(ticker: Ticker, object: Entity)
-	local index = object._tickerIndex
+	const index = object._tickerIndex
 	if not index then
 		Warn.low("Ticker.remove called on object not in ticker", object.id)
 		return
@@ -75,7 +75,7 @@ function Ticker.Remove(ticker: Ticker, object: Entity)
 end
 
 function Ticker.move(object: Entity, newTicker: Ticker)
-	local oldTicker = object._ticker
+	const oldTicker = object._ticker
 	if oldTicker then
 		Ticker.Remove(oldTicker, object)
 	end
@@ -83,7 +83,7 @@ function Ticker.move(object: Entity, newTicker: Ticker)
 end
 
 function Ticker.CheckUpdate(ticker: Ticker): boolean
-	local difference = os.clock() - ticker.lastTicked
+	const difference = os.clock() - ticker.lastTicked
 
 	if difference >= ticker.tickRate then
 		ticker.lastTicked = os.clock()

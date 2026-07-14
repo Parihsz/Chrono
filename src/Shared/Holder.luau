@@ -1,18 +1,18 @@
-local Types = require(script.Parent.Types)
-local Warn = require(script.Parent.Warn)
-local Signals = require(script.Parent.Events)._Signals
-local IS_SERVER = game:GetService("RunService"):IsServer()
+const Types = require(script.Parent.Types)
+const Warn = require(script.Parent.Warn)
+const Signals = require(script.Parent.Events)._Signals
+const IS_SERVER = game:GetService("RunService"):IsServer()
 
 local currentId = 0 -- First Id will start at 1
-local idStack = {}
-local playerChars = {}
-local idMap: { [number]: Types.Entity } = {}
-local clientOwned: { [Player]: { [Types.Entity]: true } } = {}
+const idStack = {}
+const playerChars = {}
+const idMap: { [number]: Types.Entity } = {}
+const clientOwned: { [Player]: { [Types.Entity]: true } } = {}
 
-local MAX_ID = 2 ^ 16 - 1
+const MAX_ID = 2 ^ 16 - 1
 
-local function GetNextId(): number
-	local reusedId = table.remove(idStack)
+const function GetNextId(): number
+	const reusedId = table.remove(idStack)
 	if reusedId then
 		return reusedId
 	else
@@ -24,8 +24,8 @@ local function GetNextId(): number
 	end
 end
 
-local RandomOffset = Random.new()
-local function ReleaseId(id: number)
+const RandomOffset = Random.new()
+const function ReleaseId(id: number)
 	-- Delay the reuse of the id to avoid immediate collisions
 	task.delay(RandomOffset:NextNumber(5, 10), table.insert, idStack, id)
 end
@@ -35,8 +35,8 @@ end
 
 	@param entity The entity to remove the player character mapping from.
 ]=]
-local function RemovePlayerCharacter(entity: Types.Entity)
-	local player: Player? = entity._player
+const function RemovePlayerCharacter(entity: Types.Entity)
+	const player: Player? = entity._player
 	entity._player = nil
 	if player and playerChars[player] == entity then
 		playerChars[player] = nil
@@ -55,11 +55,11 @@ end
 	@param player The player to set the character for.
 	@param entity The entity to set as the character.
 ]=]
-local function SetAsCharacter(player: Player, entity: Types.Entity)
+const function SetAsCharacter(player: Player, entity: Types.Entity)
 	if not idMap[entity.id] or entity.id < 1 then
 		error("Entity must be registered before being set as a player character")
 	end
-	local old: Types.Entity? = playerChars[player]
+	const old: Types.Entity? = playerChars[player]
 	if old then
 		RemovePlayerCharacter(old)
 	end
@@ -78,7 +78,7 @@ end
 
 	@param entity The entity to register.
 ]=]
-local function RegisterEntity(entity: Types.Entity)
+const function RegisterEntity(entity: Types.Entity)
 	if entity.destroyed then
 		error("Cannot register a destroyed entity")
 	end
@@ -87,14 +87,14 @@ local function RegisterEntity(entity: Types.Entity)
 		return
 	end
 	if IS_SERVER then
-		local id = GetNextId()
+		const id = GetNextId()
 		if idMap[id] then
 			error(`Entity Collision {id}`)
 		end
 		entity.id = id
 		idMap[id] = entity
 	else
-		local id = entity.id
+		const id = entity.id
 		if idMap[id] then
 			Warn.high("Entity ID collision detected for ID:", id)
 		end
@@ -116,12 +116,12 @@ end
 
 	@param entity The entity to unregister.
 ]=]
-local function UnregisterEntity(entity: Types.Entity)
+const function UnregisterEntity(entity: Types.Entity)
 	if not idMap[entity.id] then
 		return
 	end
 	Signals.EntityRemoved:Fire(entity)
-	local playerObject = entity._player
+	const playerObject = entity._player
 	if playerObject then
 		if playerChars[playerObject] == entity then
 			RemovePlayerCharacter(entity)
@@ -129,7 +129,7 @@ local function UnregisterEntity(entity: Types.Entity)
 			Warn.medium("Entity being unregistered does not match player mapping", entity, "ignoring")
 		end
 	end
-	local id = entity.id
+	const id = entity.id
 	if IS_SERVER then
 		idMap[id] = nil
 		ReleaseId(id)
@@ -148,7 +148,7 @@ end
 
 	@return The entity associated with the model, or nil if none exists.
 ]=]
-local function GetEntityFromModel(model: Model): Types.Entity?
+const function GetEntityFromModel(model: Model): Types.Entity?
 	for _, entity in idMap do
 		if entity.model == model then
 			return entity
@@ -162,8 +162,8 @@ end
 	@param player The player to look up.
 	@return The entity associated with the player, or nil if none exists.
 ]=]
-local function GetEntityFromPlayer(player: Player): Types.Entity?
-	local plrCharacter = playerChars[player]
+const function GetEntityFromPlayer(player: Player): Types.Entity?
+	const plrCharacter = playerChars[player]
 	return plrCharacter
 end
 
@@ -174,7 +174,7 @@ end
 
 	@return The entity associated with the id, or nil if none exists.
 ]=]
-local function GetEntityFromId(id: number): Types.Entity?
+const function GetEntityFromId(id: number): Types.Entity?
 	return idMap[id]
 end
 
@@ -183,11 +183,11 @@ end
 
 	@return The Camera instance used for entity storage.
 ]=]
-local function getEntityStorageInstance(): Camera
+const function getEntityStorageInstance(): Camera
 	if workspace:FindFirstChild("Chrono_EntityStorage") then
 		return workspace:FindFirstChild("Chrono_EntityStorage") :: Camera
 	else
-		local folder = Instance.new("Camera")
+		const folder = Instance.new("Camera")
 		folder.Name = "Chrono_EntityStorage"
 		folder.Parent = workspace
 		return folder

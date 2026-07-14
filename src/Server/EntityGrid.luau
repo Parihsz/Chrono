@@ -1,12 +1,12 @@
 --!native
-local Players = game:GetService("Players")
+const Players = game:GetService("Players")
 
-local RunService = game:GetService("RunService")
+const RunService = game:GetService("RunService")
 
-local Events = require(script.Parent.Parent.Shared.Events)
-local Config = require(script.Parent.Parent.Shared.Config)
-local ReplicationRules = require(script.Parent.Parent.Shared.ReplicationRules)
-local Stats = require(script.Parent.Parent.Shared.Stats)
+const Events = require(script.Parent.Parent.Shared.Events)
+const Config = require(script.Parent.Parent.Shared.Config)
+const ReplicationRules = require(script.Parent.Parent.Shared.ReplicationRules)
+const Stats = require(script.Parent.Parent.Shared.Stats)
 --[[
 	We just need to track entities with players near them
 
@@ -21,16 +21,16 @@ local Stats = require(script.Parent.Parent.Shared.Stats)
 
 	cause when we do like um
 	for i,entity in queryEntitiesNear(location,100) -- this range is constant
-	
+
 	but for far away entities we have to query again
 
-	maybe have two grids, one for close and one for far? 
+	maybe have two grids, one for close and one for far?
 	actually maybe just do
    player:{
 		closeEntities = {},
 		farEntities = {},
    }
-	changed to 
+	changed to
 	player:{
 		normalEntities = {},
 		halfTick = {},
@@ -39,8 +39,8 @@ local Stats = require(script.Parent.Parent.Shared.Stats)
 ]]
 for id, entity in { "ALL_ENTITIES" } do
 	--[[
-	--we could now give entities a proxy of how far they are for removal 
-	--we could do 
+	--we could now give entities a proxy of how far they are for removal
+	--we could do
 		EntityConfig: {
 			Normal: 100,
 			HalfTick: 200,
@@ -51,11 +51,11 @@ for id, entity in { "ALL_ENTITIES" } do
 	--insert into the players close and far table
 
 
-	-- Changed it so the ticker system keeps track of it now 
+	-- Changed it so the ticker system keeps track of it now
 	]]
 end
 --[[
-	-- the old has grid had a system where it was 
+	-- the old has grid had a system where it was
 	local UPDATE_INTERVAL = 2
 	so there really wasn't a point to query again until it updated
 	but ig we still need to check for when an npc was removed from proxy
@@ -63,14 +63,14 @@ end
 
 ]]
 
-local Shared = script.Parent.Parent.Shared
-local Types = require(Shared.Types)
-local Holder = require(Shared.Holder)
-local Ticker = require(Shared.Ticker)
-local Entity = require(Shared.Entity)
-local Signal = require(Shared.Signal)
+const Shared = script.Parent.Parent.Shared
+const Types = require(Shared.Types)
+const Holder = require(Shared.Holder)
+const Ticker = require(Shared.Ticker)
+const Entity = require(Shared.Entity)
+const Signal = require(Shared.Signal)
 
-local SetTickMode = Entity._SetTickMode
+const SetTickMode = Entity._SetTickMode
 
 type Entity = Types.Entity
 
@@ -85,13 +85,13 @@ local UN_TICKED = 0
 
 type PlayerEntityHolder = Types.PlayerEntityHolder
 
-local entities = Holder.idMap
-local playerTablePositionPair: { [PlayerEntityHolder]: vector } = {}
-local playerToHolder: { [Player]: PlayerEntityHolder } = {}
+const entities = Holder.idMap
+const playerTablePositionPair: { [PlayerEntityHolder]: vector } = {}
+const playerToHolder: { [Player]: PlayerEntityHolder } = {}
 
-local function Check(entity: Entity)
-	local part = Entity.GetPrimaryPart(entity)
-	local cframe = part and part.CFrame or entity.latestCFrame
+const function Check(entity: Entity)
+	const part = Entity.GetPrimaryPart(entity)
+	const cframe = part and part.CFrame or entity.latestCFrame
 	if not cframe or entity.destroyed then
 		return
 	end
@@ -99,25 +99,25 @@ local function Check(entity: Entity)
 		warn(entity, " has invalid id, cannot check for proximity")
 		return
 	end
-	local position: vector = cframe.Position :: any
-	local entityConfig = entity.entityConfig
+	const position: vector = cframe.Position :: any
+	const entityConfig = entity.entityConfig
 	local hasNormalTickers = false
 	local hasHalfTickers = false
-	local halfTickDistance = entityConfig.HALF_TICK_DISTANCE or math.huge
-	local normalTickDistance = entityConfig.NORMAL_TICK_DISTANCE or math.huge
-	local networkOwner = entity.networkOwner
-	local ownedHolder = networkOwner and playerToHolder[networkOwner]
+	const halfTickDistance = entityConfig.HALF_TICK_DISTANCE or math.huge
+	const normalTickDistance = entityConfig.NORMAL_TICK_DISTANCE or math.huge
+	const networkOwner = entity.networkOwner
+	const ownedHolder = networkOwner and playerToHolder[networkOwner]
 
-	local isLocked = entity._lockedCFReplication
-	local isNotNative = isLocked or entity.modelReplicationMode ~= "NATIVE"
+	const isLocked = entity._lockedCFReplication
+	const isNotNative = isLocked or entity.modelReplicationMode ~= "NATIVE"
 	for holder, playerPos in playerTablePositionPair do
-		local viewer = holder.PLAYER
-		local allowed = ReplicationRules.Allows(entity, viewer)
+		const viewer = holder.PLAYER
+		const allowed = ReplicationRules.Allows(entity, viewer)
 		if not allowed then
 			continue
 		end
 
-		local distance = vector.magnitude(position - playerPos)
+		const distance = vector.magnitude(position - playerPos)
 
 		if distance > halfTickDistance and isNotNative then
 			if holder == ownedHolder then
@@ -135,12 +135,12 @@ local function Check(entity: Entity)
 		end
 	end
 
-	local configTicker = entityConfig.TICKER
+	const configTicker = entityConfig.TICKER
 	if not configTicker then
 		return
 	end
 
-	local currentTicker = entity._ticker
+	const currentTicker = entity._ticker
 	if hasHalfTickers and not hasNormalTickers then
 		if entity.isHalfTicked == false then
 			--warn("Entity is now half ticked", entity.id)
@@ -168,7 +168,7 @@ end
 
 local yielded: thread? = nil
 local totalTime = 0
-local function DoLoop()
+const function DoLoop()
 	totalTime = 0
 	FULL_TICKED = 0
 	HALF_TICKED = 0
@@ -209,8 +209,8 @@ local function DoLoop()
 	local debugPlayers = {}
 
 	for _, holder in playerToHolder do
-		local tempNormal = holder._TEMP_NORMAL
-		local tempHalf = holder._TEMP_HALF
+		const tempNormal = holder._TEMP_NORMAL
+		const tempHalf = holder._TEMP_HALF
 		table.clear(holder.HALF)
 		table.clear(holder.NORMAL)
 		debugPlayers[holder.PLAYER.Name] = {
@@ -230,7 +230,7 @@ local function DoLoop()
 end
 
 -- this might be able to be optimized more later
-local function Update()
+const function Update()
 	if yielded then
 		task.spawn(yielded)
 		return
@@ -245,23 +245,23 @@ local function Update()
 	task.spawn(DoLoop)
 end
 
-local function UpdatePlayerPosition(player: Player, position: vector)
-	local holder = playerToHolder[player]
+const function UpdatePlayerPosition(player: Player, position: vector)
+	const holder = playerToHolder[player]
 	if not holder then
 		return
 	end
 	playerTablePositionPair[holder] = position
 end
 
-local function GetEntityHolder(Player: Player): PlayerEntityHolder?
+const function GetEntityHolder(Player: Player): PlayerEntityHolder?
 	return playerToHolder[Player]
 end
 
-local function PlayerAdded(player: Player)
+const function PlayerAdded(player: Player)
 	if playerToHolder[player] then
 		return
 	end
-	local t = {
+	const t = {
 		PLAYER = player,
 		HALF = {},
 		NORMAL = {},
@@ -280,7 +280,7 @@ if RunService:IsServer() then
 	Shared.Remotes.ClientLoaded.OnServerEvent:Connect(PlayerAdded)
 
 	Players.PlayerRemoving:Connect(function(player: Player)
-		local holder = playerToHolder[player]
+		const holder = playerToHolder[player]
 		if not holder then
 			return
 		end

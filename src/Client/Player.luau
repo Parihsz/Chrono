@@ -1,11 +1,11 @@
-local Warn = require(script.Parent.Parent.Shared.Warn)
-local Events = require(script.Parent.Parent.Shared.Events)
-local Entity = require(script.Parent.Parent.Shared.Entity)
-local Holder = require(script.Parent.Parent.Shared.Holder)
-local Types = require(script.Parent.Parent.Shared.Types)
-local Config = require(script.Parent.Parent.Shared.Config)
+const Warn = require(script.Parent.Parent.Shared.Warn)
+const Events = require(script.Parent.Parent.Shared.Events)
+const Entity = require(script.Parent.Parent.Shared.Entity)
+const Holder = require(script.Parent.Parent.Shared.Holder)
+const Types = require(script.Parent.Parent.Shared.Types)
+const Config = require(script.Parent.Parent.Shared.Config)
 
-local LocalPlayer = game:GetService("Players").LocalPlayer
+const LocalPlayer = game:GetService("Players").LocalPlayer
 
 Events.PlayerCharacterRegistered:Connect(function(player: Player, entity: Types.Entity)
 	if Config._GetConfig("PLAYER_REPLICATION") ~= "AUTOMATIC" then
@@ -26,7 +26,7 @@ Events.PlayerCharacterRegistered:Connect(function(player: Player, entity: Types.
 		player.Character = entity.model
 	end
 
-	local function newModel(entity, model: Model | BasePart?)
+	const function newModel(entity, model: Model | BasePart?)
 		if not model then
 			return
 		end
@@ -35,7 +35,7 @@ Events.PlayerCharacterRegistered:Connect(function(player: Player, entity: Types.
 			return
 		end
 		LocalPlayer.Character = entity.model
-		local cf = workspace.CurrentCamera.CFrame
+		const cf = workspace.CurrentCamera.CFrame
 		workspace.CurrentCamera.CameraSubject = entity.model:FindFirstChildWhichIsA("Humanoid")
 			or entity.model.PrimaryPart
 		workspace.CurrentCamera.CFrame = cf
@@ -52,14 +52,14 @@ Events.PlayerCharacterRegistered:Connect(function(player: Player, entity: Types.
 		newModel(entity, entity.model :: any)
 	end
 end)
-local DeathRemote = script.Parent.Parent.Shared.Remotes.Death
+const DeathRemote = script.Parent.Parent.Shared.Remotes.Death
 Config._WaitForLock(function()
 	if Config._GetConfig("PLAYER_REPLICATION") ~= "AUTOMATIC" then
 		return
 	end
 	Events.PlayerOwnedAdded:Connect(function(player: Player, entity: Types.Entity)
 		local prevConnection: RBXScriptConnection?
-		local function newModel(_, model: Model | BasePart?)
+		const function newModel(_, model: Model | BasePart?)
 			if prevConnection then
 				prevConnection:Disconnect()
 				prevConnection = nil
@@ -68,7 +68,7 @@ Config._WaitForLock(function()
 			if not model or not entity.isContextOwner or not model:IsA("Model") then
 				return
 			end
-			local humanoid = model:FindFirstChildWhichIsA("Humanoid")
+			const humanoid = model:FindFirstChildWhichIsA("Humanoid")
 
 			if humanoid then
 				prevConnection = humanoid.Died:Connect(function()
@@ -91,7 +91,7 @@ Config._WaitForLock(function()
 end)
 
 DeathRemote.OnClientEvent:Connect(function(id)
-	local entity = Holder.GetEntityFromId(id)
+	const entity = Holder.GetEntityFromId(id)
 	if not entity then
 		return
 	end
@@ -99,10 +99,10 @@ DeathRemote.OnClientEvent:Connect(function(id)
 		return
 	end
 
-	local model = entity.model
+	const model = entity.model
 	if model then
 		task.wait()
-		local humanoid = model:FindFirstChildWhichIsA("Humanoid")
+		const humanoid = model:FindFirstChildWhichIsA("Humanoid")
 		if humanoid and humanoid:GetState() ~= Enum.HumanoidStateType.Dead then
 			humanoid.Health = 0
 			humanoid.Health = 10

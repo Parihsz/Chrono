@@ -1,17 +1,17 @@
-local CollectionService = game:GetService("CollectionService")
+const CollectionService = game:GetService("CollectionService")
 
-local Warn = require(script.Parent.Parent.Shared.Warn)
-local Config = require(script.Parent.Parent.Shared.Config)
-local Types = require(script.Parent.Parent.Shared.Types)
-local Entity = require(script.Parent.Parent.Shared.Entity)
-local ModelHelper = require(script.Parent.Parent.Shared.ModelHelper)
-local TAG = ModelHelper.TAG
-local CHRONO_META_NAME = ModelHelper.CHRONO_META_NAME
+const Warn = require(script.Parent.Parent.Shared.Warn)
+const Config = require(script.Parent.Parent.Shared.Config)
+const Types = require(script.Parent.Parent.Shared.Types)
+const Entity = require(script.Parent.Parent.Shared.Entity)
+const ModelHelper = require(script.Parent.Parent.Shared.ModelHelper)
+const TAG = ModelHelper.TAG
+const CHRONO_META_NAME = ModelHelper.CHRONO_META_NAME
 
-local RegisteredModels = {}
+const RegisteredModels = {}
 
-local function OnInstanceAdded(instance: Instance)
-	local metaStringValue: string? = instance:GetAttribute(CHRONO_META_NAME) :: any
+const function OnInstanceAdded(instance: Instance)
+	const metaStringValue: string? = instance:GetAttribute(CHRONO_META_NAME) :: any
 	if metaStringValue then
 		RegisteredModels[metaStringValue] = instance.Parent :: any
 		Warn.low(
@@ -22,7 +22,7 @@ end
 
 CollectionService:GetInstanceAddedSignal(TAG):Connect(OnInstanceAdded)
 CollectionService:GetInstanceRemovedSignal(TAG):Connect(function(instance)
-	local attribute: string? = instance:GetAttribute(CHRONO_META_NAME) :: any
+	const attribute: string? = instance:GetAttribute(CHRONO_META_NAME) :: any
 	if attribute then
 		RegisteredModels[attribute] = nil
 		Warn.low(
@@ -35,17 +35,17 @@ for _, instance in CollectionService:GetTagged(TAG) do
 end
 
 return function(entity: Types.Entity)
-	local model = entity.model
+	const model = entity.model
 
 	if model and model.Parent then
 		return
 	end
-	
-	local metaData = entity._modelMetaData
+
+	const metaData = entity._modelMetaData
 	if not metaData then
 		return
 	end
-	local registered = RegisteredModels[metaData] :: Model | BasePart?
+	const registered = RegisteredModels[metaData] :: Model | BasePart?
 	if registered and registered ~= model then
 		Entity.SetModel(entity, registered)
 		Warn.low(`Model with meta {metaData} was resolved for entity {entity.id}.`)
