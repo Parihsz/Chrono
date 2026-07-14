@@ -46,6 +46,7 @@ local Stats = {
 		PACKETS_SENT_PER_SEC = 0,
 
 		SERVER_ENTITIES = {} :: { [number]: Types.ServerEntitiesStats },
+		GRID_STATS = {} :: { [string]: { HALF: { number }, NORMAL: { number } } },
 	},
 }
 

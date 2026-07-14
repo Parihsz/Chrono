@@ -206,18 +206,27 @@ local function DoLoop()
 	Stats.SERVER.ENTITIES_HALF_TICKED = HALF_TICKED
 	Stats.SERVER.NON_TICKED = UN_TICKED
 
+	local debugPlayers = {}
+
 	for _, holder in playerToHolder do
 		local tempNormal = holder._TEMP_NORMAL
 		local tempHalf = holder._TEMP_HALF
 		table.clear(holder.HALF)
 		table.clear(holder.NORMAL)
+		debugPlayers[holder.PLAYER.Name] = {
+			HALF = {},
+			NORMAL = {},
+		}
 		for _, entity in tempNormal do
+			table.insert(debugPlayers[holder.PLAYER.Name].NORMAL, entity.id)
 			table.insert(holder.NORMAL, entity)
 		end
 		for _, entity in tempHalf do
+			table.insert(debugPlayers[holder.PLAYER.Name].HALF, entity.id)
 			table.insert(holder.HALF, entity)
 		end
 	end
+	Stats.SERVER.GRID_STATS = debugPlayers
 end
 
 -- this might be able to be optimized more later

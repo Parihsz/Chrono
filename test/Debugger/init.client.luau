@@ -249,6 +249,16 @@ Iris:Connect(function()
 				end
 			end
 			Iris.End()
+			if Iris.Tree({ "Holder Stats" }).state.isUncollapsed.value then
+				for playerName, holderStats in Stats.SERVER.GRID_STATS do
+					if Iris.Tree({ "Player: " .. playerName }).state.isUncollapsed.value then
+						Iris.Text({ "Half-Ticked Entities: " .. table.concat(holderStats.HALF, ", ") })
+						Iris.Text({ "Normal-Ticked Entities: " .. table.concat(holderStats.NORMAL, ", ") })
+					end
+					Iris.End()
+				end
+			end
+			Iris.End()
 		end
 		Iris.End()
 		displayFlags()
