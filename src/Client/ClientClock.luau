@@ -119,7 +119,25 @@ const function Update(clientClock: Types.ClientClock, dt: number)
 	clientClock.renderAt = renderAt
 end
 
+const function UpdateBuffer(clientClock: Types.ClientClock, buffer: number?)
+	buffer = if buffer and buffer <= 0 then nil else buffer
+	const currentBuffer = clientClock.bufferConst
+	if currentBuffer == buffer then
+		return
+	end
+	if not buffer then
+		if not clientClock.buffer then
+			clientClock.buffer = BufferTracker.new(clientClock)
+		end
+	else
+		clientClock.buffer = nil
+	end
+	clientClock.bufferConst = buffer
+	clientClock.renderAt = nil
+end
+
 const function new(tickRate: number, name: string, bufferNumber: number?, networkOwner: Player?): Types.ClientClock
+	bufferNumber = if bufferNumber and bufferNumber <= 0 then nil else bufferNumber
 	const self: Types.ClientClock = {
 		name = name,
 		lastClockAt = nil,
@@ -137,6 +155,7 @@ const function new(tickRate: number, name: string, bufferNumber: number?, networ
 		GetTargetRenderTime = GetTargetRenderTime,
 		Clear = Clear,
 		SetTickRate = SetTickRate,
+		UpdateBuffer = UpdateBuffer,
 		Destroy = Destroy,
 	}
 	if not bufferNumber then

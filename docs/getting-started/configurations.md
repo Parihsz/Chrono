@@ -160,6 +160,12 @@ local ENTITY_TYPES = {
 
 * `BUFFER` - The buffer time for the npc. If buffer is set to 0 or nil then the entity will use an dynamic buffer (entities that are client owned will automatically use a dynamic buffer. This will only apply to server owned entities). 
 
+!!! info "Changing the buffer at runtime (client)"
+    - **Per entity:** `Entity.SetClockBuffer(entity, seconds)` overrides a single entity's buffer.
+    - **Per entity type:** `Config._GetEntityType(name):UpdateBuffer(seconds)` updates every entity of that type (shared clocks and owned per-entity clocks), except entities that set their own `SetClockBuffer` override.
+
+    Pass `0` for a dynamic buffer.
+
 * `TICK_RATE` - How often the entity replicates per second.
 * `FULL_ROTATION` - Whether to replicate full rotation or just yaw. Default is false (yaw only).
 * `MODEL_REPLICATION_MODE` - Overrides the default model replication mode for this entity type.

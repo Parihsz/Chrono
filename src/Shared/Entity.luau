@@ -197,6 +197,30 @@ const function FireEvent(entity: Entity, eventName: string, ...: any)
 	end
 end
 
+-- If buffer is given then it will create a client clock for the entity as well.
+const function SetClock(self: Entity, buffer: number | false?)
+	if self._clientClock then
+		self._clientClock:Destroy()
+		self._clientClock = nil
+	end
+	if buffer == false then
+		self._clockBuffer = nil
+		buffer = nil
+	end
+	buffer = buffer or self._clockBuffer
+	self._clockBuffer = buffer
+	const entityBuffer = buffer or self.entityConfig.BUFFER or 0
+	if self.networkOwner or buffer then
+		const networkOwner = self.networkOwner
+		self._clientClock = ClientClock.new(
+			self.entityConfig.TICK_RATE,
+			`Entity id: {self.id} plr: {networkOwner and networkOwner.Name or "SERVER"}`,
+			entityBuffer,
+			networkOwner
+		)
+	end
+end
+
 const function CheckNetworkOwner(self: Entity, prev: Player?)
 	self.isContextOwner = self.networkOwner == LOCAL_PLAYER
 	const isSameOwner = self.networkOwner == prev
@@ -252,20 +276,7 @@ const function CheckNetworkOwner(self: Entity, prev: Player?)
 	end
 
 	if not IS_SERVER then
-		if self._clientClock then
-			self._clientClock:Destroy()
-			self._clientClock = nil
-		end
-		const entityBuffer = self.entityConfig.BUFFER
-		if self.networkOwner or (entityBuffer <= 0 or not entityBuffer) then
-			const networkOwner = self.networkOwner
-			self._clientClock = ClientClock.new(
-				self.entityConfig.TICK_RATE,
-				`Entity id: {self.id} plr: {networkOwner and networkOwner.Name or "SERVER"}`,
-				nil,
-				networkOwner
-			)
-		end
+		SetClock(self)
 	end
 
 	FireEvent(self, "NetworkOwnerChanged", self.networkOwner, prev)
@@ -531,6 +542,21 @@ function Entity.SetConfig(self: Entity, entityConfig: string)
 		config = Config._GetEntityType("DEFAULT")
 	end
 	SetValue(self, "entityConfig", config, false, config.NAME)
+	if not IS_SERVER then
+		SetClock(self)
+	end
+end
+
+--[=[
+	Sets the client clock buffer for the entity. 
+
+	@param buffer? The buffer to set for the client clock. If nil, will use the entity config's buffer. 
+]=]
+function Entity.SetClockBuffer(self: Entity, buffer: number?)
+	if IS_SERVER then
+		error("SetClockBuffer can only be called on the client")
+	end
+	SetClock(self, buffer ~= nil and buffer or false)
 end
 
 --[=[
@@ -986,4 +1012,5 @@ Entity._SetPartCFrame = SetPartCFrame
 Entity._GetRootPart = GetRootPart
 Entity._LockPartPhysicsReplication = LockCFReplication
 Entity._UnlockPartPhysicsReplication = UnlockCFReplication
+Entity._UpdateClockBuffer = SetClock
 return Entity

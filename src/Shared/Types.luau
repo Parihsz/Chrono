@@ -107,6 +107,7 @@ export type EntityConfig = {
 	CUSTOM_INTERPOLATION: boolean?,
 	ASSEMBLY_ROOT_PART_CHECK: boolean?,
 	ATTACH_MODEL_META_DATA: boolean?, -- defaults to true
+	UpdateBuffer: (self: EntityConfig, buffer: number) -> ()?,
 }
 
 export type EntityConfigInput = {
@@ -163,6 +164,7 @@ export type ClientClock = {
 	OnSnapShot: (self: ClientClock, currentTime: number) -> (),
 	Refresh: (self: ClientClock, currentTime: number) -> boolean,
 	SetTickRate: (self: ClientClock, tickRate: number) -> (),
+	UpdateBuffer: (self: ClientClock, time: number?) -> (),
 	Destroy: (self: ClientClock) -> (),
 }
 
@@ -189,6 +191,7 @@ export type EntityReceivePacket = {
 export type Entity = {
 	--Client
 	-- this is for non server owned
+	_clockBuffer: number?,
 	_clientClock: ClientClock?,
 	_modelMetaData: string?,
 	broadPhase: vector?,
