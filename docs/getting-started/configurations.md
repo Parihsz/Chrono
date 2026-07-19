@@ -162,7 +162,7 @@ local ENTITY_TYPES = {
 
 !!! info "Changing the buffer at runtime (client)"
     - **Per entity:** `Entity.SetClockBuffer(entity, seconds)` overrides a single entity's buffer.
-    - **Per entity type:** `Config._GetEntityType(name):UpdateBuffer(seconds)` updates every entity of that type (shared clocks and owned per-entity clocks), except entities that set their own `SetClockBuffer` override.
+    - **Per entity type:** `Config.GetEntityType(name):UpdateBuffer(seconds)` updates every entity of that type (shared clocks and owned per-entity clocks), except entities that set their own `SetClockBuffer` override.
 
     Pass `0` for a dynamic buffer.
 

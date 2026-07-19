@@ -249,10 +249,10 @@ return {
 	},
 
 	_EntityConfigs = ENTITY_TYPES,
-	_GetEntityType = GetEntityType,
+	_GetEntityType = GetEntityType, --// For internal use only
+	GetEntityType = GetEntityType,
 	_GetEntityModel = GetEntityModel,
-	_GetConfig = GetConfig, -- keeping for backwards compatibility, but use GetConfig instead
-	GetConfig = GetConfig,
+	_GetConfig = GetConfig,
 	_Lock = Lock,
 	_WaitForLock = WaitForLock,
 	_GetBroadPhase = GetBroadPhase,
