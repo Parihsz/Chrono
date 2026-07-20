@@ -68,6 +68,18 @@ Sets the entity type configuration for this entity.
 
 - `entityConfig` - The entity type name to use for this entity.
 
+### `SetClockBuffer(self: Entity, buffer: number?) -> ()`
+
+!!! Warning "Client Only"
+    Calling this on the server errors.
+
+Sets a per-entity interpolation buffer, creating a dedicated client clock for this entity. This overrides the entity config's `BUFFER` and is not affected by later `config:UpdateBuffer` changes.
+
+- `buffer` - The buffer time in seconds. Pass `0` (or a negative value) for a dynamic buffer. Pass `nil` to clear the override and fall back to the entity config's buffer.
+
+!!! note
+    Intended for client-owned entities. To change the buffer for server-owned entities, use `config:UpdateBuffer` (per type) instead.
+
 ### `SetBroadPhase(self: Entity, broadPhase: Vector3?) -> ()`
 
 Sets the broadphase size for this entity used for culling. If nil, unsets broad

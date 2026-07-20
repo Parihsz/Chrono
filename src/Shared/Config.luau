@@ -205,9 +205,31 @@ const function Lock()
 			cloned.TICKER = (require)(script.Parent.Ticker).new(cloned)
 		else
 			cloned.CLIENT_CLOCK = {} :: any
+			cloned.UpdateBuffer = function(self, buffer: number)
+				if not self.CLIENT_CLOCK or not next(self.CLIENT_CLOCK :: any) then
+					error("Config not initialized yet, cannot update buffer for entity type: " .. self.NAME)
+				end
+				self.BUFFER = buffer
+				if self.CLIENT_CLOCK.NORMAL then
+					self.CLIENT_CLOCK.NORMAL:UpdateBuffer(buffer)
+				end
+				if self.CLIENT_CLOCK.HALF then
+					self.CLIENT_CLOCK.HALF:UpdateBuffer(buffer)
+				end
+
+				-- Owned entities of this type use their own per-entity clock, so update those too.
+				-- Skip any entity that set an explicit per-entity override (_clockBuffer), which wins over the config.
+				const Holder = (require)(script.Parent.Holder)
+				const Entity = (require)(script.Parent.Entity)
+				for _, entity in Holder.idMap do
+					if entity.entityConfig == self then
+						Entity._UpdateClockBuffer(entity)
+					end
+				end
+			end
 		end
 
-		ENTITY_TYPES[i] = table.freeze(cloned)
+		ENTITY_TYPES[i] = cloned
 	end
 	for _, fx in waiting do
 		fx()
@@ -227,7 +249,8 @@ return {
 	},
 
 	_EntityConfigs = ENTITY_TYPES,
-	_GetEntityType = GetEntityType,
+	_GetEntityType = GetEntityType, --// For internal use only
+	GetEntityType = GetEntityType,
 	_GetEntityModel = GetEntityModel,
 	_GetConfig = GetConfig,
 	_Lock = Lock,
