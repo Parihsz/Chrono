@@ -107,7 +107,6 @@ const ENTITY_TYPES: { [string]: Types.EntityConfig } = {
 	},
 	PLAYER = {
 		NAME = "PLAYER",
-		MODEL_REPLICATION_MODE = "NATIVE",
 		BUFFER = 0, -- handled dynamically for players
 		HALF_TICK_DISTANCE = math.huge, -- Keep players replicated at all distances to mimic roblox's default behavior
 		TICK_RATE = 1 / 20,
