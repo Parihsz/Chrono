@@ -279,7 +279,7 @@ Config._WaitForLock(function()
 		debug.profilebegin("Interpolate Entities")
 		for _, entity in idMap do
 			ModelResolver(entity)
-			if entity.destroyed or entity.paused then
+			if entity.destroyed or entity.paused or (entity._welded and entity.modelReplicationMode == "NATIVE") then
 				continue
 			end
 			if entity.mountParentId then

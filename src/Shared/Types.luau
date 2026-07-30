@@ -203,6 +203,7 @@ export type Entity = {
 	replicationRules: { ReplicationRule }?,
 	_ticker: Ticker?,
 	_tickerIndex: number?,
+	_welded: boolean?,
 
 	--NetworkOwner
 	isContextOwner: boolean,

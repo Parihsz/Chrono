@@ -105,7 +105,7 @@ const function GetRootPart(entity: Entity): BasePart?
 	end
 end
 
-const function LockCFReplication(part: BasePart?): BasePart?
+const function LockCFReplication(part: BasePart?, welded: boolean?): BasePart?
 	if not part then
 		return
 	end
@@ -137,7 +137,7 @@ const function LockCFReplication(part: BasePart?): BasePart?
 	locker.Transparency = if IS_SERVER then 0 else 1
 	locker.Color = Color3.new(1, 0, 0)
 	locker.Massless = false
-	locker.RootPriority = 127
+	locker.RootPriority = welded and 0 or 126
 	locker.Size = Vector3.zero
 	--locker.Anchored = true
 	weld.Part0 = locker
@@ -238,11 +238,13 @@ const function CheckNetworkOwner(self: Entity, prev: Player?)
 			end
 			SafeSetNetworkOwner(part, self.networkOwner)
 			if locked then
-				LockCFReplication(part)
+				LockCFReplication(part, self._welded)
 				const root = GetRootPart(self)
 				if root then
 					SafeSetNetworkOwner(root, self.networkOwner)
-					root.Anchored = not isSameOwner
+					if not self._welded then
+						root.Anchored = not self.isContextOwner
+					end
 				end
 			end
 		end
@@ -258,7 +260,7 @@ const function CheckNetworkOwner(self: Entity, prev: Player?)
 		if locked and self.isContextOwner then
 			const part = GetPart(self)
 			if part then
-				LockCFReplication(part)
+				LockCFReplication(part, self._welded)
 				self._cfLockFailed = nil
 			else
 				self._cfLockFailed = true
@@ -843,6 +845,15 @@ function Entity.GetPrimaryPart(self: Entity): BasePart?
 		return GetPart(self)
 	end
 	return nil
+end
+--[=[
+	Sets whether the entity is welded To another part.
+
+	@param welded Whether the entity is welded.
+]=]
+function Entity.SetWelded(self: Entity, welded: boolean)
+	SetValue(self, "_welded", welded)
+	Entity.SyncOwnerShip(self)
 end
 
 --[=[

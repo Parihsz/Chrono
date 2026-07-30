@@ -39,7 +39,7 @@ export type SetConfig =
 	& ("GRID_MAX_UPDATE_TIME", number) -> ()
 local LOCKED = false
 const BASE_CONFIG = {
-	__VERSION = "v2.1.4",
+	__VERSION = "v2.1.5",
 	CHECK_NEW_VERSION = true,
 	MAX_TOTAL_BYTES_PER_FRAME_PER_PLAYER = 300, -- Base line value
 	MIN_BUFFER = 0.09,
@@ -107,6 +107,7 @@ const ENTITY_TYPES: { [string]: Types.EntityConfig } = {
 	},
 	PLAYER = {
 		NAME = "PLAYER",
+		-- MODEL_REPLICATION_MODE = "NATIVE_WITH_LOCK",
 		BUFFER = 0, -- handled dynamically for players
 		HALF_TICK_DISTANCE = math.huge, -- Keep players replicated at all distances to mimic roblox's default behavior
 		TICK_RATE = 1 / 20,

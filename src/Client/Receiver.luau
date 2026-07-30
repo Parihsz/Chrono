@@ -101,6 +101,7 @@ const ValueChanges = {
 	networkOwner = Entity["设置网络主控玩家"],
 	isHalfTicked = SetTickMode,
 	_data = Entity.SetData,
+	_welded = Entity.SetWelded,
 	entityConfig = Entity.SetConfig,
 	autoUpdatePos = Entity.SetAutoUpdatePos,
 	mountParentId = SetMountId,

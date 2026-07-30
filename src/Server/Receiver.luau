@@ -170,6 +170,9 @@ const function HandleEntity(
 		if entity.modelReplicationMode == "NATIVE" and not entity._lockedCFReplication then
 			return
 		end
+		if entity._welded then
+			return
+		end
 		Entity._SetPartCFrame(entity, cframe)
 	end
 end
