@@ -340,6 +340,10 @@ const function HandleEntity(plr, entity: Types.Entity)
 
 		const function CFrameChanged()
 			const cframe = partToUse.CFrame
+			if entity.mountParentId then
+				entity.latestCFrame = cframe
+				return
+			end
 			if cframe == entity.latestCFrame then
 				return
 			end
