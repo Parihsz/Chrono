@@ -1,6 +1,7 @@
 const RunService = game:GetService("RunService")
 
 const Ticker = require(script.Parent.Parent.Shared.Ticker)
+const Entity = require(script.Parent.Parent.Shared.Entity)
 const EntityGrid = require(script.Parent.EntityGrid)
 const Types = require(script.Parent.Parent.Shared.Types)
 const Shared = script.Parent.Parent.Shared
@@ -131,12 +132,24 @@ const function GetEntityFullData(player: Player, entity: Types.Entity): Types.En
 		configName = nil
 	end
 
+	local cframe = entity.latestCFrame or CFrame.identity
+	local time = entity.lastClientClock or 0
+
+	if entity.isContextOwner then
+		const primaryPart = Entity.GetPrimaryPart(entity)
+		if primaryPart then
+			cframe = primaryPart.CFrame
+		end
+
+		time = os.clock()
+	end
+
 	return {
 		id = entity.id,
 		_player = entity._player,
 		networkOwner = entity.networkOwner,
-		cframe = entity.latestCFrame or CFrame.new(),
-		time = entity.lastClientClock or 0,
+		cframe = cframe,
+		time = time,
 		config = configName,
 
 		model = modelData,
