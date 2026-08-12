@@ -28,6 +28,9 @@ jobs:
       - name: Log into Wally
         run: wally login --token "${{ secrets.WALLY_SECRET }}"
 
+      - name: Transform const to local 
+        run: find src -name "*.luau" -exec sed -i -E 's/^([[:space:]]*)const([[:space:]])/\1local\2/' {} +
+
       - name: Publish to Wally
         run: wally publish || echo "failed to publish to wally, continuing..."
 
