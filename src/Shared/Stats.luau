@@ -160,6 +160,9 @@ if RunService:IsServer() then
 			elseif actionType == "CHANGE_CONFIG" then
 				const configName = select(3, ...)
 				Entity.SetConfig(entity, configName)
+			elseif actionType == "SET_INTERPOLATION_MODE" then
+				const mode = select(3, ...)
+				Entity.SetInterpolationMode(entity, mode)
 			end
 		end
 	end)

@@ -75,6 +75,19 @@ local function displayServerEntityStats(entity: Types.ServerEntitiesStats)
 		Iris.End()
 	end
 	do
+		local mode = entity.interpolationMode or "CFRAME"
+		Iris.SameLine()
+		Iris.Text({ "Interpolation: " .. tostring(mode) })
+		if Iris.Button({ mode == "ALIGN" and "Use CFRAME" or "Use ALIGN" }).clicked() then
+			Stats._fireClientStatsEvent(
+				"SET_INTERPOLATION_MODE",
+				entity.id,
+				if mode == "ALIGN" then "CFRAME" else "ALIGN"
+			)
+		end
+		Iris.End()
+	end
+	do
 		Iris.Text({ "Config: " .. tostring(entity.config) })
 		if Iris.Tree({ "Configs" }).state.isUncollapsed.value then
 			for configName, config in Config._EntityConfigs do

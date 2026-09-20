@@ -13,6 +13,7 @@ export type Configs =
 	| "DEFAULT_NORMAL_TICK_DISTANCE"
 	| "DEFAULT_HALF_TICK_DISTANCE"
 	| "DEFAULT_MODEL_REPLICATION_MODE"
+	| "DEFAULT_INTERPOLATION_MODE"
 	| "PLAYER_REPLICATION"
 	| "REPLICATE_DEATHS"
 	| "REPLICATE_CFRAME_SETTERS"
@@ -30,6 +31,7 @@ export type SetConfig =
 	& ("MAX_SNAPSHOT_COUNT", number) -> ()
 	& ("CHECK_NEW_VERSION", boolean) -> ()
 	& ("DEFAULT_MODEL_REPLICATION_MODE", Types.MODEL_REPLICATION_MODE) -> ()
+	& ("DEFAULT_INTERPOLATION_MODE", Types.INTERPOLATION_MODE) -> ()
 	& ("PLAYER_REPLICATION", "AUTOMATIC" | "CUSTOM") -> ()
 	& ("REPLICATE_DEATHS", "NONE" | "PLAYER_ENTITIES" | "PLAYER_CHARACTERS") -> ()
 	& ("REPLICATE_CFRAME_SETTERS", "NONE" | "PLAYER_ENTITIES" | "PLAYER_CHARACTERS") -> ()
@@ -39,7 +41,7 @@ export type SetConfig =
 	& ("GRID_MAX_UPDATE_TIME", number) -> ()
 local LOCKED = false
 const BASE_CONFIG = {
-	__VERSION = "v2.1.6",
+	__VERSION = "v2.1.7",
 	CHECK_NEW_VERSION = true,
 	MAX_TOTAL_BYTES_PER_FRAME_PER_PLAYER = 300, -- Base line value
 	MIN_BUFFER = 0.09,
@@ -78,6 +80,17 @@ const BASE_CONFIG = {
 			- Less control over replication
 
 	]]
+	DEFAULT_INTERPOLATION_MODE = "CFRAME",
+	--[[
+		How the client applies an interpolated transform to a non-owned entity.
+		-CFRAME = Assign primaryPart.CFrame directly.
+			+ Exact, cheapest, and what you want for anything not simulated locally.
+			- Teleports the assembly each frame
+		-ALIGN = Drive an AlignPosition/AlignOrientation toward the target instead.
+			+ Physics keeps resolving joints and collisions while still tracking the target.
+			- More expensive, and has unknown interactions with other constraints.
+		
+	]]
 	DEFAULT_MODEL_REPLICATION_MODE = "NATIVE",
 	--[[
 		-NATIVE = Use Roblox's built in model replication.
@@ -101,8 +114,11 @@ const ENTITY_TYPES: { [string]: Types.EntityConfig } = {
 	},
 	WITH_ROT = {
 		NAME = "WITH_ROT",
+		MODEL_REPLICATION_MODE = "NATIVE",
+		BUFFER = 0,
+		HALF_TICK_DISTANCE = math.huge, 
 		TICK_RATE = 1 / 20,
-		BUFFER = 0.1,
+		ASSEMBLY_ROOT_PART_CHECK = true,
 		FULL_ROTATION = true,
 	},
 	PLAYER = {
@@ -201,6 +217,7 @@ const function Lock()
 		cloned.HALF_TICK_DISTANCE = cloned.HALF_TICK_DISTANCE or DEFAULT_HALF_TICK_DISTANCE
 		cloned.MODEL_REPLICATION_MODE = cloned.MODEL_REPLICATION_MODE
 			or BASE_CONFIG.DEFAULT_MODEL_REPLICATION_MODE :: any
+		cloned.INTERPOLATION_MODE = cloned.INTERPOLATION_MODE or BASE_CONFIG.DEFAULT_INTERPOLATION_MODE :: any
 		if IS_SERVER then
 			cloned.TICKER = (require)(script.Parent.Ticker).new(cloned)
 		else

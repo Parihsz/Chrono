@@ -6,6 +6,7 @@ const Ticker = require(Shared.Ticker)
 const Warn = require(Shared.Warn)
 const StatsALL = require(script.Parent.Parent.Shared.Stats)
 const ApplyMounts = require(script.Parent.Parent.Shared.ApplyMounts)
+const AlignDriver = require(Shared.AlignDriver)
 const RenderCache = require(script.Parent.ClientClock)
 const ModelResolver = require(script.Parent.ModelResolver)
 const Entity = require(Shared.Entity)
@@ -121,7 +122,9 @@ const function Interpolate(entity: Types.Entity)
 		return
 	end
 
-	if config.ASSEMBLY_ROOT_PART_CHECK then
+	
+	const alignDriver = entity._alignDriver
+	if config.ASSEMBLY_ROOT_PART_CHECK and not alignDriver then
 		if primaryPart.AssemblyRootPart ~= primaryPart then
 			Warn.low(
 				"Primary part for entity "
@@ -187,7 +190,27 @@ const function Interpolate(entity: Types.Entity)
 	end
 	debug.profilebegin("Set CFrame")
 	if targetCFrame == targetCFrame then
-		primaryPart.CFrame = targetCFrame
+		const mode: Types.INTERPOLATION_MODE? = entity._interpolationMode
+			or entity.entityConfig.INTERPOLATION_MODE
+
+		if mode == "ALIGN" then
+			local existing = alignDriver
+
+			if existing and existing.part ~= primaryPart then
+				AlignDriver.Destroy(existing)
+				existing = nil
+			end
+
+			const driver = existing or AlignDriver.Create(primaryPart)
+			entity._alignDriver = driver
+			AlignDriver.Update(driver, targetCFrame)
+		else
+			if alignDriver then
+				AlignDriver.Destroy(alignDriver)
+				entity._alignDriver = nil
+			end
+			primaryPart.CFrame = targetCFrame
+		end
 	end
 	MovedThisFrame += 1
 	debug.profileend()

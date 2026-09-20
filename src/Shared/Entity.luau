@@ -11,6 +11,7 @@ const Holder = require(script.Parent.Holder)
 const Signal = require(script.Parent.Signal)
 const Events = require(script.Parent.Events)
 const ModelHelper = require(script.Parent.ModelHelper)
+const AlignDriver = require(script.Parent.AlignDriver)
 const Warn = require(script.Parent.Warn)
 const VelocityAt = InterpolationMath.VelocityAt
 
@@ -137,7 +138,7 @@ const function LockCFReplication(part: BasePart?): BasePart?
 	locker.Transparency = if IS_SERVER then 0 else 1
 	locker.Color = Color3.new(1, 0, 0)
 	locker.Massless = false
-	locker.RootPriority = 127
+	locker.RootPriority = 126
 	locker.Size = Vector3.zero
 	--locker.Anchored = true
 	weld.Part0 = locker
@@ -456,7 +457,7 @@ function Entity._new(
 
 		entityConfig = config,
 		destroyed = false,
-
+		
 		interpolation = not IS_SERVER and true,
 	}
 
@@ -915,6 +916,20 @@ function Entity.GetModelReplicationType(self: Entity): "NATIVE" | "CUSTOM" | "NA
 end
 
 --[=[
+	Switches how the client applies interpolated transforms to this entity.
+
+	@param mode "CFRAME" or "ALIGN".
+]=]
+function Entity.SetInterpolationMode(self: Entity, mode: Types.INTERPOLATION_MODE)
+	SetValue(self, "_interpolationMode", mode)
+
+	if mode ~= "ALIGN" and self._alignDriver then
+		AlignDriver.Destroy(self._alignDriver)
+		self._alignDriver = nil
+	end
+end
+
+--[=[
 	Destroys the entity, unregistering it and cleaning up resources.
 ]=]
 function Entity.Destroy(self: Entity)
@@ -923,6 +938,11 @@ function Entity.Destroy(self: Entity)
 	Holder.UnregisterEntity(self)
 	if self._clientClock then
 		self._clientClock:Destroy()
+	end
+
+	if self._alignDriver then
+		AlignDriver.Destroy(self._alignDriver)
+		self._alignDriver = nil
 	end
 
 	if not IS_SERVER then

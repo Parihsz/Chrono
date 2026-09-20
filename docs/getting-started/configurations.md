@@ -43,12 +43,12 @@ These are Chrono's default values. If you don't override them, these are the set
 
 ```lua
 local BASE_CONFIG = {
-    __VERSION = "v2.0.0",
+    __VERSION = "v2.1.7",
     CHECK_NEW_VERSION = true,
+    MAX_TOTAL_BYTES_PER_FRAME_PER_PLAYER = 300,
 
     MIN_BUFFER = 0.09,
     MAX_BUFFER = 0.5,
-    QUERY_RADIUS = 100,
 
     GRID_UPDATE_INTERVAL = 0.1,
     GRID_MAX_UPDATE_TIME = 0.0005,
@@ -58,9 +58,10 @@ local BASE_CONFIG = {
 
     PLAYER_REPLICATION = "AUTOMATIC",
 
-    REPLICATE_DEATHS = "PLAYER_ENTITIES",
+    REPLICATE_DEATHS = "PLAYER_CHARACTERS",
     REPLICATE_CFRAME_SETTERS = "PLAYER_ENTITIES",
 
+    DEFAULT_INTERPOLATION_MODE = "CFRAME", -- "CFRAME", "ALIGN"
     DEFAULT_MODEL_REPLICATION_MODE = "NATIVE",
 
     WARNING_SEVERITY = "MEDIUM", -- "NONE", "LOW", "MEDIUM", "HIGH"
@@ -169,6 +170,7 @@ local ENTITY_TYPES = {
 * `TICK_RATE` - How often the entity replicates per second.
 * `FULL_ROTATION` - Whether to replicate full rotation or just yaw. Default is false (yaw only).
 * `MODEL_REPLICATION_MODE` - Overrides the default model replication mode for this entity type.
+* `INTERPOLATION_MODE` - Overrides the default interpolation mode for this entity type.
 * `AUTO_UPDATE_POSITION` - This determines if Chrono will automatically call `Entity.Push` when the entity model moves. Default is true. 
 * `STORE_SNAPSHOTS` - Whether to store snapshots for this entity on the server side. Default is false. Client-owned entities will ignore this and always store snapshots.
 * `NORMAL_TICK_DISTANCE` - Overrides the default normal tick distance for this entity type.
@@ -207,3 +209,13 @@ The entity grid updates every `GRID_UPDATE_INTERVAL` which defaults to 0.1 secon
 
 ### Max Total Bytes Per Frame Per Player
 `MAX_TOTAL_BYTES_PER_FRAME_PER_PLAYER` controls the base maximum total bytes that a client can send to the server. The total bytes is calculated by `MAX_TOTAL_BYTES_PER_FRAME_PER_PLAYER + number_of_client_owned * 21` where `number_of_client_owned` is the number of entities owned by the client. This allows for a more dynamic bandwidth limit that scales with the number of entities a client owns rather than a static value.
+
+### Interpolation Mode
+
+`DEFAULT_INTERPOLATION_MODE` controls how the client applies interpolated transforms to entities it doesn't own. Default is `"CFRAME"`.
+
+* `CFRAME` - Sets the primary part's CFrame directly. Exact and cheapest.
+* `ALIGN` - Drives an `AlignPosition` and `AlignOrientation` toward the target instead, so Roblox moves the entity with physics rather than teleporting it. Useful when the entity is also being simulated locally, such as a ragdolled character.
+
+!!! warning
+    We don't recommend keeping interpolation mode to `ALIGN` as we don't know what hidden interactions it has with other constraints. It is best to switch to `ALIGN` only when ragdolling and back to `CFRAME` when not.

@@ -159,6 +159,7 @@ const function GetEntityFullData(player: Player, entity: Types.Entity): Types.En
 		isHalfTicked = entity.isHalfTicked,
 		_data = entity._data,
 		_lockedCFReplication = entity._lockedCFReplication,
+		_interpolationMode = entity._interpolationMode,
 
 		mountParentId = entity.mountParentId,
 		mountOffset = entity.mountOffset,

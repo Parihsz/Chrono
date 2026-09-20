@@ -270,6 +270,7 @@ const function updateEntityStats()
 			lastTicked = lastTicked,
 			lastPosition = lastPosition,
 			modelType = Entity.GetModelReplicationType(entity),
+			interpolationMode = entity._interpolationMode or entity.entityConfig.INTERPOLATION_MODE or "CFRAME",
 		}
 		table.insert(entities, data)
 	end

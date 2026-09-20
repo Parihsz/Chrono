@@ -41,6 +41,7 @@ export type ServerEntitiesStats = {
 	lastTicked: number?,
 	lastPosition: Vector3,
 	modelType: string?,
+	interpolationMode: INTERPOLATION_MODE?,
 }
 export type Connection = {
 	Disconnect: (self: any) -> (),
@@ -88,6 +89,17 @@ export type PlayerEntityHolder = {
 }
 
 export type MODEL_REPLICATION_MODE = "NATIVE" | "NATIVE_WITH_LOCK" | "CUSTOM"
+
+export type INTERPOLATION_MODE = "CFRAME" | "ALIGN"
+
+export type AlignDriver = {
+	part: BasePart,
+	container: Camera,
+	driverPart: BasePart,
+	alignPosition: AlignPosition,
+	alignOrientation: AlignOrientation,
+}
+
 export type EntityConfig = {
 	NAME: string,
 	TICKER: Ticker?,
@@ -107,6 +119,7 @@ export type EntityConfig = {
 	CUSTOM_INTERPOLATION: boolean?,
 	ASSEMBLY_ROOT_PART_CHECK: boolean?,
 	ATTACH_MODEL_META_DATA: boolean?, -- defaults to true
+	INTERPOLATION_MODE: INTERPOLATION_MODE?, -- defaults to DEFAULT_INTERPOLATION_MODE
 	UpdateBuffer: (self: EntityConfig, buffer: number) -> ()?,
 }
 
@@ -123,6 +136,7 @@ export type EntityConfigInput = {
 	HALF_TICK_DISTANCE: number?,
 	CUSTOM_INTERPOLATION: boolean?,
 	ATTACH_MODEL_META_DATA: boolean?, -- if explicitly false then chrono will not attach meta data. See shared/ModelHelper
+	INTERPOLATION_MODE: INTERPOLATION_MODE?, -- "CFRAME" sets CFrame directly, "ALIGN" drives AlignPosition/AlignOrientation
 	-- Might consider giving a config level replication rules instead of just entity
 }
 
@@ -186,6 +200,7 @@ export type EntityReceivePacket = {
 	broadPhase: vector?,
 	_modelMetaData: string?,
 	_lockedCFReplication: boolean?,
+	_interpolationMode: INTERPOLATION_MODE?,
 }
 
 export type Entity = {
@@ -198,6 +213,8 @@ export type Entity = {
 	interpolation: boolean,
 	_outofBroadPhaseTick: number?,
 	_teleport: number?,
+	_interpolationMode: INTERPOLATION_MODE?,
+	_alignDriver: AlignDriver?,
 	--Server
 	autoUpdatePosition: boolean,
 	replicationRules: { ReplicationRule }?,

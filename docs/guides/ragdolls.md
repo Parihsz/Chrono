@@ -4,6 +4,51 @@ Ragdolls has been a pain point for many of us, especially when implementing cust
 ![Broken ragdoll demonstration](./ripragdoll.gif)
 
 
+## Custom Ragdoll Systems for Chrono v2.1.7+
+
+Chrono v2.1.7 adds a setting for how the client applies replicated transforms, so more ragdoll systems work without modification and custom ones are easier to write.
+
+By default Chrono assigns the primary part's `CFrame` every frame. That teleports the assembly, throwing away the physics solver's state each step, so a ragdoll ends up fighting the replication and jittery. The `ALIGN` mode drives an `AlignPosition` and `AlignOrientation` toward the target instead, letting Roblox move the character with physics rather than teleporting it.
+
+Switch the entity over when it ragdolls, and back when it gets up:
+
+```lua
+--server
+
+local entity = Holder.GetEntity(character) --before ragdoll:
+Chrono.Entity.SetInterpolationMode(entity, "ALIGN")
+RAGDOLL(character)
+
+--after ragdoll:
+UN_RAGDOLL(character)
+Chrono.Entity.SetInterpolationMode(entity, "CFRAME")
+```
+
+### Rotations
+
+If your ragdoll isn't following the rotation, it is likely because you are using the default `PLAYER` config, which has `FULL_ROTATION` set to `false`. Either set `FULL_ROTATION` to `true` on that config, or register a separate profile and switch to it while ragdolled:
+
+```lua
+Config.RegisterEntityType("PLAYER_RAGDOLL", {
+	TICK_RATE = 1 / 20,
+	FULL_ROTATION = true,
+	MODEL_REPLICATION_MODE = "NATIVE", -- Replace with your option
+})
+
+--before ragdoll:
+Chrono.Entity.SetConfig(entity, "PLAYER_RAGDOLL")
+
+--after ragdoll:
+Chrono.Entity.SetConfig(entity, "PLAYER")
+```
+
+!!! note
+	This is currently an experimental feature. If you find any bugs you can report them on the [Chrono GitHub](https://github.com/Parihsz/Chrono/issues), the [Developer Forum thread](https://devforum.roblox.com/t/chrono-drop-in-custom-physics-replication-library/3873294), or the [Discord](https://discord.gg/wEEqrVwV5a).
+
+	We also don't recommend keeping interpolation mode to `ALIGN` as we don't know what hidden interactions it has with other constraints. It is best to switch to `ALIGN` only when ragdolling and back to `CFRAME` when not.
+
+
+
 ## How we implement ragdolls
 To implement ragdolls we have a dual skeleton approach where:
 

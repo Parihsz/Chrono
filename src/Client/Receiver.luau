@@ -106,6 +106,7 @@ const ValueChanges = {
 	mountParentId = SetMountId,
 	mountOffset = SetMountOffset,
 	broadPhase = Entity.SetBroadPhase,
+	_interpolationMode = Entity.SetInterpolationMode,
 }
 
 const function HandleChanges(changes: { id: number, data: { { any } } })
@@ -176,6 +177,7 @@ const function HandleNewEntity(data: Types.EntityReceivePacket)
 	entity.mountOffset = data.mountOffset or CFrame.identity
 	entity.broadPhase = data.broadPhase or entity.broadPhase
 	entity._lockedCFReplication = data._lockedCFReplication or false
+	entity._interpolationMode = data._interpolationMode
 
 	Entity.Push(entity, data.time, data.cframe)
 
