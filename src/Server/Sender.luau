@@ -160,6 +160,8 @@ const function GetEntityFullData(player: Player, entity: Types.Entity): Types.En
 		_data = entity._data,
 		_lockedCFReplication = entity._lockedCFReplication,
 		_interpolationMode = entity._interpolationMode,
+		_humanoidState = entity._humanoidState,
+		_humanoidDisabledStates = entity._humanoidDisabledStates,
 
 		mountParentId = entity.mountParentId,
 		mountOffset = entity.mountOffset,

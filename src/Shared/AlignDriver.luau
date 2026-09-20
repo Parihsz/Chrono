@@ -16,6 +16,7 @@ const ROOT_PRIORITY = 127
 const MAX_RESPONSIVENESS = 200
 
 
+
 const AlignDriver = {}
 
 const function Create(part: BasePart): AlignDriver
@@ -90,8 +91,6 @@ const function Create(part: BasePart): AlignDriver
 	alignOrientation.Parent = driverPart
 
 	part.CFrame = initCF
-
-
 
 	return {
 		part = part,

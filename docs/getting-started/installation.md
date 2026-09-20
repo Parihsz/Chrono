@@ -3,7 +3,7 @@ For Rojo users: In your `wally.toml`, add the following line to your dependencie
 
 Use
 ```toml
-chrono = "parihsz/chrono@2.1.7"
+chrono = "parihsz/chrono@2.2.0"
 ```
 
 For Studio users: Download the latest rbxl file from [Github Releases](https://github.com/Parihsz/Chrono/releases/latest)

@@ -23,6 +23,11 @@ const LOCAL_PLAYER = if IS_SERVER then nil else Players.LocalPlayer
 
 const CHRONO_PRIMARY = "__CHRONO_PRIMARY"
 
+const HUMANOID_STATES: { [number]: Enum.HumanoidStateType } = {}
+for _, item in Enum.HumanoidStateType:GetEnumItems() do
+	HUMANOID_STATES[item.Value] = item
+end
+
 const CENTER_PART = Instance.new("Part")
 CENTER_PART.Size = Vector3.new(0.1, 0.1, 0.1)
 CENTER_PART.Name = "__CHRONO_CENTER"
@@ -328,6 +333,10 @@ const function CheckModelReplicationMode(entity: Entity, mode: Types.MODEL_REPLI
 	return mode :: any
 end
 
+-- Forward declared: the humanoid state watch is defined further down, but the model and
+-- config setters above it need to re-evaluate the effective interpolation mode.
+local RefreshHumanoidStateWatch: (self: Entity, force: boolean?) -> ()
+
 const function SetModel(
 	self: Entity,
 	model: Model | BasePart | string?,
@@ -465,6 +474,7 @@ function Entity._new(
 		self.snapshot = Snapshot(InterpolationMath.Hermite)
 	end
 	SetModel(self, model, modelReplicationMode)
+	RefreshHumanoidStateWatch(self, true)
 	CheckNetworkOwner(self, nil)
 
 	return self
@@ -515,6 +525,7 @@ function Entity.SetModel(
 		SetValue(self, "_modelMetaData", metaData, true, metaData)
 		CheckNetworkOwner(self, self.networkOwner)
 	end
+	RefreshHumanoidStateWatch(self, true)
 	FireEvent(self, "ModelChanged", self.model, old)
 end
 
@@ -543,6 +554,7 @@ function Entity.SetConfig(self: Entity, entityConfig: string)
 		config = Config._GetEntityType("DEFAULT")
 	end
 	SetValue(self, "entityConfig", config, false, config.NAME)
+	RefreshHumanoidStateWatch(self)
 	if not IS_SERVER then
 		SetClock(self)
 	end
@@ -915,6 +927,94 @@ function Entity.GetModelReplicationType(self: Entity): "NATIVE" | "CUSTOM" | "NA
 	return "NATIVE"
 end
 
+const function GetHumanoid(self: Entity): Humanoid?
+	const model = self.model
+	if model and model:IsA("Model") then
+		return model:FindFirstChildWhichIsA("Humanoid",true)
+	end
+	return nil
+end
+
+const function GetDisabledStateMask(humanoid: Humanoid): number
+	local mask = 0
+	for value, state in HUMANOID_STATES do
+		if state == Enum.HumanoidStateType.None then
+			continue
+		end
+		if not humanoid:GetStateEnabled(state) then
+			mask = bit32.bor(mask, bit32.lshift(1, value))
+		end
+	end
+	return mask
+end
+
+const function StopHumanoidStateWatch(self: Entity)
+	const connection = self._humanoidStateConn
+	if connection then
+		connection:Disconnect()
+		self._humanoidStateConn = nil
+	end
+	const enabledConnection = self._humanoidStateEnabledConn
+	if enabledConnection then
+		enabledConnection:Disconnect()
+		self._humanoidStateEnabledConn = nil
+	end
+
+	if IS_SERVER then
+		SetValue(self, "_humanoidState", nil)
+		SetValue(self, "_humanoidDisabledStates", nil)
+	end
+end
+
+const function StartHumanoidStateWatch(self: Entity)
+	if not IS_SERVER then
+		return
+	end
+	StopHumanoidStateWatch(self)
+
+	const humanoid = GetHumanoid(self)
+	if not humanoid then
+		return
+	end
+
+	SetValue(self, "_humanoidState", humanoid:GetState().Value, true)
+	self._humanoidStateConn = humanoid.StateChanged:Connect(function(_old, new)
+		SetValue(self, "_humanoidState", new.Value)
+	end)
+
+	SetValue(self, "_humanoidDisabledStates", GetDisabledStateMask(humanoid), true)
+	self._humanoidStateEnabledConn = humanoid.StateEnabledChanged:Connect(function()
+		SetValue(self, "_humanoidDisabledStates", GetDisabledStateMask(humanoid))
+	end)
+end
+
+function RefreshHumanoidStateWatch(self: Entity, force: boolean?)
+	if not IS_SERVER then
+		return
+	end
+
+	const config = self.entityConfig
+	const mode = self._interpolationMode or (config and config.INTERPOLATION_MODE)
+
+	if mode ~= "ALIGN" then
+		StopHumanoidStateWatch(self)
+		return
+	end
+
+	if self._humanoidStateConn and not force then
+		return
+	end
+	StartHumanoidStateWatch(self)
+
+	if self._humanoidStateConn then
+		return
+	end
+	const model = self.model
+	if not (model and model:IsA("Model")) then
+		return
+	end
+end
+
 --[=[
 	Switches how the client applies interpolated transforms to this entity.
 
@@ -923,9 +1023,56 @@ end
 function Entity.SetInterpolationMode(self: Entity, mode: Types.INTERPOLATION_MODE)
 	SetValue(self, "_interpolationMode", mode)
 
-	if mode ~= "ALIGN" and self._alignDriver then
-		AlignDriver.Destroy(self._alignDriver)
-		self._alignDriver = nil
+	if mode == "ALIGN" then
+		RefreshHumanoidStateWatch(self, true)
+	else
+		StopHumanoidStateWatch(self)
+		if self._alignDriver then
+			AlignDriver.Destroy(self._alignDriver)
+			self._alignDriver = nil
+		end
+	end
+end
+
+const function SetHumanoidState(self: Entity, stateValue: number?)
+	SetValue(self, "_humanoidState", stateValue)
+
+	if IS_SERVER or self.isContextOwner or type(stateValue) ~= "number" then
+		return
+	end
+
+	const humanoid = GetHumanoid(self)
+	if not humanoid then
+		return
+	end
+	local state = HUMANOID_STATES[stateValue]
+	if not state then
+		return
+	end
+	
+	if state == Enum.HumanoidStateType.Ragdoll then
+		state = Enum.HumanoidStateType.Physics
+	end
+
+	humanoid:ChangeState(state)
+end
+
+const function SetHumanoidDisabledStates(self: Entity, mask: number?)
+	SetValue(self, "_humanoidDisabledStates", mask)
+	if IS_SERVER or self.isContextOwner or type(mask) ~= "number" then
+		return
+	end
+
+	const humanoid = GetHumanoid(self)
+	if not humanoid then
+		return
+	end
+
+	for value, state in HUMANOID_STATES do
+		if state == Enum.HumanoidStateType.None then
+			continue
+		end
+		humanoid:SetStateEnabled(state, bit32.band(mask, bit32.lshift(1, value)) == 0)
 	end
 end
 
@@ -939,6 +1086,8 @@ function Entity.Destroy(self: Entity)
 	if self._clientClock then
 		self._clientClock:Destroy()
 	end
+
+	StopHumanoidStateWatch(self)
 
 	if self._alignDriver then
 		AlignDriver.Destroy(self._alignDriver)
@@ -1033,4 +1182,6 @@ Entity._GetRootPart = GetRootPart
 Entity._LockPartPhysicsReplication = LockCFReplication
 Entity._UnlockPartPhysicsReplication = UnlockCFReplication
 Entity._UpdateClockBuffer = SetClock
+Entity._SetHumanoidState = SetHumanoidState
+Entity._SetHumanoidDisabledStates = SetHumanoidDisabledStates
 return Entity

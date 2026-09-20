@@ -173,12 +173,13 @@ Locks the native server CFrame replication for this entity's model. Only applies
 
 Unlocks the native server CFrame replication for this entity's model. Only applies to SERVER context and NATIVE model replication mode.
 
-### `SetInterpolationMode(self: Entity, mode: "CFRAME" | "ALIGN") -> ()`
+### `SetInterpolationMode(self: Entity, mode: "CFRAME" | "ALIGN" | "NONE") -> ()`
 
 Sets how the client applies interpolated transforms to this entity, overriding the entity type's `INTERPOLATION_MODE`. Called on the server it replicates to all clients.
 
 - `CFRAME` - Sets the primary part's CFrame directly. Exact and cheapest.
 - `ALIGN` - Drives an AlignPosition/AlignOrientation toward the target instead. Use this when the entity is also being simulated locally, such as a ragdolled character.
+- `NONE` - Does not apply the transform at all.
 
 ### `Destroy(self: Entity) -> ()`
 

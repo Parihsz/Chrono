@@ -41,7 +41,7 @@ export type SetConfig =
 	& ("GRID_MAX_UPDATE_TIME", number) -> ()
 local LOCKED = false
 const BASE_CONFIG = {
-	__VERSION = "v2.1.7",
+	__VERSION = "v2.2.0",
 	CHECK_NEW_VERSION = true,
 	MAX_TOTAL_BYTES_PER_FRAME_PER_PLAYER = 300, -- Base line value
 	MIN_BUFFER = 0.09,
@@ -89,7 +89,7 @@ const BASE_CONFIG = {
 		-ALIGN = Drive an AlignPosition/AlignOrientation toward the target instead.
 			+ Physics keeps resolving joints and collisions while still tracking the target.
 			- More expensive, and has unknown interactions with other constraints.
-		
+		-NONE = Do not apply the transform at all. 
 	]]
 	DEFAULT_MODEL_REPLICATION_MODE = "NATIVE",
 	--[[

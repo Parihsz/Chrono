@@ -107,19 +107,27 @@ local CheckedThisFrame = 0
 local TotalCulled = 0
 local MovedThisFrame = 0
 
-const function Interpolate(entity: Types.Entity)
+local LastClockUpdate = os.clock()
+
+const function Interpolate(entity: Types.Entity, alignPass: boolean?): boolean?
 	const config = entity.entityConfig
-	if not entity.interpolation or config.CUSTOM_INTERPOLATION then
-		return
+	const mode: Types.INTERPOLATION_MODE? = entity._interpolationMode or config.INTERPOLATION_MODE
+
+	if not entity.interpolation or config.CUSTOM_INTERPOLATION or mode == "NONE" then
+		return 
+	end
+
+	if (mode == "ALIGN") ~= (alignPass == true) then
+		return false 
 	end
 	const primaryPart = Entity.GetPrimaryPart(entity)
 
 	if not primaryPart then
-		return
+		return 
 	end
 
 	if entity.isContextOwner then
-		return
+		return 
 	end
 
 	
@@ -147,7 +155,10 @@ const function Interpolate(entity: Types.Entity)
 	end
 	CheckedThisFrame += 1
 	debug.profilebegin("Get Render CFrame")
-	const targetTime = Entity.GetTargetRenderTime(entity)
+	local targetTime = Entity.GetTargetRenderTime(entity)
+	if alignPass then
+		targetTime += os.clock() - LastClockUpdate
+	end
 	const targetCFrame = snapshot:GetAt(targetTime)
 	debug.profileend()
 	if not targetCFrame then
@@ -190,9 +201,6 @@ const function Interpolate(entity: Types.Entity)
 	end
 	debug.profilebegin("Set CFrame")
 	if targetCFrame == targetCFrame then
-		const mode: Types.INTERPOLATION_MODE? = entity._interpolationMode
-			or entity.entityConfig.INTERPOLATION_MODE
-
 		if mode == "ALIGN" then
 			local existing = alignDriver
 
@@ -286,7 +294,9 @@ const function updateEntityStats()
 	Stats.CLIENT_ENTITIES = entities
 end
 Config._WaitForLock(function()
+	local steppedEntities = {}
 	RunService.Heartbeat:Connect(function(deltaTime: number)
+		steppedEntities = {}
 		CurrentTick += 1
 		if CurrentTick % Ticks == 0 then -- Runs every 4 frames at 60hz this is 15hz
 			Stats.TOTAL_ENTITIES_CULLED = TotalCulled
@@ -294,6 +304,7 @@ Config._WaitForLock(function()
 			CurrentTick = 0
 		end
 		RenderCache.UpdateAll(deltaTime)
+		LastClockUpdate = os.clock()
 		debug.profilebegin("Prepare Frustum Check")
 		PrepareFrustumCheck()
 		debug.profileend()
@@ -309,7 +320,9 @@ Config._WaitForLock(function()
 				continue
 			end
 			total += 1
-			Interpolate(entity)
+			if Interpolate(entity)== false then
+				table.insert(steppedEntities, entity)
+			end
 		end
 		debug.profileend()
 		const endTime = os.clock()
@@ -335,10 +348,20 @@ Config._WaitForLock(function()
 		Sender.Update()
 		Ticker._IncrementGlobalTick()
 	end)
-	-- Client clock heartbeat: sends the FULL os.clock so the server can seat this client's wrap
-	-- epoch directly (remotes serialize numbers as f64 anyway, so it's the same bytes as a u32).
-	-- Keeps the server's view fresh + correct even for a still (macro/auto-click) player that
-	-- sends no entity packets. See ClockUnwrap.
+
+	RunService.PreSimulation:Connect(function()
+		-- for align pos
+		debug.profilebegin("Interpolate Align Entities")
+		PrepareFrustumCheck()
+		for _, entity in steppedEntities do
+			if entity.destroyed or entity.paused or entity.mountParentId then
+				continue
+			end
+			Interpolate(entity, true)
+		end
+		debug.profileend()
+	end)
+
 	const ClientHeartbeatRemote = Shared.Remotes.ClientHeartbeat
 	ClientHeartbeatRemote:FireServer(os.clock()) -- seed on join
 	local clientHeartbeatAcc = 0

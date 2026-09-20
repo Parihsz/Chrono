@@ -107,6 +107,8 @@ const ValueChanges = {
 	mountOffset = SetMountOffset,
 	broadPhase = Entity.SetBroadPhase,
 	_interpolationMode = Entity.SetInterpolationMode,
+	_humanoidDisabledStates = Entity._SetHumanoidDisabledStates,
+	_humanoidState = Entity._SetHumanoidState,
 }
 
 const function HandleChanges(changes: { id: number, data: { { any } } })
@@ -182,6 +184,9 @@ const function HandleNewEntity(data: Types.EntityReceivePacket)
 	Entity.Push(entity, data.time, data.cframe)
 
 	Entity["设置网络主控玩家"](entity, data.networkOwner)
+
+	Entity._SetHumanoidDisabledStates(entity, data._humanoidDisabledStates)
+	Entity._SetHumanoidState(entity, data._humanoidState)
 	SetTickMode(entity, data.isHalfTicked)
 	Holder.RegisterEntity(entity)
 end

@@ -43,7 +43,7 @@ These are Chrono's default values. If you don't override them, these are the set
 
 ```lua
 local BASE_CONFIG = {
-    __VERSION = "v2.1.7",
+    __VERSION = "v2.2.0",
     CHECK_NEW_VERSION = true,
     MAX_TOTAL_BYTES_PER_FRAME_PER_PLAYER = 300,
 
@@ -216,6 +216,13 @@ The entity grid updates every `GRID_UPDATE_INTERVAL` which defaults to 0.1 secon
 
 * `CFRAME` - Sets the primary part's CFrame directly. Exact and cheapest.
 * `ALIGN` - Drives an `AlignPosition` and `AlignOrientation` toward the target instead, so Roblox moves the entity with physics rather than teleporting it. Useful when the entity is also being simulated locally, such as a ragdolled character.
+* `NONE` - Doesn't apply the transform at all. Snapshots still arrive, so you can read the entity through `Entity.GetAtTime` and move it yourself.
 
 !!! warning
     We don't recommend keeping interpolation mode to `ALIGN` as we don't know what hidden interactions it has with other constraints. It is best to switch to `ALIGN` only when ragdolling and back to `CFRAME` when not.
+
+### Turning interpolation off
+
+`NONE` is the preferred way to stop Chrono driving an entity. It is per entity rather than per entity type, can be changed at runtime with `Entity.SetInterpolationMode`.
+
+`CUSTOM_INTERPOLATION` will disable Chrono's interpolation for all entities of that type. And cannot be changed at runtime.

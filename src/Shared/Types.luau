@@ -90,7 +90,7 @@ export type PlayerEntityHolder = {
 
 export type MODEL_REPLICATION_MODE = "NATIVE" | "NATIVE_WITH_LOCK" | "CUSTOM"
 
-export type INTERPOLATION_MODE = "CFRAME" | "ALIGN"
+export type INTERPOLATION_MODE = "CFRAME" | "ALIGN" | "NONE"
 
 export type AlignDriver = {
 	part: BasePart,
@@ -201,6 +201,8 @@ export type EntityReceivePacket = {
 	_modelMetaData: string?,
 	_lockedCFReplication: boolean?,
 	_interpolationMode: INTERPOLATION_MODE?,
+	_humanoidState: number?,
+	_humanoidDisabledStates: number?,
 }
 
 export type Entity = {
@@ -215,6 +217,11 @@ export type Entity = {
 	_teleport: number?,
 	_interpolationMode: INTERPOLATION_MODE?,
 	_alignDriver: AlignDriver?,
+	
+	_humanoidState: number?,
+	_humanoidDisabledStates: number?,
+	_humanoidStateConn: RBXScriptConnection?,
+	_humanoidStateEnabledConn: RBXScriptConnection?,
 	--Server
 	autoUpdatePosition: boolean,
 	replicationRules: { ReplicationRule }?,

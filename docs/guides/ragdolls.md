@@ -4,9 +4,9 @@ Ragdolls has been a pain point for many of us, especially when implementing cust
 ![Broken ragdoll demonstration](./ripragdoll.gif)
 
 
-## Custom Ragdoll Systems for Chrono v2.1.7+
+## Custom Ragdoll Systems for Chrono v2.2.0+
 
-Chrono v2.1.7 adds a setting for how the client applies replicated transforms, so more ragdoll systems work without modification and custom ones are easier to write.
+Chrono v2.2.0 adds a setting for how the client applies replicated transforms, so more ragdoll systems work without modification and custom ones are easier to write.
 
 By default Chrono assigns the primary part's `CFrame` every frame. That teleports the assembly, throwing away the physics solver's state each step, so a ragdoll ends up fighting the replication and jittery. The `ALIGN` mode drives an `AlignPosition` and `AlignOrientation` toward the target instead, letting Roblox move the character with physics rather than teleporting it.
 
