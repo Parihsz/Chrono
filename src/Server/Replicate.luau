@@ -174,13 +174,13 @@ const Changes: { Types.Entity } = {}
 
 --In the future we can optimize this so it uses buffers if really needed
 const function CheckEntityChanges()
-	for entity, changes in Entity._Changes do
+	for entity, changes in Holder._entityChangedFields do
 		const newChanges = { id = entity.id, data = {} }
 		for key, data in changes do
 			data = data or entity[key]
 			table.insert(newChanges.data, { key, data })
 		end
-		Entity._Changes[entity] = nil
+		Holder._entityChangedFields[entity] = nil
 		entity._changes = newChanges
 		table.insert(Changes, entity)
 	end
