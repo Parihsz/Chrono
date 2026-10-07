@@ -15,8 +15,6 @@ const AlignDriver = require(script.Parent.AlignDriver)
 const Warn = require(script.Parent.Warn)
 const VelocityAt = InterpolationMath.VelocityAt
 
-const Changes = {}
-
 const clientOwned = Holder._clientOwned
 const IS_SERVER = RunService:IsServer()
 const LOCAL_PLAYER = if IS_SERVER then nil else Players.LocalPlayer
@@ -45,18 +43,18 @@ Config._WaitForLock(function()
 	READY = true
 end)
 
+const RegisterChange = Holder.RegisterChange
+
 const function SafeDestroy(instance: Instance?)
 	if instance then
-		pcall(function()
-			instance:Destroy()
-		end)
+		pcall(instance.Destroy, instance)
 	end
 end
 
 const function SafeSetNetworkOwner(part: BasePart, player: Player?)
-	pcall(function()
+	if part:CanSetNetworkOwnership() then
 		part:SetNetworkOwner(player)
-	end)
+	end
 end
 
 const function GetPart(self: Types.Entity): BasePart?
@@ -176,20 +174,6 @@ const function UnlockCFReplication(part: BasePart?)
 		locker:Destroy()
 		part.CFrame = cf
 	end
-end
-
-const function SetValue(entity: Entity, key: string, value: any, bypass: boolean?, specialValue: any)
-	if not bypass and entity[key] == value then
-		return
-	end
-	entity[key] = value
-	if not IS_SERVER then
-		return
-	end
-	if not Changes[entity] then
-		Changes[entity] = {}
-	end
-	Changes[entity][key] = specialValue or value or false
 end
 
 const function FireEvent(entity: Entity, eventName: string, ...: any)
@@ -521,8 +505,8 @@ function Entity.SetModel(
 	SetModel(self, model, modelReplicationMode, noDestroy)
 	if IS_SERVER then
 		const toReplicate, metaData = ModelHelper.ReadyModelFromRep(self, nil)
-		SetValue(self, "model", self.model, true, toReplicate or false)
-		SetValue(self, "_modelMetaData", metaData, true, metaData)
+		RegisterChange(self, "model", self.model, true, toReplicate or false)
+		RegisterChange(self, "_modelMetaData", metaData, true, metaData)
 		CheckNetworkOwner(self, self.networkOwner)
 	end
 	RefreshHumanoidStateWatch(self, true)
@@ -553,7 +537,7 @@ function Entity.SetConfig(self: Entity, entityConfig: string)
 		Warn.medium(`Entity config {entityConfig} not found. Using Default config.`)
 		config = Config._GetEntityType("DEFAULT")
 	end
-	SetValue(self, "entityConfig", config, false, config.NAME)
+	RegisterChange(self, "entityConfig", config, false, config.NAME)
 	RefreshHumanoidStateWatch(self)
 	if not IS_SERVER then
 		SetClock(self)
@@ -578,7 +562,7 @@ end
 	@param broadPhase The broad phase vector to set.
 ]=]
 function Entity.SetBroadPhase(self: Entity, broadPhase: vector?)
-	SetValue(self, "broadPhase", broadPhase)
+	RegisterChange(self, "broadPhase", broadPhase)
 end
 
 --[=[
@@ -605,7 +589,7 @@ end
 	@param data The data to associate with the entity.
 ]=]
 function Entity.SetData(self: Entity, data: any)
-	SetValue(self, "_data", data, true)
+	RegisterChange(self, "_data", data, true)
 	FireEvent(self, "DataChanged", data)
 end
 
@@ -614,7 +598,7 @@ function Entity._SetTickMode(self: Entity, isHalfTicked: boolean?)
 		return
 	end
 	if not self.isContextOwner then
-		SetValue(self, "isHalfTicked", isHalfTicked)
+		RegisterChange(self, "isHalfTicked", isHalfTicked)
 	else
 		self.isHalfTicked = isHalfTicked
 	end
@@ -632,8 +616,8 @@ function Entity.ClearMount(self: Entity)
 		return
 	end
 
-	SetValue(self, "mountParentId", nil)
-	SetValue(self, "mountOffset", nil)
+	RegisterChange(self, "mountParentId", nil)
+	RegisterChange(self, "mountOffset", nil)
 	Events._Signals.EntityMountChanged:Fire(self, nil)
 end
 
@@ -662,15 +646,15 @@ function Entity.SetMount(self: Entity, parent: Entity?, offset: CFrame?)
 		return
 	end
 
-	SetValue(self, "mountParentId", parent.id)
-	SetValue(self, "mountOffset", offset)
+	RegisterChange(self, "mountParentId", parent.id)
+	RegisterChange(self, "mountOffset", offset)
 	Events._Signals.EntityMountChanged:Fire(self, parent.id)
 end
 
-Entity["设置网络主控玩家"] = function(self: Entity, player: Player?)
+const function SetEntityNetworkOwner(self: Entity, player: Player?)
 	if player ~= self.networkOwner then
 		const prev = self.networkOwner
-		SetValue(self, "networkOwner", player)
+		RegisterChange(self, "networkOwner", player)
 		CheckNetworkOwner(self, prev)
 		Entity.Clear(self)
 	end
@@ -690,8 +674,8 @@ end
 ]=]
 function Entity.SetNetworkOwner(self: Entity, player: Player?)
 	if IS_SERVER and player ~= self.networkOwner then
-		Entity["设置网络主控玩家"](self, player)
-		SetValue(self, "isHalfTicked", self.isHalfTicked, true)
+		SetEntityNetworkOwner(self, player)
+		RegisterChange(self, "isHalfTicked", self.isHalfTicked, true)
 	elseif not IS_SERVER then
 		error("SetNetworkOwner can only be called on the server")
 	end
@@ -714,14 +698,14 @@ end
 	Pauses replication for the entity.
 ]=]
 function Entity.PauseReplication(self: Entity)
-	SetValue(self, "paused", true)
+	RegisterChange(self, "paused", true)
 end
 
 --[=[
 	Resumes replication for the entity.
 ]=]
 function Entity.ResumeReplication(self: Entity)
-	SetValue(self, "paused", false)
+	RegisterChange(self, "paused", false)
 end
 
 --[=[
@@ -807,7 +791,7 @@ end
 	@param autoUpdate Whether to auto update the entity's position.
 ]=]
 function Entity.SetAutoUpdatePos(self: Entity, autoUpdate: boolean)
-	SetValue(self, "autoUpdatePos", autoUpdate)
+	RegisterChange(self, "autoUpdatePos", autoUpdate)
 end
 
 --[=[
@@ -839,7 +823,7 @@ function Entity.SetCFrame(self: Entity, cframe: CFrame)
 		self.snapshot.lockedTime = latestTime
 	end
 	Entity.Push(self, latestTime, cframe)
-	SetValue(self, "latestCFrame", cframe, true)
+	RegisterChange(self, "latestCFrame", cframe, true)
 
 	if self.isContextOwner or not IS_SERVER then
 		SetPartCFrame(self, cframe)
@@ -873,7 +857,7 @@ function Entity.LockNativeServerCFrameReplication(self: Entity)
 		if self._lockedCFReplication then
 			return
 		end
-		SetValue(self, "_lockedCFReplication", true)
+		RegisterChange(self, "_lockedCFReplication", true)
 
 		CheckNetworkOwner(self, self.networkOwner)
 
@@ -898,7 +882,7 @@ function Entity.UnlockNativeServerCFrameReplication(self: Entity)
 		if not self._lockedCFReplication then
 			return
 		end
-		SetValue(self, "_lockedCFReplication", false)
+		RegisterChange(self, "_lockedCFReplication", false)
 		const part = GetPart(self)
 		UnlockCFReplication(part)
 		CheckNetworkOwner(self, self.networkOwner)
@@ -961,8 +945,8 @@ const function StopHumanoidStateWatch(self: Entity)
 	end
 
 	if IS_SERVER then
-		SetValue(self, "_humanoidState", nil)
-		SetValue(self, "_humanoidDisabledStates", nil)
+		RegisterChange(self, "_humanoidState", nil)
+		RegisterChange(self, "_humanoidDisabledStates", nil)
 	end
 end
 
@@ -977,14 +961,14 @@ const function StartHumanoidStateWatch(self: Entity)
 		return
 	end
 
-	SetValue(self, "_humanoidState", humanoid:GetState().Value, true)
+	RegisterChange(self, "_humanoidState", humanoid:GetState().Value, true)
 	self._humanoidStateConn = humanoid.StateChanged:Connect(function(_old, new)
-		SetValue(self, "_humanoidState", new.Value)
+		RegisterChange(self, "_humanoidState", new.Value)
 	end)
 
-	SetValue(self, "_humanoidDisabledStates", GetDisabledStateMask(humanoid), true)
+	RegisterChange(self, "_humanoidDisabledStates", GetDisabledStateMask(humanoid), true)
 	self._humanoidStateEnabledConn = humanoid.StateEnabledChanged:Connect(function()
-		SetValue(self, "_humanoidDisabledStates", GetDisabledStateMask(humanoid))
+		RegisterChange(self, "_humanoidDisabledStates", GetDisabledStateMask(humanoid))
 	end)
 end
 
@@ -1021,7 +1005,7 @@ end
 	@param mode "CFRAME" or "ALIGN".
 ]=]
 function Entity.SetInterpolationMode(self: Entity, mode: Types.INTERPOLATION_MODE)
-	SetValue(self, "_interpolationMode", mode)
+	RegisterChange(self, "_interpolationMode", mode)
 
 	if mode == "ALIGN" then
 		RefreshHumanoidStateWatch(self, true)
@@ -1035,7 +1019,7 @@ function Entity.SetInterpolationMode(self: Entity, mode: Types.INTERPOLATION_MOD
 end
 
 const function SetHumanoidState(self: Entity, stateValue: number?)
-	SetValue(self, "_humanoidState", stateValue)
+	RegisterChange(self, "_humanoidState", stateValue)
 
 	if IS_SERVER or self.isContextOwner or type(stateValue) ~= "number" then
 		return
@@ -1058,7 +1042,7 @@ const function SetHumanoidState(self: Entity, stateValue: number?)
 end
 
 const function SetHumanoidDisabledStates(self: Entity, mask: number?)
-	SetValue(self, "_humanoidDisabledStates", mask)
+	RegisterChange(self, "_humanoidDisabledStates", mask)
 	if IS_SERVER or self.isContextOwner or type(mask) ~= "number" then
 		return
 	end
@@ -1172,10 +1156,6 @@ Players.PlayerRemoving:Connect(function(player)
 	clientOwned[player] = nil
 end)
 
-Events._Signals["请不要使用_内部_设置值_拜托谢谢_嗨_这个名字有点长_好吧_再见_算了_这个确实被用了_因为递归错误_而我懒得去解决_所以这是一个能用的_创可贴式修复_好吧"].Event:Connect(
-	SetValue
-)
-Entity._Changes = Changes
 Entity._GetPart = GetPart
 Entity._SetPartCFrame = SetPartCFrame
 Entity._GetRootPart = GetRootPart
