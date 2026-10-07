@@ -1164,4 +1164,6 @@ Entity._UnlockPartPhysicsReplication = UnlockCFReplication
 Entity._UpdateClockBuffer = SetClock
 Entity._SetHumanoidState = SetHumanoidState
 Entity._SetHumanoidDisabledStates = SetHumanoidDisabledStates
+Entity._SetEntityNetworkOwner = SetEntityNetworkOwner
+
 return Entity
