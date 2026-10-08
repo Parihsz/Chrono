@@ -555,7 +555,16 @@ function Entity.SetConfig(self: Entity, entityConfig: string)
 	end
 	SetValue(self, "entityConfig", config, false, config.NAME)
 	RefreshHumanoidStateWatch(self)
-	if not IS_SERVER then
+	if IS_SERVER then
+		return
+	end
+	const clientClock = self._clientClock
+	if clientClock then
+		const tickRate = config.TICK_RATE
+		clientClock._baseTickRate = tickRate
+		clientClock:SetTickRate(if self.isHalfTicked then tickRate * 2 else tickRate)
+		clientClock:UpdateBuffer(self._clockBuffer or config.BUFFER or 0)
+	else
 		SetClock(self)
 	end
 end
@@ -569,7 +578,25 @@ function Entity.SetClockBuffer(self: Entity, buffer: number?)
 	if IS_SERVER then
 		error("SetClockBuffer can only be called on the client")
 	end
+	const clientClock = self._clientClock
+	if clientClock and (self.networkOwner or buffer ~= nil) then
+		-- Reconfigure in place: a rebuilt clock has no render time and would roll the entity back
+		self._clockBuffer = buffer
+		clientClock:UpdateBuffer(buffer or self.entityConfig.BUFFER or 0)
+		return
+	end
+
+	const sharedClocks = self.entityConfig.CLIENT_CLOCK
+	const sharedClock = sharedClocks and (self.isHalfTicked and sharedClocks.HALF or sharedClocks.NORMAL)
 	SetClock(self, buffer ~= nil and buffer or false)
+
+	-- Server owned clocks share the server's time domain, so seed from the shared clock being replaced
+	const newClock = self._clientClock
+	if newClock and not self.networkOwner and sharedClock and sharedClock.lastClockAt then
+		newClock.lastClockAt = sharedClock.lastClockAt
+		newClock.lastClockDuration = sharedClock.lastClockDuration
+		newClock.renderAt = sharedClock.renderAt
+	end
 end
 
 --[=[

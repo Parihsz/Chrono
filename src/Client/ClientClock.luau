@@ -26,15 +26,6 @@ const function Clear(clientClock: Types.ClientClock)
 	end
 end
 
-const function GetTargetRenderTime(clientClock: Types.ClientClock): number
-	if not clientClock.renderAt then
-		Warn.low("ClientClock: Render time not yet established for", clientClock.name)
-		return 0
-	end
-
-	return clientClock.renderAt
-end
-
 const function GetEstimatedServerTime(clientClock: Types.ClientClock): number
 	if not clientClock.lastClockAt then
 		Warn.low("ClientClock: Estimated server time not yet established for", clientClock.name)
@@ -42,6 +33,18 @@ const function GetEstimatedServerTime(clientClock: Types.ClientClock): number
 	end
 
 	return clientClock.lastClockAt + (os.clock() - clientClock.lastClockDuration)
+end
+
+const function GetTargetRenderTime(clientClock: Types.ClientClock): number
+	if not clientClock.renderAt then
+		if clientClock.lastClockAt then
+			return GetEstimatedServerTime(clientClock) - GetBuffer(clientClock)
+		end
+		Warn.low("ClientClock: Render time not yet established for", clientClock.name)
+		return 0
+	end
+
+	return clientClock.renderAt
 end
 
 const function CheckHasLastClockAt(clientClock: Types.ClientClock, sendTime: number)
