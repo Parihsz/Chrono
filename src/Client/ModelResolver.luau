@@ -1,5 +1,5 @@
 const CollectionService = game:GetService("CollectionService")
-
+-- TODO: roblox added InstanceHandlers which can replace this whole system with something more reliable
 const Warn = require(script.Parent.Parent.Shared.Warn)
 const Config = require(script.Parent.Parent.Shared.Config)
 const Types = require(script.Parent.Parent.Shared.Types)

@@ -8,6 +8,21 @@ const idStack = {}
 const playerChars = {}
 const idMap: { [number]: Types.Entity } = {}
 const clientOwned: { [Player]: { [Types.Entity]: true } } = {}
+const entityChangedFields = {}
+
+const function RegisterChange(entity: Types.Entity, key: string, value: any, bypass: boolean?, specialValue: any)
+	if not bypass and entity[key] == value then
+		return
+	end
+	entity[key] = value
+	if not IS_SERVER then
+		return
+	end
+	if not entityChangedFields[entity] then
+		entityChangedFields[entity] = {}
+	end
+	entityChangedFields[entity][key] = specialValue or value or false
+end
 
 const MAX_ID = 2 ^ 16 - 1
 
@@ -40,11 +55,7 @@ const function RemovePlayerCharacter(entity: Types.Entity)
 	entity._player = nil
 	if player and playerChars[player] == entity then
 		playerChars[player] = nil
-		Signals["请不要使用_内部_设置值_拜托谢谢_嗨_这个名字有点长_好吧_再见_算了_这个确实被用了_因为递归错误_而我懒得去解决_所以这是一个能用的_创可贴式修复_好吧"]:Fire(
-			entity,
-			"_player",
-			nil
-		)
+		RegisterChange(entity, "_player", nil)
 		Signals.PlayerCharacterUnregistered:Fire(player, entity)
 	end
 end
@@ -64,11 +75,7 @@ const function SetAsCharacter(player: Player, entity: Types.Entity)
 		RemovePlayerCharacter(old)
 	end
 	playerChars[player] = entity
-	Signals["请不要使用_内部_设置值_拜托谢谢_嗨_这个名字有点长_好吧_再见_算了_这个确实被用了_因为递归错误_而我懒得去解决_所以这是一个能用的_创可贴式修复_好吧"]:Fire(
-		entity,
-		"_player",
-		player
-	)
+	RegisterChange(entity, "_player", player)
 	Signals.PlayerCharacterRegistered:Fire(player, entity)
 end
 
@@ -198,7 +205,9 @@ return {
 	idMap = idMap,
 	_clientOwned = clientOwned,
 	_playerChars = playerChars,
+	_entityChangedFields = entityChangedFields,
 
+	RegisterChange = RegisterChange,
 	RegisterEntity = RegisterEntity,
 	UnregisterEntity = UnregisterEntity,
 	GetEntityStorageInstance = getEntityStorageInstance,

@@ -98,7 +98,7 @@ const function SetMountOffset(entity: Types.Entity, mountOffset: CFrame?)
 end
 
 const ValueChanges = {
-	networkOwner = Entity["设置网络主控玩家"],
+	networkOwner = Entity._SetEntityNetworkOwner,
 	isHalfTicked = SetTickMode,
 	_data = Entity.SetData,
 	entityConfig = Entity.SetConfig,
@@ -183,7 +183,7 @@ const function HandleNewEntity(data: Types.EntityReceivePacket)
 
 	Entity.Push(entity, data.time, data.cframe)
 
-	Entity["设置网络主控玩家"](entity, data.networkOwner)
+	Entity._SetEntityNetworkOwner(entity, data.networkOwner)
 
 	Entity._SetHumanoidDisabledStates(entity, data._humanoidDisabledStates)
 	Entity._SetHumanoidState(entity, data._humanoidState)
