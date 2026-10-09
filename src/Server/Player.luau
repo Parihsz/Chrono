@@ -45,12 +45,6 @@ const function RegisterPlayer(
 	Holder.SetAsCharacter(player, newEntity)
 	Entity.SetNetworkOwner(newEntity, player)
 
-	-- task.delay(7, function()
-	-- 	Entity.SetModel(newEntity, character, "NATIVE", true)
-	-- 	task.wait(5)
-	-- 	Entity.SetModel(newEntity, character, "CUSTOM", true)
-	-- end)
-
 	return newEntity
 end
 
@@ -63,6 +57,9 @@ end
 
 const function OnCharacterAdded(character: Model, player: Player)
 	task.wait(0.1)
+	if player.Character ~= character or not player.Parent then
+		return
+	end -- edge case
 	RegisterPlayer(player, character, {
 		config = "PLAYER",
 	})
@@ -94,39 +91,39 @@ Config._WaitForLock(function()
 	end
 	const deathRemote = script.Parent.Parent.Shared.Remotes.Death
 	const ReplicateMode: "NONE" | "PLAYER_ENTITIES" | "PLAYER_CHARACTERS" = Config._GetConfig("REPLICATE_DEATHS")
-	deathRemote.OnServerEvent:Connect(function(plr, id)
-		if ReplicateMode == "NONE" then
-			return
-		end
-		const entity = Holder.GetEntityFromId(id)
-		if not entity then
-			return
-		end
-
-		if entity.networkOwner ~= plr then
-			return
-		end
-		if ReplicateMode == "PLAYER_CHARACTERS" and not entity._player then
-			return
-		end
-
-		const model = entity.model
-		if model then
-			const humanoid: Humanoid? = model:FindFirstChildWhichIsA("Humanoid")
-			task.wait()
-			if humanoid and humanoid:GetState() ~= Enum.HumanoidStateType.Dead then
-				humanoid.Health = 0
-				task.delay(0, function()
-					if humanoid:GetState() ~= Enum.HumanoidStateType.Dead then
-						humanoid.Health = 0
-						humanoid.Health = 10
-						humanoid.Health = 0
-					end
-				end)
+	if ReplicateMode ~= "NONE" then
+		deathRemote.OnServerEvent:Connect(function(plr, id)
+			const entity = Holder.GetEntityFromId(id)
+			if not entity then
+				return
 			end
-		end
-		deathRemote:FireAllClients(id)
-	end)
+
+			if entity.networkOwner ~= plr then
+				return
+			end
+			if ReplicateMode == "PLAYER_CHARACTERS" and not entity._player then
+				return
+			end
+
+			const model = entity.model
+			if model then
+				const humanoid: Humanoid? = model:FindFirstChildWhichIsA("Humanoid")
+				task.wait()
+				if humanoid and humanoid:GetState() ~= Enum.HumanoidStateType.Dead then
+					humanoid.Health = 0
+					task.delay(0, function()
+						if humanoid:GetState() ~= Enum.HumanoidStateType.Dead then
+							humanoid.Health = 0
+							humanoid.Health = 10
+							humanoid.Health = 0
+						end
+					end)
+				end
+			end
+			deathRemote:FireAllClients(id)
+		end)
+	end
+
 	Players.PlayerAdded:Connect(OnPlayerAdded)
 	Players.PlayerRemoving:Connect(UnregisterPlayer)
 

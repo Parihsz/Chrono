@@ -6,6 +6,7 @@ const RunService = game:GetService("RunService")
 const Events = require(script.Parent.Parent.Shared.Events)
 const Config = require(script.Parent.Parent.Shared.Config)
 const ReplicationRules = require(script.Parent.Parent.Shared.ReplicationRules)
+const RuleAllows = ReplicationRules.Allows
 const Stats = require(script.Parent.Parent.Shared.Stats)
 const Warn = require(script.Parent.Parent.Shared.Warn)
 
@@ -63,7 +64,7 @@ const function Check(entity: Entity)
 	const isNotNative = isLocked or entity.modelReplicationMode ~= "NATIVE"
 	for holder, playerPos in playerTablePositionPair do
 		const viewer = holder.PLAYER
-		const allowed = ReplicationRules.Allows(entity, viewer)
+		const allowed = RuleAllows(entity, viewer)
 		if not allowed then
 			continue
 		end
