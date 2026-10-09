@@ -27,8 +27,8 @@ const TAU = math.pi * 2
 local clock = 0
 local hasTeleport = false
 
-const function MapRotation(u16: number): number
-	return math.round((u16 + math.pi) / (TAU / 65535))
+const function MapRotation(radians: number): number
+	return math.round((radians + math.pi) / (TAU / 65535))
 end
 
 const function FireEvent(entity: Types.Entity, eventName: string, ...: any)
@@ -184,8 +184,9 @@ const function CheckEntity(entity: Types.Entity)
 		entity.lastReplicatedTime = now
 		const fullCFrame = config.FULL_ROTATION
 		entity.lastCheckedCFrame = currentCFrame
-		hasTeleport = hasTeleport or entity._teleport
-		WriteEntity(entity.id, currentCFrame, fullCFrame, entity.isHalfTicked, entity._teleport)
+		const teleport = entity._teleport ~= nil
+		hasTeleport = hasTeleport or teleport
+		WriteEntity(entity.id, currentCFrame, fullCFrame, entity.isHalfTicked, teleport)
 		entity._teleport = nil
 	end
 end
