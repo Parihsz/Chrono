@@ -195,6 +195,7 @@ export type EntityReceivePacket = {
 	config: string?,
 	model: string | Model | BasePart | InstanceHandle?,
 	paused: boolean?,
+	autoUpdatePosition: boolean?,
 	isHalfTicked: boolean?,
 	_data: any,
 	mountParentId: number?,

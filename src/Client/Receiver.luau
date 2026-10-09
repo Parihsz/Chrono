@@ -173,6 +173,7 @@ const function HandleNewEntity(data: Types.EntityReceivePacket)
 	entity._player = data._player
 	entity._modelHandle = handle
 	entity.paused = data.paused or false
+	entity.autoUpdatePosition = data.autoUpdatePosition or false
 	entity.isHalfTicked = data.isHalfTicked
 	entity._data = data._data
 	entity.mountParentId = data.mountParentId

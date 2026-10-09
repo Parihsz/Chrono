@@ -116,10 +116,15 @@ Config._WaitForLock(function()
 		debug.profilebegin("Interpolate Entities")
 		for _, entity in idMap do
 			ModelResolver(entity)
-			if entity.destroyed or entity.paused then
+			if entity.destroyed then
 				continue
 			end
 			if entity.mountParentId then
+
+				AlignDriver.Clear(entity)
+				continue
+			end
+			if entity.paused then
 				continue
 			end
 			total += 1

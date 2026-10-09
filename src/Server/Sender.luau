@@ -155,6 +155,7 @@ const function GetEntityFullData(player: Player, entity: Types.Entity): Types.En
 		model = modelData,
 
 		paused = entity.paused,
+		autoUpdatePosition = entity.autoUpdatePosition,
 		isHalfTicked = entity.isHalfTicked,
 		_data = entity._data,
 		_lockedCFReplication = entity._lockedCFReplication,

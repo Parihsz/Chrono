@@ -761,7 +761,6 @@ function Entity.SetClockBuffer(self: Entity, buffer: number?)
 	end
 	const clientClock = self._clientClock
 	if clientClock and (self.networkOwner or buffer ~= nil) then
-
 		self._clockBuffer = buffer
 		clientClock:UpdateBuffer(buffer or self.entityConfig.BUFFER or 0)
 		return
