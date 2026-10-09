@@ -131,6 +131,8 @@ Config._WaitForLock(function()
 				table.insert(steppedEntities, entity)
 			elseif mode then
 				Interpolate(entity, mode)
+			elseif entity._alignDriver then
+				AlignDriver.Clear(entity)
 			end
 		end
 		debug.profileend()

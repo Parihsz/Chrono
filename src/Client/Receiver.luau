@@ -118,6 +118,7 @@ const function HandleChanges(changes: { id: number, data: { { any } } })
 		return
 	end
 	local modelData
+	local modelChanged = false
 	for _, pair in changes.data do
 		const key = pair[1]
 		const value = pair[2]
@@ -129,6 +130,7 @@ const function HandleChanges(changes: { id: number, data: { { any } } })
 			Entity.SetCFrame(entity, value)
 		elseif key == "model" then
 			modelData = value
+			modelChanged = true -- value is nil when the model was cleared
 		elseif key == "_player" then
 			if value then
 				Holder.SetAsCharacter(value, entity)
@@ -156,7 +158,7 @@ const function HandleChanges(changes: { id: number, data: { { any } } })
 		end
 	end
 
-	if modelData ~= nil then
+	if modelChanged then
 		const model, modelType, handle = ModelHelper.CreateModelFromData(modelData)
 		Entity.SetModel(entity, model, modelType :: any)
 		entity._modelHandle = handle

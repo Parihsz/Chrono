@@ -163,6 +163,9 @@ const function CheckNetworkOwner(self: Entity, prev: Player?)
 			self.snapshot = Snapshot(InterpolationMath.Hermite)
 		end
 	else
+		if self.isContextOwner then
+			AlignDriver.Clear(self)
+		end
 		const locked = self._lockedCFReplication
 
 		if locked and self.isContextOwner then
