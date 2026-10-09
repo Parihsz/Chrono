@@ -9,6 +9,7 @@ export type Signal<fx, T...> = {
 	Fire: (self: any, T...) -> (),
 	DisconnectAll: (self: any) -> (),
 	Event: Event<fx, T...>,
+	_binCleanup: (self: any) -> (),
 }
 
 export type ClientEntitiesStats = {
@@ -46,7 +47,7 @@ export type ServerEntitiesStats = {
 export type Connection = {
 	Disconnect: (self: any) -> (),
 	Connected: boolean,
-	_binCleanup: () -> (),
+	_binCleanup: (self: any) -> (),
 }
 
 export type Event<fx, T...> = {

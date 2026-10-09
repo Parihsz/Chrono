@@ -21,9 +21,6 @@ const MAX_RESPONSIVENESS = 200
 const MAX_SPEED = 1000
 
 local velocityUpdates: { AlignDriver } = {}
-
-
-
 const AlignDriver = {}
 
 const function Create(part: BasePart): AlignDriver
