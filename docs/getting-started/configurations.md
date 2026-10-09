@@ -43,7 +43,7 @@ These are Chrono's default values. If you don't override them, these are the set
 
 ```lua
 local BASE_CONFIG = {
-    __VERSION = "v2.2.0",
+    __VERSION = "v2.2.1",
     CHECK_NEW_VERSION = true,
     MAX_TOTAL_BYTES_PER_FRAME_PER_PLAYER = 300,
 
