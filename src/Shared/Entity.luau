@@ -198,7 +198,7 @@ const function SetClock(self: Entity, buffer: number | false?)
 		buffer = nil
 	end
 	buffer = buffer or self._clockBuffer
-	self._clockBuffer = buffer
+	self._clockBuffer = buffer :: any
 	const entityBuffer = buffer or self.entityConfig.BUFFER or 0
 	if self.networkOwner or buffer then
 		const networkOwner = self.networkOwner
@@ -350,7 +350,7 @@ const function SetModel(
 	local modelString
 	if type(model) == "string" then
 		modelString = model
-		model = Config._GetEntityModel(model :: string)
+		model = Config._GetEntityModel(model :: string) :: any
 		if model then
 			model = (model :: any):Clone()
 		end
@@ -408,7 +408,7 @@ const function SetModel(
 	end
 
 	self.modelReplicationMode = Entity.GetModelReplicationType(self) :: any
-	if self.modelReplicationMode == "NATIVE_WITH_LOCK" then
+	if self.modelReplicationMode :: any == "NATIVE_WITH_LOCK" then
 		self._lockedCFReplication = true
 		self.modelReplicationMode = "NATIVE"
 	end
@@ -450,7 +450,7 @@ function Entity._new(
 
 		entityConfig = config,
 		destroyed = false,
-		
+
 		interpolation = not IS_SERVER and true,
 	}
 
@@ -941,7 +941,7 @@ end
 const function GetHumanoid(self: Entity): Humanoid?
 	const model = self.model
 	if model and model:IsA("Model") then
-		return model:FindFirstChildWhichIsA("Humanoid",true)
+		return model:FindFirstChildWhichIsA("Humanoid", true)
 	end
 	return nil
 end
@@ -1057,7 +1057,7 @@ const function SetHumanoidState(self: Entity, stateValue: number?)
 	if not state then
 		return
 	end
-	
+
 	if state == Enum.HumanoidStateType.Ragdoll then
 		state = Enum.HumanoidStateType.Physics
 	end

@@ -175,7 +175,7 @@ const function GetEntityModel(name: string): Model | BasePart | false?
 		warn(`Entity model {name} not found in Config.`)
 		return nil
 	end
-	return ENTITY_MODELS[name]
+	return ENTITY_MODELS[name] :: any
 end
 
 const function GetBroadPhase(name: string): vector?

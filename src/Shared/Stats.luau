@@ -54,33 +54,30 @@ const function processID(id: number, replicate)
 	script:SetAttribute(tostring(id), replicate)
 end
 
-function Stats.HasPermissionToReplicate(userId: number | Player)
-	if typeof(userId) == "Instance" and userId:IsA("Player") then
-		userId = userId.UserId
-	end
-	return script:GetAttribute(tostring(userId)) == true
+const function ToUserId(user: number | Player): number
+	return if typeof(user) == "Instance" then user.UserId else user
 end
 
-function Stats.ReplicateStatsForPlayer(userId: number | Player)
+function Stats.HasPermissionToReplicate(user: number | Player)
+	return script:GetAttribute(tostring(ToUserId(user))) == true
+end
+
+function Stats.ReplicateStatsForPlayer(user: number | Player)
 	if RunService:IsClient() then
 		warn("Stats.ReplicateStatsForPlayer should only be called on the server.")
 		return
 	end
-	if typeof(userId) == "Instance" and userId:IsA("Player") then
-		userId = userId.UserId
-	end
+	const userId = ToUserId(user)
 	Stats.REPLICATE_PERMISSIONS[userId] = true
 	processID(userId, true)
 end
 
-function Stats.StopReplicatingStatsForPlayer(userId: number | Player)
+function Stats.StopReplicatingStatsForPlayer(user: number | Player)
 	if RunService:IsClient() then
 		warn("Stats.StopReplicatingStatsForPlayer should only be called on the server.")
 		return
 	end
-	if typeof(userId) == "Instance" and userId:IsA("Player") then
-		userId = userId.UserId
-	end
+	const userId = ToUserId(user)
 	Stats.REPLICATE_PERMISSIONS[userId] = nil
 	processID(userId, false)
 end

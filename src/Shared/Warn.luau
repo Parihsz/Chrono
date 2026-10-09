@@ -20,7 +20,7 @@ end
 return (
 	setmetatable({}, {
 		__index = function(_, level: level)
-			if not checkLevel(level:upper()) then
+			if not checkLevel(level:upper()::any) then
 				return function() end
 			end
 			return warn
