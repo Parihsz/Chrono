@@ -76,7 +76,7 @@ const function UpdateEntityStats()
 		}
 		table.insert(entities, data)
 	end
-	Stats.CLIENT_ENTITIES = entities
+	Stats.CLIENT_ENTITIES = entities :: any
 end
 
 return UpdateEntityStats

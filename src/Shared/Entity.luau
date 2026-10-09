@@ -11,7 +11,7 @@ const Holder = require(script.Parent.Holder)
 const Signal = require(script.Parent.Signal)
 const Events = require(script.Parent.Events)
 const ModelHelper = require(script.Parent.ModelHelper)
-const AlignDriver = require(script.Parent.AlignDriver)
+const AlignDriver = require(script.Parent.Parent.Client.AlignDriver)
 const Warn = require(script.Parent.Warn)
 const VelocityAt = InterpolationMath.VelocityAt
 

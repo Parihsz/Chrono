@@ -9,9 +9,7 @@ export type AlignDriver = {
 	lastTime: number?,
 }
 
-const Types = require(script.Parent.Types)
-
-const IS_SERVER = game:GetService("RunService"):IsServer()
+const Types = require(script.Parent.Parent.Shared.Types)
 
 const CONTAINER_NAME = "__CHRONO_ALIGN"
 const DRIVER_PART_NAME = "__CHRONO_ALIGN_PART"
@@ -51,7 +49,7 @@ const function Create(part: BasePart): AlignDriver
 	driverPart.CanCollide = false
 	driverPart.CanQuery = false
 	driverPart.CanTouch = false
-	driverPart.Transparency = if IS_SERVER then 0 else 1
+	driverPart.Transparency = 1
 	driverPart.Color = Color3.new(0, 1, 0)
 
 	driverPart.CFrame = initCF
