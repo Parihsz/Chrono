@@ -3,7 +3,10 @@ const Warn = require(script.Parent.Warn)
 const Holder = require(Shared.Holder)
 const Types = require(Shared.Types)
 
-const function ReadyModelFromRep(entity: Types.Entity, playerSpecific: Player?): Model | string | BasePart | InstanceHandle?
+const function ReadyModelFromRep(
+	entity: Types.Entity,
+	playerSpecific: Player?
+): Model | string | BasePart | InstanceHandle?
 	const model = entity.model
 	const modelString = entity.modelString
 	const replicationMode: "NATIVE" | "CUSTOM" = (entity.modelReplicationMode or "NATIVE") :: any

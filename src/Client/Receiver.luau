@@ -165,7 +165,7 @@ end
 
 const function HandleNewEntity(data: Types.EntityReceivePacket)
 	const model, modelType, handle = ModelHelper.CreateModelFromData(data.model)
-	const entity = Entity._new(data.config, model, modelType::any, data.cframe)
+	const entity = Entity._new(data.config, model, modelType :: any, data.cframe)
 
 	entity.id = data.id
 	entity._player = data._player
@@ -272,7 +272,7 @@ const function HandleClientOwned(b: buffer)
 				Warn.medium("Received update for non existent entity with id", id)
 				continue
 			end
-	
+
 			const time = ClockUnwrap.unwrapFor(ClientOwnedWrap, entity.networkOwner or "__unknown", rawTime)
 			PushCFrameFor(id, true, cf, time, isHalfTickRate, teleport)
 		end

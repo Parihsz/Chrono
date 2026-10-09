@@ -2,7 +2,7 @@ const Warn = require(script.Parent.Parent.Shared.Warn)
 const Types = require(script.Parent.Parent.Shared.Types)
 const Entity = require(script.Parent.Parent.Shared.Entity)
 
--- Binds NATIVE models that weren't on the client yet (or streamed out and back in)
+-- checks if models have been resolved for entities and sets them if they have
 return function(entity: Types.Entity)
 	const handle = entity._modelHandle
 	const model = entity.model

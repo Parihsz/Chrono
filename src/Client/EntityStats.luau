@@ -8,7 +8,6 @@ const Stats = StatsALL.CLIENT
 
 const idMap = Holder.idMap
 
-
 const function UpdateEntityStats()
 	if not StatsALL.SERVER._SHOULD_REPLICATE or Stats._PAUSE then
 		return
