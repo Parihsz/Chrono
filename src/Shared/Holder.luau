@@ -5,7 +5,7 @@ const IS_SERVER = game:GetService("RunService"):IsServer()
 
 local currentId = 0 -- First Id will start at 1
 const idStack = {}
-const playerChars = {}
+const playerChars: { [Player]: Types.Entity } = {}
 const idMap: { [number]: Types.Entity } = {}
 const clientOwned: { [Player]: { [Types.Entity]: true } } = {}
 const entityChangedFields = {}

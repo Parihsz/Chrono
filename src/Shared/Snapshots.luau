@@ -113,7 +113,7 @@ const function PushWithCheck<Value, Velocity>(
 )
 	const latestData = GetLatest(self)
 	if latestData and timeStamp - latestData.t > tickrate * 3 and Config.FLAGS.SNAPSHOT_INTERPOLATION_FIX then
-		Push(self, timeStamp - tickrate, latestData.value, vector.zero, true)
+		Push(self, timeStamp - tickrate, latestData.value, vector.zero :: any)
 	end
 	Push(self, timeStamp, value, velocity)
 end

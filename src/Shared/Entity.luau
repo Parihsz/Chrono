@@ -11,8 +11,10 @@ const Holder = require(script.Parent.Holder)
 const Signal = require(script.Parent.Signal)
 const Events = require(script.Parent.Events)
 const ModelHelper = require(script.Parent.ModelHelper)
-const AlignDriver = require(script.Parent.AlignDriver)
+const AlignDriver = require(script.Parent.Parent.Client.AlignDriver)
 const Warn = require(script.Parent.Warn)
+const HumanoidState = require(script.Parent.HumanoidState)
+const CFrameLock = require(script.Parent.CFrameLock)
 const VelocityAt = InterpolationMath.VelocityAt
 
 const clientOwned = Holder._clientOwned
@@ -20,20 +22,6 @@ const IS_SERVER = RunService:IsServer()
 const LOCAL_PLAYER = if IS_SERVER then nil else Players.LocalPlayer
 
 const CHRONO_PRIMARY = "__CHRONO_PRIMARY"
-
-const HUMANOID_STATES: { [number]: Enum.HumanoidStateType } = {}
-for _, item in Enum.HumanoidStateType:GetEnumItems() do
-	HUMANOID_STATES[item.Value] = item
-end
-
-const CENTER_PART = Instance.new("Part")
-CENTER_PART.Size = Vector3.new(0.1, 0.1, 0.1)
-CENTER_PART.Name = "__CHRONO_CENTER"
-CENTER_PART.Anchored = true
-CENTER_PART.Transparency = 1
-CENTER_PART.CanCollide = false
-CENTER_PART.CanTouch = false
-CENTER_PART.CanQuery = false
 
 type Entity = Types.Entity
 
@@ -45,15 +33,10 @@ end)
 
 const RegisterChange = Holder.RegisterChange
 
+--// Part helpers
 const function SafeDestroy(instance: Instance?)
 	if instance then
 		pcall(instance.Destroy, instance)
-	end
-end
-
-const function SafeSetNetworkOwner(part: BasePart, player: Player?)
-	if part:CanSetNetworkOwnership() then
-		part:SetNetworkOwner(player)
 	end
 end
 
@@ -87,67 +70,10 @@ end
 
 const function GetRootPart(entity: Entity): BasePart?
 	const primaryPart = Entity.GetPrimaryPart(entity)
-
-	if not primaryPart then
-		return
+	if primaryPart and IS_SERVER and entity._lockedCFReplication then
+		return CFrameLock.GetLockedRoot(primaryPart)
 	end
-
-	if IS_SERVER and entity._lockedCFReplication then
-		const locker = primaryPart:FindFirstChild("__CHRONO_LOCKER")
-
-		if not locker then
-			return
-		end
-		const lockerPart = locker:FindFirstChildWhichIsA("BasePart")
-		if not lockerPart or not lockerPart:IsA("BasePart") then
-			return primaryPart
-		end
-
-		return lockerPart
-	else
-		return primaryPart
-	end
-end
-
-const function LockCFReplication(part: BasePart?): BasePart?
-	if not part then
-		return
-	end
-	const initCF = part.CFrame
-	const previousLocker = part:FindFirstChild("__CHRONO_LOCKER")
-	if previousLocker then
-		const weld = previousLocker:FindFirstChild("__CHRONO_WELD") :: Motor6D
-		if weld then
-			weld.Part1 = part
-			part.CFrame = initCF
-			return weld.Part0
-		else
-			SafeDestroy(previousLocker)
-		end
-	end
-
-	const camera = Instance.new("Camera", part)
-	camera.Archivable = false
-	camera.Name = "__CHRONO_LOCKER"
-	const weld = Instance.new("Weld", camera)
-	weld.Name = "__CHRONO_WELD"
-	const locker = Instance.new("Part")
-	locker.CustomPhysicalProperties = PhysicalProperties.new(0.0001, 0, 0, 0, 0)
-	locker.Name = "__CHRONO_LOCKER_PART"
-	locker.Parent = camera
-	locker.CanCollide = false
-	locker.CanQuery = false
-	locker.CanTouch = false
-	locker.Transparency = if IS_SERVER then 0 else 1
-	locker.Color = Color3.new(1, 0, 0)
-	locker.Massless = false
-	locker.RootPriority = 126
-	locker.Size = Vector3.zero
-	--locker.Anchored = true
-	weld.Part0 = locker
-	weld.Part1 = part
-	part.CFrame = initCF
-	return locker
+	return primaryPart
 end
 
 const function SetPartCFrame(entity, cframe: CFrame)
@@ -157,25 +83,7 @@ const function SetPartCFrame(entity, cframe: CFrame)
 	end
 end
 
-const function UnlockCFReplication(part: BasePart?)
-	if not part then
-		return
-	end
-	const cf = part.CFrame
-	const locker = part:FindFirstChild("__CHRONO_LOCKER")
-	if locker then
-		-- local weld = locker:FindFirstChild("__CHRONO_WELD") :: Motor6D
-		-- if weld then
-		-- 	weld.Part1 = nil
-		-- else
-		-- 	SafeDestroy(locker)
-		-- end
-		--Safer overall to just destroy and recreate
-		locker:Destroy()
-		part.CFrame = cf
-	end
-end
-
+--// Events
 const function FireEvent(entity: Entity, eventName: string, ...: any)
 	const events = entity._events
 	if not events then
@@ -187,6 +95,18 @@ const function FireEvent(entity: Entity, eventName: string, ...: any)
 	end
 end
 
+const function GetEvent(self: Entity, eventName: string): Types.Event<any>
+	if not self._events then
+		self._events = {}
+	end
+	const events = self._events :: { [string]: Types.Signal<any, any> }
+	if not events[eventName] then
+		events[eventName] = Signal.new()
+	end
+	return events[eventName].Event
+end
+
+--// Ownership & clock
 -- If buffer is given then it will create a client clock for the entity as well.
 const function SetClock(self: Entity, buffer: number | false?)
 	if self._clientClock then
@@ -198,7 +118,7 @@ const function SetClock(self: Entity, buffer: number | false?)
 		buffer = nil
 	end
 	buffer = buffer or self._clockBuffer
-	self._clockBuffer = buffer
+	self._clockBuffer = buffer :: any
 	const entityBuffer = buffer or self.entityConfig.BUFFER or 0
 	if self.networkOwner or buffer then
 		const networkOwner = self.networkOwner
@@ -224,14 +144,14 @@ const function CheckNetworkOwner(self: Entity, prev: Player?)
 			const locked = self._lockedCFReplication
 
 			if locked then
-				UnlockCFReplication(part)
+				CFrameLock.Unlock(part)
 			end
-			SafeSetNetworkOwner(part, self.networkOwner)
+			CFrameLock.SafeSetNetworkOwner(part, self.networkOwner)
 			if locked then
-				LockCFReplication(part)
+				CFrameLock.Lock(part)
 				const root = GetRootPart(self)
 				if root then
-					SafeSetNetworkOwner(root, self.networkOwner)
+					CFrameLock.SafeSetNetworkOwner(root, self.networkOwner)
 					root.Anchored = not isSameOwner
 				end
 			end
@@ -243,18 +163,21 @@ const function CheckNetworkOwner(self: Entity, prev: Player?)
 			self.snapshot = Snapshot(InterpolationMath.Hermite)
 		end
 	else
+		if self.isContextOwner then
+			AlignDriver.Clear(self)
+		end
 		const locked = self._lockedCFReplication
 
 		if locked and self.isContextOwner then
 			const part = GetPart(self)
 			if part then
-				LockCFReplication(part)
+				CFrameLock.Lock(part)
 				self._cfLockFailed = nil
 			else
 				self._cfLockFailed = true
 			end
 			if self._player then
-				UnlockCFReplication(part)
+				CFrameLock.Unlock(part)
 			end
 		end
 	end
@@ -292,10 +215,23 @@ const function CheckNetworkOwner(self: Entity, prev: Player?)
 	end
 end
 
-function Entity.SyncOwnerShip(self: Entity)
-	CheckNetworkOwner(self, self.networkOwner)
+const function SetEntityNetworkOwner(self: Entity, player: Player?)
+	if player ~= self.networkOwner then
+		const prev = self.networkOwner
+		RegisterChange(self, "networkOwner", player)
+		CheckNetworkOwner(self, prev)
+		Entity.Clear(self)
+	end
+	self.lastCheckedCFrame = nil
+	if not IS_SERVER and self.modelReplicationMode == "CUSTOM" then
+		const primaryPart = Entity.GetPrimaryPart(self)
+		if primaryPart then
+			primaryPart.Anchored = not self.isContextOwner
+		end
+	end
 end
 
+--// Model
 const function CheckModelReplicationMode(entity: Entity, mode: Types.MODEL_REPLICATION_MODE?): "NATIVE" | "CUSTOM"
 	if not mode then
 		mode = entity.modelReplicationMode
@@ -317,10 +253,6 @@ const function CheckModelReplicationMode(entity: Entity, mode: Types.MODEL_REPLI
 	return mode :: any
 end
 
--- Forward declared: the humanoid state watch is defined further down, but the model and
--- config setters above it need to re-evaluate the effective interpolation mode.
-local RefreshHumanoidStateWatch: (self: Entity, force: boolean?) -> ()
-
 const function SetModel(
 	self: Entity,
 	model: Model | BasePart | string?,
@@ -333,7 +265,7 @@ const function SetModel(
 		if self.modelReplicationMode == "NATIVE" and self._lockedCFReplication then
 			const part = GetPart(self)
 			self._lockedCFReplication = false
-			UnlockCFReplication(part)
+			CFrameLock.Unlock(part)
 		end
 		if not noDestroy then
 			SafeDestroy(self.model)
@@ -345,12 +277,12 @@ const function SetModel(
 	elseif not IS_SERVER and self._lockedCFReplication then
 		const part = GetPart(self)
 		self._lockedCFReplication = false
-		UnlockCFReplication(part)
+		CFrameLock.Unlock(part)
 	end
 	local modelString
 	if type(model) == "string" then
 		modelString = model
-		model = Config._GetEntityModel(model :: string)
+		model = Config._GetEntityModel(model :: string) :: any
 		if model then
 			model = (model :: any):Clone()
 		end
@@ -398,17 +330,15 @@ const function SetModel(
 		return
 	end
 
-	const initCFrame = primaryPart.CFrame
-
 	if not self.latestCFrame then
-		Entity.SetCFrame(self, initCFrame or primaryPart.CFrame)
+		Entity.SetCFrame(self, primaryPart.CFrame)
 	end
 	if self.latestCFrame then
 		primaryPart.CFrame = self.latestCFrame
 	end
 
 	self.modelReplicationMode = Entity.GetModelReplicationType(self) :: any
-	if self.modelReplicationMode == "NATIVE_WITH_LOCK" then
+	if self.modelReplicationMode :: any == "NATIVE_WITH_LOCK" then
 		self._lockedCFReplication = true
 		self.modelReplicationMode = "NATIVE"
 	end
@@ -417,6 +347,7 @@ const function SetModel(
 	end
 end
 
+--// Construction
 function Entity._new(
 	entityConfig: string?,
 	model: Model | BasePart | string?,
@@ -450,7 +381,7 @@ function Entity._new(
 
 		entityConfig = config,
 		destroyed = false,
-		
+
 		interpolation = not IS_SERVER and true,
 	}
 
@@ -458,7 +389,7 @@ function Entity._new(
 		self.snapshot = Snapshot(InterpolationMath.Hermite)
 	end
 	SetModel(self, model, modelReplicationMode)
-	RefreshHumanoidStateWatch(self, true)
+	HumanoidState.Refresh(self, true)
 	CheckNetworkOwner(self, nil)
 
 	return self
@@ -489,6 +420,43 @@ function Entity.new(
 end
 
 --[=[
+	Destroys the entity, unregistering it and cleaning up resources.
+]=]
+function Entity.Destroy(self: Entity)
+	self.destroyed = true
+	FireEvent(self, "Destroying")
+	Holder.UnregisterEntity(self)
+	if self._clientClock then
+		self._clientClock:Destroy()
+	end
+
+	HumanoidState.Stop(self)
+
+	AlignDriver.Clear(self)
+
+	if not IS_SERVER then
+		const modeType = self.modelReplicationMode
+		const primaryPart = GetPart(self)
+		if modeType == "CUSTOM" then
+			SafeDestroy(self.model)
+		elseif primaryPart then
+			if self._lockedCFReplication then
+				CFrameLock.Unlock(primaryPart)
+			end
+			primaryPart.CFrame = CFrame.new(0, 1000000, 0)
+		end
+	else
+		SafeDestroy(self.model)
+	end
+
+	for _, signal: Types.Signal<any> in (self._events or {}) :: any do
+		signal:DisconnectAll()
+	end
+	self.model = nil
+end
+
+--// Model API
+--[=[
 	Sets the model for the entity.
 
 	@param model The model to set for the entity. Can be a Model, BasePart, or a string representing a registered model name.
@@ -504,101 +472,12 @@ function Entity.SetModel(
 	const old = self.model
 	SetModel(self, model, modelReplicationMode, noDestroy)
 	if IS_SERVER then
-		const toReplicate, metaData = ModelHelper.ReadyModelFromRep(self, nil)
+		const toReplicate = ModelHelper.ReadyModelFromRep(self, nil)
 		RegisterChange(self, "model", self.model, true, toReplicate or false)
-		RegisterChange(self, "_modelMetaData", metaData, true, metaData)
 		CheckNetworkOwner(self, self.networkOwner)
 	end
-	RefreshHumanoidStateWatch(self, true)
+	HumanoidState.Refresh(self, true)
 	FireEvent(self, "ModelChanged", self.model, old)
-end
-
-Entity._FireEvent = FireEvent
-
-const function GetEvent(self: Entity, eventName: string): Types.Event<any>
-	if not self._events then
-		self._events = {}
-	end
-	const events = self._events :: { [string]: Types.Signal<any, any> }
-	if not events[eventName] then
-		events[eventName] = Signal.new()
-	end
-	return events[eventName].Event
-end
-
---[=[
-	Sets the entity configuration for the entity.
-
-	@param entityConfig The entity configuration name to set.
-]=]
-function Entity.SetConfig(self: Entity, entityConfig: string)
-	local config = Config._GetEntityType(entityConfig)
-	if not config then
-		Warn.medium(`Entity config {entityConfig} not found. Using Default config.`)
-		config = Config._GetEntityType("DEFAULT")
-	end
-	RegisterChange(self, "entityConfig", config, false, config.NAME)
-	RefreshHumanoidStateWatch(self)
-	if IS_SERVER then
-		return
-	end
-	const clientClock = self._clientClock
-	if clientClock then
-		const tickRate = config.TICK_RATE
-		clientClock._baseTickRate = tickRate
-		clientClock:SetTickRate(if self.isHalfTicked then tickRate * 2 else tickRate)
-		clientClock:UpdateBuffer(self._clockBuffer or config.BUFFER or 0)
-	else
-		SetClock(self)
-	end
-end
-
---[=[
-	Sets the client clock buffer for the entity. 
-
-	@param buffer? The buffer to set for the client clock. If nil, will use the entity config's buffer. 
-]=]
-function Entity.SetClockBuffer(self: Entity, buffer: number?)
-	if IS_SERVER then
-		error("SetClockBuffer can only be called on the client")
-	end
-	const clientClock = self._clientClock
-	if clientClock and (self.networkOwner or buffer ~= nil) then
-		-- Reconfigure in place: a rebuilt clock has no render time and would roll the entity back
-		self._clockBuffer = buffer
-		clientClock:UpdateBuffer(buffer or self.entityConfig.BUFFER or 0)
-		return
-	end
-
-	const sharedClocks = self.entityConfig.CLIENT_CLOCK
-	const sharedClock = sharedClocks and (self.isHalfTicked and sharedClocks.HALF or sharedClocks.NORMAL)
-	SetClock(self, buffer ~= nil and buffer or false)
-
-	-- Server owned clocks share the server's time domain, so seed from the shared clock being replaced
-	const newClock = self._clientClock
-	if newClock and not self.networkOwner and sharedClock and sharedClock.lastClockAt then
-		newClock.lastClockAt = sharedClock.lastClockAt
-		newClock.lastClockDuration = sharedClock.lastClockDuration
-		newClock.renderAt = sharedClock.renderAt
-	end
-end
-
---[=[
-	Sets the broad phase vector for the entity.
-
-	@param broadPhase The broad phase vector to set.
-]=]
-function Entity.SetBroadPhase(self: Entity, broadPhase: vector?)
-	RegisterChange(self, "broadPhase", broadPhase)
-end
-
---[=[
-	Gets the user associated data with the entity.
-
-	@return The data associated with the entity.
-]=]
-function Entity.GetData(self: Entity): any
-	return self._data
 end
 
 --[=[
@@ -611,130 +490,87 @@ function Entity.GetModel(self: Entity): Model | BasePart?
 end
 
 --[=[
-	Sets the user associated data with the entity.
+	Gets the primary part of the entity's model. If the model is a BasePart, returns the model itself.
 
-	@param data The data to associate with the entity.
+	@return The primary part of the entity's model, or nil if no model or primary part exists.
 ]=]
-function Entity.SetData(self: Entity, data: any)
-	RegisterChange(self, "_data", data, true)
-	FireEvent(self, "DataChanged", data)
-end
-
-function Entity._SetTickMode(self: Entity, isHalfTicked: boolean?)
-	if self.isHalfTicked == isHalfTicked then
-		return
+function Entity.GetPrimaryPart(self: Entity): BasePart?
+	if self.model then
+		return GetPart(self)
 	end
-	if not self.isContextOwner then
-		RegisterChange(self, "isHalfTicked", isHalfTicked)
-	else
-		self.isHalfTicked = isHalfTicked
-	end
-	FireEvent(self, "TickChanged", isHalfTicked == nil and "NONE" or if isHalfTicked then "HALF" else "NORMAL")
+	return nil
 end
 
 --[=[
-	Clears the mount of the entity.
-]=]
-function Entity.ClearMount(self: Entity)
-	if not IS_SERVER then
-		error("ClearMount can only be called on the server")
-	end
-	if not self.mountParentId then
-		return
-	end
+	Returns the current model replication type of the entity, which can be "NATIVE", "CUSTOM", or "NATIVE_WITH_LOCK".
 
-	RegisterChange(self, "mountParentId", nil)
-	RegisterChange(self, "mountOffset", nil)
-	Events._Signals.EntityMountChanged:Fire(self, nil)
+]=]
+function Entity.GetModelReplicationType(self: Entity): "NATIVE" | "CUSTOM" | "NATIVE_WITH_LOCK"
+	local mode = self.modelReplicationMode
+
+	if not mode then
+		mode = self.entityConfig.MODEL_REPLICATION_MODE
+	end
+	if mode == "CUSTOM" then
+		return "CUSTOM"
+	end
+	if self._lockedCFReplication then
+		return "NATIVE_WITH_LOCK"
+	end
+	return "NATIVE"
 end
 
 --[=[
-	Sets the mount of the entity.
+	Locks the native server CFrame replication for the entity.
 
-	@param parent The parent entity to mount to. If nil, will clear the mount.
-	@param offset The CFrame offset from the parent entity.
+	Only works if the entity's model replication mode is "NATIVE".
+
+	Throws an error if called on the client or if the model replication mode is not "NATIVE".
 ]=]
-function Entity.SetMount(self: Entity, parent: Entity?, offset: CFrame?)
-	if not IS_SERVER then
-		error("SetMount can only be called on the server")
-	end
-
-	if parent == nil then
-		return Entity.ClearMount(self)
-	end
-
-	if self == parent then
-		Warn.medium("An entity cannot mount itself")
-		return
-	end
-
-	if not parent.id then
-		Warn.high("Parent entity must be registered before mounting")
-		return
-	end
-
-	RegisterChange(self, "mountParentId", parent.id)
-	RegisterChange(self, "mountOffset", offset)
-	Events._Signals.EntityMountChanged:Fire(self, parent.id)
-end
-
-const function SetEntityNetworkOwner(self: Entity, player: Player?)
-	if player ~= self.networkOwner then
-		const prev = self.networkOwner
-		RegisterChange(self, "networkOwner", player)
-		CheckNetworkOwner(self, prev)
-		Entity.Clear(self)
-	end
-	self.lastCheckedCFrame = nil
-	if not IS_SERVER and self.modelReplicationMode == "CUSTOM" then
-		const primaryPart = Entity.GetPrimaryPart(self)
-		if primaryPart then
-			primaryPart.Anchored = not self.isContextOwner
+function Entity.LockNativeServerCFrameReplication(self: Entity)
+	if IS_SERVER then
+		if self.modelReplicationMode ~= "NATIVE" then
+			error("LockNativeServerCFrameReplication can only be called on NATIVE model replication mode entities")
 		end
+		if self._lockedCFReplication then
+			return
+		end
+		RegisterChange(self, "_lockedCFReplication", true)
+
+		CheckNetworkOwner(self, self.networkOwner)
+
+		FireEvent(self, "LockChanged", true)
+	else
+		error("LockNativeServerCFrameReplication can only be called on the server")
 	end
 end
 
 --[=[
-	Sets the network owner of the entity. Does nothing if called on the client.
+	Unlocks the native server CFrame replication for the entity.
 
-	@param player The player to set as the network owner. If nil, will clear the network owner.
+	Only works if the entity's model replication mode is "NATIVE".
+
+	Throws an error if called on the client or if the model replication mode is not "NATIVE".
 ]=]
-function Entity.SetNetworkOwner(self: Entity, player: Player?)
-	if IS_SERVER and player ~= self.networkOwner then
-		SetEntityNetworkOwner(self, player)
-		RegisterChange(self, "isHalfTicked", self.isHalfTicked, true)
-	elseif not IS_SERVER then
-		error("SetNetworkOwner can only be called on the server")
+function Entity.UnlockNativeServerCFrameReplication(self: Entity)
+	if IS_SERVER then
+		if self.modelReplicationMode ~= "NATIVE" then
+			error("UnlockNativeServerCFrameReplication can only be called on NATIVE model replication mode entities")
+		end
+		if not self._lockedCFReplication then
+			return
+		end
+		RegisterChange(self, "_lockedCFReplication", false)
+		const part = GetPart(self)
+		CFrameLock.Unlock(part)
+		CheckNetworkOwner(self, self.networkOwner)
+		FireEvent(self, "LockChanged", false)
+	else
+		error("UnlockNativeServerCFrameReplication can only be called on the server")
 	end
 end
 
---[=[
-	Clears the entity's snapshot and latest CFrame/time.
-]=]
-function Entity.Clear(self: Entity)
-	const snapshot = self.snapshot
-	-- self.latestCFrame = nil --< this line
-	self.latestTime = nil
-	self.lastClientClock = nil
-	if snapshot then
-		snapshot:Clear()
-	end
-end
-
---[=[
-	Pauses replication for the entity.
-]=]
-function Entity.PauseReplication(self: Entity)
-	RegisterChange(self, "paused", true)
-end
-
---[=[
-	Resumes replication for the entity.
-]=]
-function Entity.ResumeReplication(self: Entity)
-	RegisterChange(self, "paused", false)
-end
-
+--// CFrame & snapshots
 --[=[
 	Pushes a new CFrame value into the entity's snapshot.
 
@@ -760,10 +596,8 @@ function Entity.Push(self: Entity, time: number, value: CFrame, velocity: Vector
 				Warn.low(`Clearing Snapshot due to large time difference`)
 			end
 		end
-		local tickrate = self.entityConfig.TICK_RATE
-		if self.isHalfTicked then
-			tickrate = tickrate * 2
-		end
+		const baseTickRate = self.entityConfig.TICK_RATE
+		const tickrate = if self.isHalfTicked then baseTickRate * 2 else baseTickRate
 		snapshot:PushWithCheck(
 			time,
 			value,
@@ -813,15 +647,6 @@ function Entity.GetTargetRenderTime(self: Entity): number
 end
 
 --[=[
-	Sets whether the entity should auto update its position to the model's primary part CFrame.
-
-	@param autoUpdate Whether to auto update the entity's position.
-]=]
-function Entity.SetAutoUpdatePos(self: Entity, autoUpdate: boolean)
-	RegisterChange(self, "autoUpdatePos", autoUpdate)
-end
-
---[=[
 	Gets the current CFrame of the entity.
 
 	@return The current CFrame of the entity.
@@ -858,171 +683,98 @@ function Entity.SetCFrame(self: Entity, cframe: CFrame)
 end
 
 --[=[
-	Gets the primary part of the entity's model. If the model is a BasePart, returns the model itself.
-
-	@return The primary part of the entity's model, or nil if no model or primary part exists.
+	Clears the entity's snapshot and latest CFrame/time.
 ]=]
-function Entity.GetPrimaryPart(self: Entity): BasePart?
-	if self.model then
-		return GetPart(self)
+function Entity.Clear(self: Entity)
+	const snapshot = self.snapshot
+	self.latestTime = nil
+	self.lastClientClock = nil
+	if snapshot then
+		snapshot:Clear()
 	end
-	return nil
 end
 
 --[=[
-	Locks the native server CFrame replication for the entity.
+	Sets whether the entity should auto update its position to the model's primary part CFrame.
 
-	Only works if the entity's model replication mode is "NATIVE".
-
-	Throws an error if called on the client or if the model replication mode is not "NATIVE".
+	@param autoUpdate Whether to auto update the entity's position.
 ]=]
-function Entity.LockNativeServerCFrameReplication(self: Entity)
+function Entity.SetAutoUpdatePos(self: Entity, autoUpdate: boolean)
+	RegisterChange(self, "autoUpdatePosition", autoUpdate)
+end
+
+--// Ownership API
+--[=[
+	Sets the network owner of the entity. Does nothing if called on the client.
+
+	@param player The player to set as the network owner. If nil, will clear the network owner.
+]=]
+function Entity.SetNetworkOwner(self: Entity, player: Player?)
+	if IS_SERVER and player ~= self.networkOwner then
+		SetEntityNetworkOwner(self, player)
+		RegisterChange(self, "isHalfTicked", self.isHalfTicked, true)
+	elseif not IS_SERVER then
+		error("SetNetworkOwner can only be called on the server")
+	end
+end
+
+function Entity.SyncOwnerShip(self: Entity)
+	CheckNetworkOwner(self, self.networkOwner)
+end
+
+--// Config, clock & interpolation
+--[=[
+	Sets the entity configuration for the entity.
+
+	@param entityConfig The entity configuration name to set.
+]=]
+function Entity.SetConfig(self: Entity, entityConfig: string)
+	local config = Config._GetEntityType(entityConfig)
+	if not config then
+		Warn.medium(`Entity config {entityConfig} not found. Using Default config.`)
+		config = Config._GetEntityType("DEFAULT")
+	end
+	RegisterChange(self, "entityConfig", config, false, config.NAME)
+	HumanoidState.Refresh(self)
 	if IS_SERVER then
-		if self.modelReplicationMode ~= "NATIVE" then
-			error("LockNativeServerCFrameReplication can only be called on NATIVE model replication mode entities")
-		end
-		if self._lockedCFReplication then
-			return
-		end
-		RegisterChange(self, "_lockedCFReplication", true)
-
-		CheckNetworkOwner(self, self.networkOwner)
-
-		FireEvent(self, "LockChanged", true)
+		return
+	end
+	const clientClock = self._clientClock
+	if clientClock then
+		const tickRate = config.TICK_RATE
+		clientClock._baseTickRate = tickRate
+		clientClock:SetTickRate(if self.isHalfTicked then tickRate * 2 else tickRate)
+		clientClock:UpdateBuffer(self._clockBuffer or config.BUFFER or 0)
 	else
-		error("LockNativeServerCFrameReplication can only be called on the server")
+		SetClock(self)
 	end
 end
 
 --[=[
-	Unlocks the native server CFrame replication for the entity.
+	Sets the client clock buffer for the entity. 
 
-	Only works if the entity's model replication mode is "NATIVE".
-
-	Throws an error if called on the client or if the model replication mode is not "NATIVE".
+	@param buffer? The buffer to set for the client clock. If nil, will use the entity config's buffer. 
 ]=]
-function Entity.UnlockNativeServerCFrameReplication(self: Entity)
+function Entity.SetClockBuffer(self: Entity, buffer: number?)
 	if IS_SERVER then
-		if self.modelReplicationMode ~= "NATIVE" then
-			error("LockNativeServerCFrameReplication can only be called on NATIVE model replication mode entities")
-		end
-		if not self._lockedCFReplication then
-			return
-		end
-		RegisterChange(self, "_lockedCFReplication", false)
-		const part = GetPart(self)
-		UnlockCFReplication(part)
-		CheckNetworkOwner(self, self.networkOwner)
-		FireEvent(self, "LockChanged", false)
-	else
-		error("LockNativeServerCFrameReplication can only be called on the server")
+		error("SetClockBuffer can only be called on the client")
 	end
-end
-
---[=[
-	Returns the current model replication type of the entity, which can be "NATIVE", "CUSTOM", or "NATIVE_WITH_LOCK".
-
-]=]
-function Entity.GetModelReplicationType(self: Entity): "NATIVE" | "CUSTOM" | "NATIVE_WITH_LOCK"
-	local mode = self.modelReplicationMode
-
-	if not mode then
-		mode = self.entityConfig.MODEL_REPLICATION_MODE
-	end
-	if mode == "CUSTOM" then
-		return "CUSTOM"
-	end
-	if self._lockedCFReplication then
-		return "NATIVE_WITH_LOCK"
-	end
-	return "NATIVE"
-end
-
-const function GetHumanoid(self: Entity): Humanoid?
-	const model = self.model
-	if model and model:IsA("Model") then
-		return model:FindFirstChildWhichIsA("Humanoid",true)
-	end
-	return nil
-end
-
-const function GetDisabledStateMask(humanoid: Humanoid): number
-	local mask = 0
-	for value, state in HUMANOID_STATES do
-		if state == Enum.HumanoidStateType.None then
-			continue
-		end
-		if not humanoid:GetStateEnabled(state) then
-			mask = bit32.bor(mask, bit32.lshift(1, value))
-		end
-	end
-	return mask
-end
-
-const function StopHumanoidStateWatch(self: Entity)
-	const connection = self._humanoidStateConn
-	if connection then
-		connection:Disconnect()
-		self._humanoidStateConn = nil
-	end
-	const enabledConnection = self._humanoidStateEnabledConn
-	if enabledConnection then
-		enabledConnection:Disconnect()
-		self._humanoidStateEnabledConn = nil
-	end
-
-	if IS_SERVER then
-		RegisterChange(self, "_humanoidState", nil)
-		RegisterChange(self, "_humanoidDisabledStates", nil)
-	end
-end
-
-const function StartHumanoidStateWatch(self: Entity)
-	if not IS_SERVER then
-		return
-	end
-	StopHumanoidStateWatch(self)
-
-	const humanoid = GetHumanoid(self)
-	if not humanoid then
+	const clientClock = self._clientClock
+	if clientClock and (self.networkOwner or buffer ~= nil) then
+		self._clockBuffer = buffer
+		clientClock:UpdateBuffer(buffer or self.entityConfig.BUFFER or 0)
 		return
 	end
 
-	RegisterChange(self, "_humanoidState", humanoid:GetState().Value, true)
-	self._humanoidStateConn = humanoid.StateChanged:Connect(function(_old, new)
-		RegisterChange(self, "_humanoidState", new.Value)
-	end)
+	const sharedClocks = self.entityConfig.CLIENT_CLOCK
+	const sharedClock = sharedClocks and (self.isHalfTicked and sharedClocks.HALF or sharedClocks.NORMAL)
+	SetClock(self, buffer ~= nil and buffer or false)
 
-	RegisterChange(self, "_humanoidDisabledStates", GetDisabledStateMask(humanoid), true)
-	self._humanoidStateEnabledConn = humanoid.StateEnabledChanged:Connect(function()
-		RegisterChange(self, "_humanoidDisabledStates", GetDisabledStateMask(humanoid))
-	end)
-end
-
-function RefreshHumanoidStateWatch(self: Entity, force: boolean?)
-	if not IS_SERVER then
-		return
-	end
-
-	const config = self.entityConfig
-	const mode = self._interpolationMode or (config and config.INTERPOLATION_MODE)
-
-	if mode ~= "ALIGN" then
-		StopHumanoidStateWatch(self)
-		return
-	end
-
-	if self._humanoidStateConn and not force then
-		return
-	end
-	StartHumanoidStateWatch(self)
-
-	if self._humanoidStateConn then
-		return
-	end
-	const model = self.model
-	if not (model and model:IsA("Model")) then
-		return
+	const newClock = self._clientClock
+	if newClock and not self.networkOwner and sharedClock and sharedClock.lastClockAt then
+		newClock.lastClockAt = sharedClock.lastClockAt
+		newClock.lastClockDuration = sharedClock.lastClockDuration
+		newClock.renderAt = sharedClock.renderAt
 	end
 end
 
@@ -1035,98 +787,116 @@ function Entity.SetInterpolationMode(self: Entity, mode: Types.INTERPOLATION_MOD
 	RegisterChange(self, "_interpolationMode", mode)
 
 	if mode == "ALIGN" then
-		RefreshHumanoidStateWatch(self, true)
+		HumanoidState.Refresh(self, true)
 	else
-		StopHumanoidStateWatch(self)
-		if self._alignDriver then
-			AlignDriver.Destroy(self._alignDriver)
-			self._alignDriver = nil
-		end
-	end
-end
-
-const function SetHumanoidState(self: Entity, stateValue: number?)
-	RegisterChange(self, "_humanoidState", stateValue)
-
-	if IS_SERVER or self.isContextOwner or type(stateValue) ~= "number" then
-		return
-	end
-
-	const humanoid = GetHumanoid(self)
-	if not humanoid then
-		return
-	end
-	local state = HUMANOID_STATES[stateValue]
-	if not state then
-		return
-	end
-	
-	if state == Enum.HumanoidStateType.Ragdoll then
-		state = Enum.HumanoidStateType.Physics
-	end
-
-	humanoid:ChangeState(state)
-end
-
-const function SetHumanoidDisabledStates(self: Entity, mask: number?)
-	RegisterChange(self, "_humanoidDisabledStates", mask)
-	if IS_SERVER or self.isContextOwner or type(mask) ~= "number" then
-		return
-	end
-
-	const humanoid = GetHumanoid(self)
-	if not humanoid then
-		return
-	end
-
-	for value, state in HUMANOID_STATES do
-		if state == Enum.HumanoidStateType.None then
-			continue
-		end
-		humanoid:SetStateEnabled(state, bit32.band(mask, bit32.lshift(1, value)) == 0)
+		HumanoidState.Stop(self)
+		AlignDriver.Clear(self)
 	end
 end
 
 --[=[
-	Destroys the entity, unregistering it and cleaning up resources.
+	Sets the broad phase vector for the entity.
+
+	@param broadPhase The broad phase vector to set.
 ]=]
-function Entity.Destroy(self: Entity)
-	self.destroyed = true
-	FireEvent(self, "Destroying")
-	Holder.UnregisterEntity(self)
-	if self._clientClock then
-		self._clientClock:Destroy()
-	end
-
-	StopHumanoidStateWatch(self)
-
-	if self._alignDriver then
-		AlignDriver.Destroy(self._alignDriver)
-		self._alignDriver = nil
-	end
-
-	if not IS_SERVER then
-		const modeType = self.modelReplicationMode
-		const primaryPat = GetPart(self)
-		if modeType == "CUSTOM" then
-			SafeDestroy(self.model)
-		elseif primaryPat then
-			if self._lockedCFReplication then
-				UnlockCFReplication(primaryPat)
-			end
-			primaryPat.CFrame = CFrame.new(0, 1000000, 0)
-		end
-	else
-		SafeDestroy(self.model)
-	end
-
-	for eventName, signal: Types.Signal<any> in (self._events or {}) :: any do
-		signal:DisconnectAll()
-	end
-	self.model = nil
-	--//TODO: add more
+function Entity.SetBroadPhase(self: Entity, broadPhase: vector?)
+	RegisterChange(self, "broadPhase", broadPhase)
 end
 
+function Entity._SetTickMode(self: Entity, isHalfTicked: boolean?)
+	if self.isHalfTicked == isHalfTicked then
+		return
+	end
+	if not self.isContextOwner then
+		RegisterChange(self, "isHalfTicked", isHalfTicked)
+	else
+		self.isHalfTicked = isHalfTicked
+	end
+	FireEvent(self, "TickChanged", isHalfTicked == nil and "NONE" or if isHalfTicked then "HALF" else "NORMAL")
+end
+
+--// Data & replication state
+--[=[
+	Gets the user associated data with the entity.
+
+	@return The data associated with the entity.
+]=]
+function Entity.GetData(self: Entity): any
+	return self._data
+end
+
+--[=[
+	Sets the user associated data with the entity.
+
+	@param data The data to associate with the entity.
+]=]
+function Entity.SetData(self: Entity, data: any)
+	RegisterChange(self, "_data", data, true)
+	FireEvent(self, "DataChanged", data)
+end
+
+--[=[
+	Pauses replication for the entity.
+]=]
+function Entity.PauseReplication(self: Entity)
+	RegisterChange(self, "paused", true)
+end
+
+--[=[
+	Resumes replication for the entity.
+]=]
+function Entity.ResumeReplication(self: Entity)
+	RegisterChange(self, "paused", false)
+end
+
+--// Mounting
+--[=[
+	Sets the mount of the entity.
+
+	@param parent The parent entity to mount to. If nil, will clear the mount.
+	@param offset The CFrame offset from the parent entity.
+]=]
+function Entity.SetMount(self: Entity, parent: Entity?, offset: CFrame?)
+	if not IS_SERVER then
+		error("SetMount can only be called on the server")
+	end
+
+	if parent == nil then
+		return Entity.ClearMount(self)
+	end
+
+	if self == parent then
+		Warn.medium("An entity cannot mount itself")
+		return
+	end
+
+	if not parent.registered then
+		Warn.high("Parent entity must be registered before mounting")
+		return
+	end
+
+	RegisterChange(self, "mountParentId", parent.id)
+	RegisterChange(self, "mountOffset", offset)
+	Events._Signals.EntityMountChanged:Fire(self, parent.id)
+end
+
+--[=[
+	Clears the mount of the entity.
+]=]
+function Entity.ClearMount(self: Entity)
+	if not IS_SERVER then
+		error("ClearMount can only be called on the server")
+	end
+	if not self.mountParentId then
+		return
+	end
+
+	RegisterChange(self, "mountParentId", nil)
+	RegisterChange(self, "mountOffset", nil)
+	Events._Signals.EntityMountChanged:Fire(self, nil)
+end
+
+--// Events API
 --[=[
 	Gets the event signal for the specified event name.
 
@@ -1171,6 +941,7 @@ Entity.GetEvent = (GetEvent :: any) :: ((
 	eventName: "LockChanged"
 ) -> Types.Event<(entity: Entity, isLocked: boolean) -> (), Entity, boolean>)
 
+--// Internal
 Players.PlayerAdded:Connect(function(player)
 	clientOwned[player] = {}
 end)
@@ -1183,14 +954,16 @@ Players.PlayerRemoving:Connect(function(player)
 	clientOwned[player] = nil
 end)
 
+Entity._FireEvent = FireEvent
+
 Entity._GetPart = GetPart
 Entity._SetPartCFrame = SetPartCFrame
 Entity._GetRootPart = GetRootPart
-Entity._LockPartPhysicsReplication = LockCFReplication
-Entity._UnlockPartPhysicsReplication = UnlockCFReplication
+Entity._LockPartPhysicsReplication = CFrameLock.Lock
+Entity._UnlockPartPhysicsReplication = CFrameLock.Unlock
 Entity._UpdateClockBuffer = SetClock
-Entity._SetHumanoidState = SetHumanoidState
-Entity._SetHumanoidDisabledStates = SetHumanoidDisabledStates
+Entity._SetHumanoidState = HumanoidState.SetState
+Entity._SetHumanoidDisabledStates = HumanoidState.SetDisabledStates
 Entity._SetEntityNetworkOwner = SetEntityNetworkOwner
 
 return Entity

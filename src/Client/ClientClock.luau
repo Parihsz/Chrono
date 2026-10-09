@@ -90,7 +90,6 @@ const function SetTickRate(clientClock: Types.ClientClock, tickRate: number)
 		return
 	end
 	clientClock.tickRate = tickRate
-	--//Do something here maybe?
 end
 
 const function Destroy(clientClock: Types.ClientClock)

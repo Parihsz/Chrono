@@ -2,14 +2,19 @@ const RunService = game:GetService("RunService")
 const Players = game:GetService("Players")
 const Receiver = {}
 
-const MiddleMans = {}
-local SortedMiddleMans = {}
 const Shared = script.Parent.Parent.Shared
+const Types = require(Shared.Types)
+
+type MiddleMan = {
+	priority: number,
+	func: (player: Player, entity: Types.Entity, cframe: CFrame, arriveTime: number) -> boolean,
+}
+const MiddleMans: { [string]: MiddleMan } = {}
+local SortedMiddleMans: { MiddleMan } = {}
 const Ticker = require(Shared.Ticker)
 const InterpolationMath = require(Shared.InterpolationMath)
 const Warn = require(Shared.Warn)
 const ServerClock = require(script.Parent.ServerClock)
-const Types = require(Shared.Types)
 const Holder = require(Shared.Holder)
 const Entity = require(Shared.Entity)
 const Config = require(Shared.Config)
@@ -37,9 +42,10 @@ const function FireMiddleMans(player: Player, entity: Types.Entity, cframe: CFra
 		return false
 	end
 	debug.profilebegin("FireMiddleMans")
-	for _, mmData: any in SortedMiddleMans do
+	for _, mmData in SortedMiddleMans do
 		const block = mmData.func(player, entity, cframe, arriveTime)
 		if block then
+			debug.profileend()
 			return true
 		end
 	end
@@ -99,7 +105,7 @@ end
 
 const function CalculateMaxThroughputForPlayer(player: Player): number
 	local numberOfEntities = 0
-	for _ in Holder._clientOwned[player] or {} do
+	for _ in (Holder._clientOwned[player] or {}) :: any do
 		numberOfEntities += 1
 	end
 	return BASE_MAX_TOTAL_BYTES_PER_FRAME_PER_PLAYER + numberOfEntities * (FULL_BYTES + 3)
@@ -116,6 +122,12 @@ const function HandleEntity(
 )
 	const entity = Holder.GetEntityFromId(id)
 	if not entity or entity.networkOwner ~= player then
+		return
+	end
+
+	const position = cframe.Position
+	const sum = position.X + position.Y + position.Z
+	if sum ~= sum or math.abs(sum) == math.huge then -- NaN or inf
 		return
 	end
 
@@ -148,10 +160,8 @@ const function HandleEntity(
 	if Config.FLAGS.SERVER_VELOCITY_FIX and entity.snapshot then
 		const latest = entity.snapshot:GetLatest()
 		const lastClientClock = entity.lastClientClock or clientClock
-		local tickrate = entity.entityConfig.TICK_RATE
-		if entity.isHalfTicked then
-			tickrate = tickrate * 2
-		end
+		const baseTickRate = entity.entityConfig.TICK_RATE
+		const tickrate = if entity.isHalfTicked then baseTickRate * 2 else baseTickRate
 		if latest then
 			velocity = InterpolationMath.CalculateVelocity(
 				latest.value.Position,
@@ -176,7 +186,7 @@ end
 
 const TotalBytes = {}
 const function OnReceive(player: Player, data: buffer)
-	if not data then
+	if typeof(data) ~= "buffer" then
 		return
 	end
 	TotalBytes[player] = (TotalBytes[player] or 0) + buffer.len(data)
@@ -205,6 +215,16 @@ const function OnReceive(player: Player, data: buffer)
 	debug.profileend()
 end
 
+const function SortMiddleMans()
+	SortedMiddleMans = {}
+	for _, data in MiddleMans do
+		table.insert(SortedMiddleMans, data)
+	end
+	table.sort(SortedMiddleMans, function(a, b)
+		return a.priority > b.priority
+	end)
+end
+
 --[=[
 	Registers a middle man function that can intercept incoming entity updates.
 
@@ -223,13 +243,7 @@ function Receiver.RegisterMiddleMan(
 	) -> boolean
 )
 	MiddleMans[name] = { priority = priority, func = func }
-	SortedMiddleMans = {}
-	for mm, data in MiddleMans do
-		table.insert(SortedMiddleMans, data)
-	end
-	table.sort(SortedMiddleMans, function(a, b)
-		return a.priority > b.priority
-	end)
+	SortMiddleMans()
 end
 
 --[=[
@@ -238,18 +252,12 @@ end
 ]=]
 function Receiver.UnregisterMiddleMan(name: string)
 	MiddleMans[name] = nil
-	SortedMiddleMans = {}
-	for mm, data in MiddleMans do
-		table.insert(SortedMiddleMans, data)
-	end
-	table.sort(SortedMiddleMans, function(a, b)
-		return a.priority > b.priority
-	end)
+	SortMiddleMans()
 end
 
 if RunService:IsServer() then
 	local lastByteCheckTime = 0
-	RunService.Heartbeat:Connect(function(a0: number)
+	RunService.Heartbeat:Connect(function()
 		table.clear(TotalBytes)
 
 		if os.clock() - lastByteCheckTime > 1 then

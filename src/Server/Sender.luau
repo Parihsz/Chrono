@@ -125,7 +125,7 @@ const function GetEntityFullData(player: Player, entity: Types.Entity): Types.En
 	if entity.destroyed then
 		return nil
 	end
-	const modelData, metaData = ModelHelper.ReadyModelFromRep(entity, player)
+	const modelData = ModelHelper.ReadyModelFromRep(entity, player)
 
 	local configName: string? = entity.entityConfig.NAME
 	if configName == "DEFAULT" then
@@ -153,9 +153,9 @@ const function GetEntityFullData(player: Player, entity: Types.Entity): Types.En
 		config = configName,
 
 		model = modelData,
-		_modelMetaData = metaData,
 
 		paused = entity.paused,
+		autoUpdatePosition = entity.autoUpdatePosition,
 		isHalfTicked = entity.isHalfTicked,
 		_data = entity._data,
 		_lockedCFReplication = entity._lockedCFReplication,
@@ -272,16 +272,6 @@ const function ReplicatePlayer(player: Player)
 	FlushEntities(player, halfBuffers, true)
 
 	if #toRemove > 0 or #toSendFull > 0 or #entityChanges > 0 then
-		-- print(
-		-- 	"Sending reliable packet to",
-		-- 	player.Name,
-		-- 	"toSendFull:",
-		-- 	#toSendFull,
-		-- 	"toRemove:",
-		-- 	#toRemove,
-		-- 	"entityChanges:",
-		-- 	#entityChanges
-		-- )
 		ReliableEvent:FireClient(player, toSendFull, toRemove, entityChanges)
 	end
 	debug.profileend()

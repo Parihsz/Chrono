@@ -19,15 +19,15 @@ const function Hermite(p0: Vector3, p1: Vector3, v0: Vector3, v1: Vector3, t: nu
 end
 
 const function CalculateVelocity(lP: Vector3, lT: number, cP: Vector3, cT: number, tickrate: number?): Vector3
-	tickrate = tickrate or 1 / 20
+	local rate = tickrate or 1 / 20
 	local dt = cT - lT
 	if dt <= 1e-6 then
 		return Vector3.zero
-	elseif dt > tickrate * 3 and Config.FLAGS.SNAPSHOT_INTERPOLATION_FIX then
-		dt = tickrate
+	elseif dt > rate * 3 and Config.FLAGS.SNAPSHOT_INTERPOLATION_FIX then
+		dt = rate
 	end
 	if Config.FLAGS.VELOCITY_CALC_FIX then
-		dt = math.max(dt, tickrate) -- ensures that velocity is not calculated with a dt that is too small
+		dt = math.max(dt, rate) -- ensures that velocity is not calculated with a dt that is too small
 	end
 	return (cP - lP) / dt
 end

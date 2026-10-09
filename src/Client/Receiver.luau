@@ -97,12 +97,13 @@ const function SetMountOffset(entity: Types.Entity, mountOffset: CFrame?)
 	entity.mountOffset = mountOffset or CFrame.identity
 end
 
-const ValueChanges = {
+-- This maps SetValue keys to their functions
+const ChangedLookUp = {
 	networkOwner = Entity._SetEntityNetworkOwner,
 	isHalfTicked = SetTickMode,
 	_data = Entity.SetData,
 	entityConfig = Entity.SetConfig,
-	autoUpdatePos = Entity.SetAutoUpdatePos,
+	autoUpdatePosition = Entity.SetAutoUpdatePos,
 	mountParentId = SetMountId,
 	mountOffset = SetMountOffset,
 	broadPhase = Entity.SetBroadPhase,
@@ -116,21 +117,20 @@ const function HandleChanges(changes: { id: number, data: { { any } } })
 	if not entity then
 		return
 	end
-	local hasMetadata
 	local modelData
+	local modelChanged = false
 	for _, pair in changes.data do
 		const key = pair[1]
 		const value = pair[2]
 
-		const handler = ValueChanges[key]
+		const handler = ChangedLookUp[key]
 		if handler then
 			handler(entity, value)
 		elseif key == "latestCFrame" then
 			Entity.SetCFrame(entity, value)
-		elseif key == "_modelMetaData" then
-			hasMetadata = value
 		elseif key == "model" then
 			modelData = value
+			modelChanged = true -- value is nil when the model was cleared
 		elseif key == "_player" then
 			if value then
 				Holder.SetAsCharacter(value, entity)
@@ -158,21 +158,22 @@ const function HandleChanges(changes: { id: number, data: { { any } } })
 		end
 	end
 
-	if modelData ~= nil then
-		const model, modelType = ModelHelper.CreateModelFromData(modelData)
+	if modelChanged then
+		const model, modelType, handle = ModelHelper.CreateModelFromData(modelData)
 		Entity.SetModel(entity, model, modelType :: any)
-		entity._modelMetaData = hasMetadata
+		entity._modelHandle = handle
 	end
 end
 
 const function HandleNewEntity(data: Types.EntityReceivePacket)
-	const model, modelType = ModelHelper.CreateModelFromData(data.model)
-	const entity = Entity._new(data.config, model, modelType, data.cframe)
+	const model, modelType, handle = ModelHelper.CreateModelFromData(data.model)
+	const entity = Entity._new(data.config, model, modelType :: any, data.cframe)
 
 	entity.id = data.id
 	entity._player = data._player
-	entity._modelMetaData = data._modelMetaData
+	entity._modelHandle = handle
 	entity.paused = data.paused or false
+	entity.autoUpdatePosition = data.autoUpdatePosition or false
 	entity.isHalfTicked = data.isHalfTicked
 	entity._data = data._data
 	entity.mountParentId = data.mountParentId
@@ -274,8 +275,7 @@ const function HandleClientOwned(b: buffer)
 				Warn.medium("Received update for non existent entity with id", id)
 				continue
 			end
-			-- Unwrap in the source player's frame (delta-based, offset-0). Shares state with
-			-- this player's other entity packets + the clock relay.
+
 			const time = ClockUnwrap.unwrapFor(ClientOwnedWrap, entity.networkOwner or "__unknown", rawTime)
 			PushCFrameFor(id, true, cf, time, isHalfTickRate, teleport)
 		end
@@ -345,19 +345,13 @@ UnreliableEvent.OnClientEvent:Connect(HandleUnreliable)
 ReliableEvent.OnClientEvent:Connect(HandleReliable)
 
 HeartbeatRemote.OnClientEvent:Connect(function(time: number)
-	-- Reduce the full-precision server time into the same offset-0 frame as the buffered
-	-- server-owned headers, otherwise the two feeds would disagree and freeze the clock.
 	const unwrapped = ClockUnwrap.unwrap(ServerWrap, ClockUnwrap.quantize(time))
 	for clock in ClientClock.serverOwnedClocks do
-		-- Refresh, not OnSnapShot: keep the clock fresh without feeding the heartbeat
-		-- cadence into the interpolation buffer's jitter estimate.
 		clock:Refresh(unwrapped)
 	end
 end)
 
--- Client-clock relay: reseats each source to the server's authoritative wrap offset so every
--- receiver agrees on the source's epoch regardless of join time. max() avoids regressing a wrap
--- this client already witnessed between relays.
+-- Syncs each player's clock offset from the server
 ClientClockRelayRemote.OnClientEvent:Connect(function(list: { { player: Player, raw: number, offset: number } })
 	if type(list) ~= "table" then
 		return

@@ -1,3 +1,4 @@
 {
-	"luau-lsp.sourcemap.rojoProjectFile": "roblox-test.project.json"
+	"luau-lsp.sourcemap.rojoProjectFile": "roblox-test.project.json",
+	"stylua.targetReleaseVersion": "latest"
 }

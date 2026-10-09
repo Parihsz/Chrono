@@ -15,6 +15,7 @@ const Config = require(Shared.Config)
 const Types = require(Shared.Types)
 const Entity = require(Shared.Entity)
 const EntityGrid = require(script.Parent.EntityGrid)
+const UpdateEntityStats = require(script.Parent.EntityStats)
 const _Player = require(script.Parent.Player)
 const Sender = require(script.Parent.Sender)
 const _Receiver = require(script.Parent.Receiver)
@@ -152,7 +153,8 @@ const function CheckEntity(entity: Types.Entity, ticker: Types.Ticker, useFull: 
 
 	if changes then
 		if entity.id == 0 then
-			error("Entity Should not have and id of 0")
+			Warn.high(entity, "has an id of 0, skipping replication")
+			return
 		end
 		if useFull then
 			const b = buffer.create(FULL_BYTES)
@@ -198,10 +200,6 @@ const function UpdateTickers()
 		end
 		debug.profilebegin(`{ticker.config.NAME}`)
 		if Ticker.CheckUpdate(ticker) then
-			--[[ Using the ticker's config instead can help protect if entity configs change mid-game since that
-                could potentially create a desync between the buffer serialization and deserialization
-            ]]
-			--// thought idk if we want to allow that (better to be safe ig for now)
 			const useFull = ticker.config.FULL_ROTATION == true
 			const isHalfTick = ticker.tickedHalf
 			for _, object in ticker.objects do
@@ -231,50 +229,6 @@ const function UpdatePlayerPositions()
 			EntityGrid.UpdatePlayerPosition(player, cframe.Position :: any)
 		end
 	end
-end
-
-const function updateEntityStats()
-	const hasOwned = Stats._SHOULD_REPLICATE
-	if not hasOwned then
-		Stats.SERVER_ENTITIES = {}
-		return
-	end
-	const entities: { Types.ServerEntitiesStats } = {}
-
-	for _, entity in Holder.idMap do
-		const networkOwner = entity.networkOwner
-		const isCharacter = entity._player ~= nil
-		const config = entity.entityConfig
-		const configName = config and config.NAME or "DEFAULT"
-		const configTickRate = 1 / config.TICK_RATE
-		const isHalfTicked = entity.isHalfTicked
-		local tickRate = configTickRate
-		const lastPosition = entity.latestCFrame and entity.latestCFrame.Position or nil
-		if isHalfTicked == true then
-			tickRate = tickRate / 2
-		elseif isHalfTicked == nil then
-			tickRate = 0
-		end
-		tickRate //= 1
-		if tickRate ~= tickRate or tickRate == math.huge then
-			tickRate = 0
-		end
-		const lastTicked = entity.latestTime
-		const data = {
-			isPaused = entity.paused,
-			id = entity.id,
-			networkOwner = networkOwner,
-			isCharacter = isCharacter,
-			config = configName,
-			tickRate = tickRate,
-			lastTicked = lastTicked,
-			lastPosition = lastPosition,
-			modelType = Entity.GetModelReplicationType(entity),
-			interpolationMode = entity._interpolationMode or entity.entityConfig.INTERPOLATION_MODE or "CFRAME",
-		}
-		table.insert(entities, data)
-	end
-	Stats.SERVER_ENTITIES = entities
 end
 
 const function UpdateHeartbeat()
@@ -321,14 +275,17 @@ const function Update()
 		entity._changes = nil
 	end
 	table.clear(Changes)
-	updateEntityStats()
+	UpdateEntityStats()
 	Ticker._IncrementGlobalTick()
 end
 
-const function HandleEntity(plr, entity: Types.Entity)
-	const add, clear = Bin()
+const function HandleEntity(plr: Player, entity: Types.Entity)
+	if entity.destroyed or entity.networkOwner ~= plr then
+		return
+	end
+	const addModel, clearModel = Bin()
 
-	const function HandleModel(entity: Types.Entity)
+	const function HandleModel()
 		if not entity.model then
 			return
 		end
@@ -352,31 +309,23 @@ const function HandleEntity(plr, entity: Types.Entity)
 			Entity.SetCFrame(entity, cframe)
 		end
 
-		add(partToUse:GetPropertyChangedSignal("CFrame"):Connect(CFrameChanged))
+		addModel(partToUse:GetPropertyChangedSignal("CFrame"):Connect(CFrameChanged))
 	end
-	const add2, clear2 = Bin()
-	add2(Entity.GetEvent(entity, "ModelChanged"):Connect(function()
-		clear()
-		HandleModel(entity)
-	end))
-	add2(Entity.GetEvent(entity, "LockChanged"):Connect(function()
-		clear()
-		HandleModel(entity)
-	end))
-	local destroyEvent
-	const event = Entity.GetEvent(entity, "NetworkOwnerChanged"):Once(function()
-		clear()
-		clear2()
-		destroyEvent:Disconnect()
-	end)
+	const function Rebind()
+		clearModel()
+		HandleModel()
+	end
+	const addEntity, clearEntity = Bin()
+	const function Cleanup()
+		clearModel()
+		clearEntity()
+	end
+	addEntity(Entity.GetEvent(entity, "ModelChanged"):Connect(Rebind))
+	addEntity(Entity.GetEvent(entity, "LockChanged"):Connect(Rebind))
+	addEntity(Entity.GetEvent(entity, "NetworkOwnerChanged"):Once(Cleanup))
+	addEntity(Entity.GetEvent(entity, "Destroying"):Once(Cleanup))
 
-	destroyEvent = Entity.GetEvent(entity, "Destroying"):Once(function()
-		clear()
-		clear2()
-		event:Disconnect()
-	end)
-
-	HandleModel(entity)
+	HandleModel()
 end
 
 const function HandleCFrameSetters()

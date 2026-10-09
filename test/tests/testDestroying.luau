@@ -50,8 +50,8 @@ return {
 		RunService.Heartbeat:Connect(function()
 			for _, entity in entities do
 				local part = Entity.GetPrimaryPart(entity) :: BasePart?
-					Entity.Push(entity, os.clock(), CFrame.new(math.random(-1, 1), 0, math.random(-1, 1)))
-			
+				Entity.Push(entity, os.clock(), CFrame.new(math.random(-1, 1), 0, math.random(-1, 1)))
+
 				if entity.a then
 					if entity.isHalfTicked == false then
 						entity.a.Color = Color3.new(0.482353, 1, 0)

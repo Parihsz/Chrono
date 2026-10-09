@@ -116,7 +116,7 @@ const ENTITY_TYPES: { [string]: Types.EntityConfig } = {
 		NAME = "WITH_ROT",
 		MODEL_REPLICATION_MODE = "NATIVE",
 		BUFFER = 0,
-		HALF_TICK_DISTANCE = math.huge, 
+		HALF_TICK_DISTANCE = math.huge,
 		TICK_RATE = 1 / 20,
 		ASSEMBLY_ROOT_PART_CHECK = true,
 		FULL_ROTATION = true,
@@ -175,7 +175,7 @@ const function GetEntityModel(name: string): Model | BasePart | false?
 		warn(`Entity model {name} not found in Config.`)
 		return nil
 	end
-	return ENTITY_MODELS[name]
+	return ENTITY_MODELS[name] :: any
 end
 
 const function GetBroadPhase(name: string): vector?

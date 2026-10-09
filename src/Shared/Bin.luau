@@ -1,4 +1,13 @@
-type BinItem = Instance | RBXScriptConnection | thread | () -> ...any | { _binCleanup: (...any) -> () }
+const Types = require(script.Parent.Types)
+
+type BinItem =
+	Instance
+	| RBXScriptConnection
+	| thread
+	| (() -> ...any)
+	| Types.Connection
+	| Types.Signal<any, ...any>
+	| { _binCleanup: (...any) -> () }
 
 export type Add = <T>(Item: T & BinItem) -> T
 export type Clear = () -> ()
@@ -22,7 +31,7 @@ return function(): (Add, Clear)
 				elseif typeof(Item) == "thread" then
 					pcall(task.cancel, Item) -- must pcall or could error when passing its own thread in
 				elseif typeof(Item) == "table" and Item._binCleanup and type(Item._binCleanup) == "function" then
-					Item:_binCleanup()
+					(Item :: any):_binCleanup()
 				end
 			end
 

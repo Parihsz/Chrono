@@ -1,72 +1,51 @@
 const Shared = script.Parent
 const Warn = require(script.Parent.Warn)
 const Holder = require(Shared.Holder)
-const Config = require(Shared.Config)
 const Types = require(Shared.Types)
 
-const TAG = "CHRONO_MODEL_REPLICATOR"
-const CHRONO_META_NAME = "__CHRONO_MODEL_META_ID"
-const CHRONO_META_INSTANCE = "__CHRONO_MODEL_META_INSTANCE"
-
-local ids = 0
-const function ReadyModelFromRep(entity: Types.Entity, playerSpecific: Player?): (Model | string | BasePart?, string?)
+const function ReadyModelFromRep(
+	entity: Types.Entity,
+	playerSpecific: Player?
+): Model | string | BasePart | InstanceHandle?
 	const model = entity.model
 	const modelString = entity.modelString
 	const replicationMode: "NATIVE" | "CUSTOM" = (entity.modelReplicationMode or "NATIVE") :: any
 
-	--//TODO[FIXED]: FIX IF SOMEONE CLONES A MODEL THEN THE META DATA WILL GET CLONED TOO.
 	if replicationMode == "NATIVE" and model then
-		const config = entity.entityConfig
-		const attachMeta = config.ATTACH_MODEL_META_DATA ~= false -- defaults to true
-
-		if not attachMeta then
-			return model
-		end
-
-		const metaInstance: Instance = model:FindFirstChild(CHRONO_META_INSTANCE) or Instance.new("Configuration")
-		metaInstance.Name = CHRONO_META_INSTANCE
-		metaInstance.Archivable = false
-		metaInstance.Parent = model
-		const metaStringValue: string? = metaInstance:GetAttribute(CHRONO_META_NAME) :: any
-		local metaData = metaStringValue
-		if not metaStringValue then
-			metaData = "CHRONO_" .. tostring(ids)
-			metaInstance:SetAttribute(CHRONO_META_NAME, metaData)
-			metaInstance:AddTag(TAG)
-			ids += 1
-		end
-
-		return model, metaData
+		return InstanceHandle.new(model)
 	elseif replicationMode == "CUSTOM" then
 		if modelString then
 			return modelString
 		end
-		local ModelReplicator = script.Parent.Parent.Shared._CUSTOM_MODEL_REP
+		local ModelReplicator: Instance = Shared._CUSTOM_MODEL_REP
 
 		if playerSpecific then
 			const PlayerGui = playerSpecific.PlayerGui
-			ModelReplicator = PlayerGui:FindFirstChild("_ChronoClientModels") :: Instance
-			if not PlayerGui:FindFirstChild("_ChronoClientModels") then
-				ModelReplicator = Instance.new("ScreenGui")
-				ModelReplicator.ResetOnSpawn = false
-				ModelReplicator.Name = "_ChronoClientModels"
-				ModelReplicator.Parent = PlayerGui
+			local clientModels = PlayerGui:FindFirstChild("_ChronoClientModels")
+			if not clientModels then
+				const screenGui = Instance.new("ScreenGui")
+				screenGui.ResetOnSpawn = false
+				screenGui.Name = "_ChronoClientModels"
+				screenGui.Parent = PlayerGui
+				clientModels = screenGui
 			end
+			ModelReplicator = clientModels :: Instance
 		end
 		if model then
-			model.Archivable = true
-			const modelClone = model:Clone()
+			const source: Instance = model
+			source.Archivable = true
+			const modelClone = source:Clone()
 			modelClone.Parent = ModelReplicator
 
 			task.delay(2, function()
 				modelClone:Destroy()
 			end)
-			return modelClone
+			return modelClone :: any
 		end
 	elseif modelString then
 		Warn.medium(`{modelString} is not a valid model string for entity {entity.id}`)
 	end
-	return nil, nil
+	return nil
 end
 
 const function CreateTempModel(): (Model, string)
@@ -85,13 +64,19 @@ const function CreateTempModel(): (Model, string)
 	return model, "CUSTOM"
 end
 
-const function CreateModelFromData(model: Model | string | BasePart?): (Model | string | BasePart?, string?)
+const function CreateModelFromData(
+	model: Model | string | BasePart | InstanceHandle?
+): (Model | string | BasePart?, string?, InstanceHandle?)
 	if not model then
 		return
 	end
 
 	if type(model) == "string" then
 		return model, "CUSTOM"
+	end
+
+	if typeof(model) == "InstanceHandle" then
+		return model:Get() :: any, "NATIVE", model
 	end
 
 	if
@@ -115,8 +100,6 @@ const function CreateModelFromData(model: Model | string | BasePart?): (Model | 
 end
 
 return {
-	TAG = TAG,
-	CHRONO_META_NAME = CHRONO_META_NAME,
 	ReadyModelFromRep = ReadyModelFromRep,
 	CreateModelFromData = CreateModelFromData,
 }
