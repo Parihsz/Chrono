@@ -40,8 +40,8 @@ export type ServerEntitiesStats = {
 	config: string,
 	tickRate: number?,
 	lastTicked: number?,
-	lastPosition: Vector3,
-	modelType: string?,
+	lastPosition: Vector3?,
+	modelType: MODEL_REPLICATION_MODE?,
 	interpolationMode: INTERPOLATION_MODE?,
 }
 export type Connection = {

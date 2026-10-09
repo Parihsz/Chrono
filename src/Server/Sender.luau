@@ -272,16 +272,6 @@ const function ReplicatePlayer(player: Player)
 	FlushEntities(player, halfBuffers, true)
 
 	if #toRemove > 0 or #toSendFull > 0 or #entityChanges > 0 then
-		-- print(
-		-- 	"Sending reliable packet to",
-		-- 	player.Name,
-		-- 	"toSendFull:",
-		-- 	#toSendFull,
-		-- 	"toRemove:",
-		-- 	#toRemove,
-		-- 	"entityChanges:",
-		-- 	#entityChanges
-		-- )
 		ReliableEvent:FireClient(player, toSendFull, toRemove, entityChanges)
 	end
 	debug.profileend()
