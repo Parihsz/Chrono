@@ -6,7 +6,6 @@ const Entity = require(script.Parent.Entity)
 const Holder = require(script.Parent.Holder)
 const Types = require(script.Parent.Types)
 
-const ShowEntityLocations = true
 const HasDebuggerOpened = {}
 const Stats = {
 	REPLICATE_PERMISSIONS = {

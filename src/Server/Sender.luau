@@ -125,7 +125,7 @@ const function GetEntityFullData(player: Player, entity: Types.Entity): Types.En
 	if entity.destroyed then
 		return nil
 	end
-	const modelData, metaData = ModelHelper.ReadyModelFromRep(entity, player)
+	const modelData = ModelHelper.ReadyModelFromRep(entity, player)
 
 	local configName: string? = entity.entityConfig.NAME
 	if configName == "DEFAULT" then
@@ -153,7 +153,6 @@ const function GetEntityFullData(player: Player, entity: Types.Entity): Types.En
 		config = configName,
 
 		model = modelData,
-		_modelMetaData = metaData,
 
 		paused = entity.paused,
 		isHalfTicked = entity.isHalfTicked,

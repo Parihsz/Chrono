@@ -117,7 +117,6 @@ const function HandleChanges(changes: { id: number, data: { { any } } })
 	if not entity then
 		return
 	end
-	local hasMetadata
 	local modelData
 	for _, pair in changes.data do
 		const key = pair[1]
@@ -128,8 +127,6 @@ const function HandleChanges(changes: { id: number, data: { { any } } })
 			handler(entity, value)
 		elseif key == "latestCFrame" then
 			Entity.SetCFrame(entity, value)
-		elseif key == "_modelMetaData" then
-			hasMetadata = value
 		elseif key == "model" then
 			modelData = value
 		elseif key == "_player" then
@@ -160,19 +157,19 @@ const function HandleChanges(changes: { id: number, data: { { any } } })
 	end
 
 	if modelData ~= nil then
-		const model, modelType = ModelHelper.CreateModelFromData(modelData)
+		const model, modelType, handle = ModelHelper.CreateModelFromData(modelData)
 		Entity.SetModel(entity, model, modelType :: any)
-		entity._modelMetaData = hasMetadata
+		entity._modelHandle = handle
 	end
 end
 
 const function HandleNewEntity(data: Types.EntityReceivePacket)
-	const model, modelType = ModelHelper.CreateModelFromData(data.model)
+	const model, modelType, handle = ModelHelper.CreateModelFromData(data.model)
 	const entity = Entity._new(data.config, model, modelType::any, data.cframe)
 
 	entity.id = data.id
 	entity._player = data._player
-	entity._modelMetaData = data._modelMetaData
+	entity._modelHandle = handle
 	entity.paused = data.paused or false
 	entity.isHalfTicked = data.isHalfTicked
 	entity._data = data._data

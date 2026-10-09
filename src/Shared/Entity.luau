@@ -504,9 +504,8 @@ function Entity.SetModel(
 	const old = self.model
 	SetModel(self, model, modelReplicationMode, noDestroy)
 	if IS_SERVER then
-		const toReplicate, metaData = ModelHelper.ReadyModelFromRep(self, nil)
+		const toReplicate = ModelHelper.ReadyModelFromRep(self, nil)
 		RegisterChange(self, "model", self.model, true, toReplicate or false)
-		RegisterChange(self, "_modelMetaData", metaData, true, metaData)
 		CheckNetworkOwner(self, self.networkOwner)
 	end
 	RefreshHumanoidStateWatch(self, true)
