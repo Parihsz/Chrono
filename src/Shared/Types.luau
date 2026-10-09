@@ -122,7 +122,6 @@ export type EntityConfig = {
 	HALF_TICK_DISTANCE: number?,
 	CUSTOM_INTERPOLATION: boolean?,
 	ASSEMBLY_ROOT_PART_CHECK: boolean?,
-	ATTACH_MODEL_META_DATA: boolean?, -- defaults to true
 	INTERPOLATION_MODE: INTERPOLATION_MODE?, -- defaults to DEFAULT_INTERPOLATION_MODE
 	UpdateBuffer: (self: EntityConfig, buffer: number) -> ()?,
 }
@@ -139,7 +138,6 @@ export type EntityConfigInput = {
 	NORMAL_TICK_DISTANCE: number?,
 	HALF_TICK_DISTANCE: number?,
 	CUSTOM_INTERPOLATION: boolean?,
-	ATTACH_MODEL_META_DATA: boolean?, -- if explicitly false then chrono will not attach meta data. See shared/ModelHelper
 	INTERPOLATION_MODE: INTERPOLATION_MODE?, -- "CFRAME" sets CFrame directly, "ALIGN" drives AlignPosition/AlignOrientation
 	-- Might consider giving a config level replication rules instead of just entity
 }
@@ -195,14 +193,13 @@ export type EntityReceivePacket = {
 	time: number,
 	cframe: CFrame,
 	config: string?,
-	model: string | Model | BasePart?,
+	model: string | Model | BasePart | InstanceHandle?,
 	paused: boolean?,
 	isHalfTicked: boolean?,
 	_data: any,
 	mountParentId: number?,
 	mountOffset: CFrame?,
 	broadPhase: vector?,
-	_modelMetaData: string?,
 	_lockedCFReplication: boolean?,
 	_interpolationMode: INTERPOLATION_MODE?,
 	_humanoidState: number?,
@@ -210,64 +207,65 @@ export type EntityReceivePacket = {
 }
 
 export type Entity = {
-	--Client
-	-- this is for non server owned
-	_clockBuffer: number?,
-	_clientClock: ClientClock?,
-	_modelMetaData: string?,
+	-- Identity
+	id: number,
+	_lastId: number?, -- id before it was released
+	entityConfig: EntityConfig, -- defaults to DEFAULT config
+	registered: boolean,
+	destroyed: boolean,
+	paused: boolean,
+	_data: any,
+	_events: { [string]: Signal<any, any> }?,
+	_changes: { { string | any } }?, -- (Server) field changes queued for this frame
+
+	-- Ownership
+	networkOwner: Player?,
+	isContextOwner: boolean, -- true if this machine owns it
+	_player: Player?, -- set when the entity is a player's character
+
+	-- Model
+	model: Model | BasePart?,
+	modelString: string?,
+	modelReplicationMode: "NATIVE" | "CUSTOM"?,
+	_chronoPrimary: string?,
+	_modelHandle: InstanceHandle?, -- (Client) resolves NATIVE models that stream in late
+	_lockedCFReplication: boolean?,
+	_cfLockFailed: boolean?, -- (Client) retry the lock once the part exists
 	broadPhase: vector?,
-	interpolation: boolean,
-	_outofBroadPhaseTick: number?,
+
+	-- CFrame & snapshots
+	snapshot: Snapshot<CFrame, Vector3>?,
+	latestCFrame: CFrame?,
+	latestTime: number?,
+	lastCheckedCFrame: CFrame?,
+	lastReplicatedTime: number?,
+	lastClientClock: number?,
 	_teleport: number?,
+
+	-- Ticking (Server)
+	autoUpdatePosition: boolean,
+	replicationRules: { ReplicationRule }?,
+	isHalfTicked: boolean?,
+	_ticker: Ticker?,
+	_tickerIndex: number?,
+	cframeBuffer: buffer?, -- serialized cframe to send this frame
+	arriveFrame: number?, -- tick a client owned update arrived on
+
+	-- Interpolation (Client)
+	interpolation: boolean,
 	_interpolationMode: INTERPOLATION_MODE?,
 	_alignDriver: AlignDriver?,
+	_clockBuffer: number?, -- per entity buffer override from SetClockBuffer
+	_clientClock: ClientClock?, -- own clock for player owned or custom buffered entities
+	_outofBroadPhaseTick: number?,
 
+	-- Humanoid state replication
 	_humanoidState: number?,
 	_humanoidDisabledStates: number?,
 	_humanoidStateConn: RBXScriptConnection?,
 	_humanoidStateEnabledConn: RBXScriptConnection?,
-	--Server
-	autoUpdatePosition: boolean,
-	replicationRules: { ReplicationRule }?,
-	_ticker: Ticker?,
-	_tickerIndex: number?,
 
-	--NetworkOwner
-	isContextOwner: boolean,
-	networkOwner: Player?,
-	_player: Player?,
-	_cfLockFailed: boolean?,
-
-	snapshot: Snapshot<CFrame, Vector3>?,
-	latestCFrame: CFrame?,
-	latestTime: number?,
-
-	isHalfTicked: boolean?,
-	id: number,
-	entityConfig: EntityConfig, -- defaults to DEFAULT config
-	modelString: string?,
-	model: Model | BasePart?,
-	paused: boolean,
-
-	modelReplicationMode: "NATIVE" | "CUSTOM"?,
-
-	lastCheckedCFrame: CFrame?,
-
-	lastReplicatedTime: number?,
-	arriveFrame: number?, -- This is only for client owned on the server
-	lastClientClock: number?,
-
-	cframeBuffer: buffer?,
-	registered: boolean,
-	destroyed: boolean,
-
-	_lockedCFReplication: boolean?,
-	_data: any,
-	_changes: { { string | any } }?,
-	_events: { [string]: Signal<any, any> }?,
-	_lastId: number?,
-	_chronoPrimary: string?,
-
+	-- Mounting
 	mountParentId: number?,
 	mountOffset: CFrame?,
 }
