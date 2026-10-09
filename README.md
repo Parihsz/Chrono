@@ -4,16 +4,18 @@ Drop-in custom physics replication and lag compensation for Roblox.
 
 ## Why Chrono?
 
-Roblox's default replication has several limitations that make responsive multiplayer gameplay difficult to achieve. By default, physics is replicated at 20hz, and all characters are subject to a large, non-configurable interpolation delay designed primarily for mobile devices on low-bandwidth connections.
+Roblox replicates physics at 20 Hz and uses a fixed interpolation delay. Chrono lets you set the replication rate and uses a dynamic interpolation buffer to cut latency. Because Chrono keeps snapshots of every entity, you can build lag compensation by rewinding to an earlier snapshot to check hits.
 
-NPC replication is especially inefficient. Roblox often triggers excessive recv traffic for parts moved on the server - sometimes 10x higher than an optimized custom solution - and can also incur unnecessary send usage that is 100x more than normal. This wastes bandwidth and reduces performance.
+### Replication modes
+- **Native**: Chrono runs on top of Roblox's replication. Uses more bandwidth, but is the easiest to add to an existing game.
+- **Native with lock**: Chrono turns off Roblox's replication for the entity. Uses less bandwidth, but a few server-side behaviors change; for example, `Touched` no longer fires on the server. *Most* other Roblox features should work as usual. If something doesn't, please open an issue.
+- **Custom**: the server and client use separate models.
 
-Chrono solves all of these problems, while also improving developer experience:
+### Interpolation modes
+- **CFrame**: Chrono sets the entity's CFrame to the interpolated value.
+- **Align**: Chrono drives the entity with AlignPosition/AlignOrientation on the client. Added in v2.2.0 so Chrono works with existing ragdoll systems. See [Ragdolls](https://parihsz.github.io/Chrono/guides/ragdolls/).
+- **None**: Chrono doesn't move the entity, so you can apply the transform yourself.
 
-- **Bypasses Roblox's interpolation delay** by manually forwarding CFrame data to other players with a configurable, custom dynamic interpolation delay.
-- **Far more accurate lag compensation** by providing access to historical snapshot data and exposing the interpolation delay.
-- **Optimized server-controlled entity replication** by elegantly disabling default replication. Chrono then sends its own compressed replication data using a fraction of the bandwidth.
-- **Real-time debugging** - Chrono’s API allows developers to create real time debuggers that hooks onto its snapshot and latency system, letting you view exact replication data, packet loss, and per player interpolation states.
 
 ## Docs
 
