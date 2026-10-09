@@ -98,6 +98,9 @@ export type AlignDriver = {
 	driverPart: BasePart,
 	alignPosition: AlignPosition,
 	alignOrientation: AlignOrientation,
+	velocity: Vector3?,
+	lastPosition: Vector3?,
+	lastTime: number?,
 }
 
 export type EntityConfig = {
@@ -217,7 +220,7 @@ export type Entity = {
 	_teleport: number?,
 	_interpolationMode: INTERPOLATION_MODE?,
 	_alignDriver: AlignDriver?,
-	
+
 	_humanoidState: number?,
 	_humanoidDisabledStates: number?,
 	_humanoidStateConn: RBXScriptConnection?,

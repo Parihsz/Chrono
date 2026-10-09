@@ -1038,10 +1038,7 @@ function Entity.SetInterpolationMode(self: Entity, mode: Types.INTERPOLATION_MOD
 		RefreshHumanoidStateWatch(self, true)
 	else
 		StopHumanoidStateWatch(self)
-		if self._alignDriver then
-			AlignDriver.Destroy(self._alignDriver)
-			self._alignDriver = nil
-		end
+		AlignDriver.Clear(self)
 	end
 end
 
@@ -1100,10 +1097,7 @@ function Entity.Destroy(self: Entity)
 
 	StopHumanoidStateWatch(self)
 
-	if self._alignDriver then
-		AlignDriver.Destroy(self._alignDriver)
-		self._alignDriver = nil
-	end
+	AlignDriver.Clear(self)
 
 	if not IS_SERVER then
 		const modeType = self.modelReplicationMode

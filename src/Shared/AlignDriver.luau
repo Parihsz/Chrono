@@ -4,7 +4,12 @@ export type AlignDriver = {
 	driverPart: BasePart,
 	alignPosition: AlignPosition,
 	alignOrientation: AlignOrientation,
+	velocity: Vector3?,
+	lastPosition: Vector3?,
+	lastTime: number?,
 }
+
+const Types = require(script.Parent.Types)
 
 const IS_SERVER = game:GetService("RunService"):IsServer()
 
@@ -14,6 +19,10 @@ const DRIVER_PART_NAME = "__CHRONO_ALIGN_PART"
 const ROOT_PRIORITY = 127
 
 const MAX_RESPONSIVENESS = 200
+
+const MAX_SPEED = 1000
+
+local velocityUpdates: { AlignDriver } = {}
 
 
 
@@ -110,10 +119,62 @@ const function Destroy(driver: AlignDriver)
 	if driver.container then
 		driver.container:Destroy()
 	end
+
+	driver.part.AssemblyLinearVelocity = Vector3.zero
+end
+
+-- Mimics roblox's replication for velocity
+const function UpdateVelocity(driver: AlignDriver, position: Vector3, renderTime: number)
+	const lastTime = driver.lastTime
+	const lastPosition = driver.lastPosition
+	if lastTime and lastPosition and renderTime > lastTime and renderTime - lastTime < 0.5 then
+		const velocity = (position - lastPosition) / (renderTime - lastTime)
+		if velocity.Magnitude < MAX_SPEED then
+			driver.velocity = velocity
+			table.insert(velocityUpdates, driver)
+		end
+	end
+	driver.lastPosition = position
+	driver.lastTime = renderTime
+end
+
+const function Step(entity: Types.Entity, part: BasePart, cframe: CFrame, renderTime: number)
+	local existing = entity._alignDriver
+	if existing and existing.part ~= part then
+		Destroy(existing)
+		existing = nil
+	end
+	if not existing then
+		part.CFrame = cframe
+	end
+	const driver = existing or Create(part)
+	entity._alignDriver = driver
+	Update(driver, cframe)
+	UpdateVelocity(driver, cframe.Position, renderTime)
+end
+
+const function Clear(entity: Types.Entity)
+	const driver = entity._alignDriver
+	if driver then
+		Destroy(driver)
+		entity._alignDriver = nil
+	end
+end
+
+const function ApplyVelocities()
+	for _, driver in velocityUpdates do
+		if driver.velocity and driver.container.Parent then
+			driver.part.AssemblyLinearVelocity = driver.velocity
+		end
+	end
+	velocityUpdates = {}
 end
 
 AlignDriver.Create = Create
 AlignDriver.Update = Update
 AlignDriver.Destroy = Destroy
+AlignDriver.Step = Step
+AlignDriver.Clear = Clear
+AlignDriver.ApplyVelocities = ApplyVelocities
 
 return AlignDriver
