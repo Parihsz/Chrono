@@ -19,6 +19,7 @@ const function ReadyModelFromRep(
 		end
 		local ModelReplicator: Instance = Shared._CUSTOM_MODEL_REP
 
+		-- This will replicate the model to the player as player guis is not replicated to other players
 		if playerSpecific then
 			const PlayerGui = playerSpecific.PlayerGui
 			local clientModels = PlayerGui:FindFirstChild("_ChronoClientModels")

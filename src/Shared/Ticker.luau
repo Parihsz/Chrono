@@ -1,7 +1,4 @@
-const RunService = game:GetService("RunService")
 const Ticker = {}
-
---//TODO: this should be in server since client don't use it, maybe move later
 
 const function popSwap(t, item, index)
 	const lastIndex = #t
@@ -29,6 +26,7 @@ function Ticker.GetGlobalTick()
 end
 
 function Ticker.new(config: Types.EntityConfig): Ticker
+	-- Tickers holds full and half tick rate so entities don't constantly swap 
 	const ticker = {
 		tickedHalf = false,
 		tickHalfRate = config.TICK_RATE * 2,

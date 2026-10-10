@@ -33,7 +33,13 @@ const function LockCFReplication(part: BasePart?): BasePart?
 			pcall(previousLocker.Destroy, previousLocker)
 		end
 	end
-
+	--[[
+		This trick helps disable roblox's cf replication by create a part that
+		take priority and acts like the root part which we call the locker.
+		The locker part will be hidden on the server in a camera which will
+		cause roblox to not replicate the locker to the client which will
+		disable roblox's cf replication.
+	]]
 	const camera = Instance.new("Camera", part)
 	camera.Archivable = false
 	camera.Name = LOCKER_NAME

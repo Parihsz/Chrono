@@ -113,6 +113,9 @@ Config._WaitForLock(function()
 					humanoid.Health = 0
 					task.delay(0, function()
 						if humanoid:GetState() ~= Enum.HumanoidStateType.Dead then
+							-- this trick helps force the humanoid to die
+							-- since there were some issues we encountered where
+							-- the humanoid stayed alive
 							humanoid.Health = 0
 							humanoid.Health = 10
 							humanoid.Health = 0

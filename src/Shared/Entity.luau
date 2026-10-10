@@ -146,12 +146,17 @@ const function CheckNetworkOwner(self: Entity, prev: Player?)
 			if locked then
 				CFrameLock.Unlock(part)
 			end
+			-- this is done to ensure the network owner is set correctly
 			CFrameLock.SafeSetNetworkOwner(part, self.networkOwner)
 			if locked then
+				-- if it was locked again it could mess up ownership
 				CFrameLock.Lock(part)
 				const root = GetRootPart(self)
 				if root then
 					CFrameLock.SafeSetNetworkOwner(root, self.networkOwner)
+					-- Anchors the player on the server,
+					-- if the player was unanchored then it could cause weird issues
+					-- where roblox takes back ownership and sets it to auto.
 					root.Anchored = not isSameOwner
 				end
 			end
@@ -174,6 +179,7 @@ const function CheckNetworkOwner(self: Entity, prev: Player?)
 				CFrameLock.Lock(part)
 				self._cfLockFailed = nil
 			else
+				-- delay the lock this is checked in client/sender::CheckLocker
 				self._cfLockFailed = true
 			end
 			if self._player then
@@ -438,11 +444,13 @@ function Entity.Destroy(self: Entity)
 		const modeType = self.modelReplicationMode
 		const primaryPart = GetPart(self)
 		if modeType == "CUSTOM" then
+			-- destroys the model on the client
 			SafeDestroy(self.model)
 		elseif primaryPart then
 			if self._lockedCFReplication then
 				CFrameLock.Unlock(primaryPart)
 			end
+			-- hides the model on the client
 			primaryPart.CFrame = CFrame.new(0, 1000000, 0)
 		end
 	else

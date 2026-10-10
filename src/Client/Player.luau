@@ -27,6 +27,7 @@ const function SetLocalCharacter(model: Model | BasePart?)
 	const cf = workspace.CurrentCamera.CFrame
 	workspace.CurrentCamera.CameraSubject = model:FindFirstChildWhichIsA("Humanoid") or model.PrimaryPart
 	workspace.CurrentCamera.CFrame = cf
+	-- This was to a fix to resolve custom mode
 	for _, v in model:QueryDescendants("LocalScript") do
 		if v:IsA("LocalScript") and v.Disabled == false then
 			v.Disabled = true

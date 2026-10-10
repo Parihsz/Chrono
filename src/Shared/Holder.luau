@@ -21,6 +21,7 @@ const function RegisterChange(entity: Types.Entity, key: string, value: any, byp
 	if not entityChangedFields[entity] then
 		entityChangedFields[entity] = {}
 	end
+	-- any nil with replace with false so it can be serialized and sent to the client
 	entityChangedFields[entity][key] = specialValue or value or false
 end
 

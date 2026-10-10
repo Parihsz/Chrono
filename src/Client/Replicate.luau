@@ -94,6 +94,8 @@ const function Interpolate(entity: Types.Entity, mode: Types.INTERPOLATION_MODE)
 			AlignDriver.Step(entity, primaryPart, targetCFrame, targetTime)
 		else
 			AlignDriver.Clear(entity)
+			-- Using cframe here instead of bulkmoveto as there were some issues relating to moving the character via bmt.
+			-- SEE in ROSS https://discord.com/channels/385151591524597761/1406041519747764374/1408085390618919104
 			primaryPart.CFrame = targetCFrame
 		end
 	end

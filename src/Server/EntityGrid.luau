@@ -71,8 +71,9 @@ const function Check(entity: Entity)
 
 		const distance = vector.magnitude(position - playerPos)
 
+		-- if entity is native then we keep it half ticked else remove it
 		if distance > halfTickDistance and isNotNative then
-			if holder == ownedHolder then
+			if holder == ownedHolder then -- always replicate to the owner
 				table.insert(holder._TEMP_NORMAL, entity)
 			end
 			continue
@@ -125,6 +126,7 @@ const function DoLoop()
 	local count = 0
 	local start = os.clock()
 	local sections = 1
+	-- clone as the table could be mutated
 	for _, entity in table.clone(entities) do
 		debug.profilebegin(`Check One`)
 		Check(entity)

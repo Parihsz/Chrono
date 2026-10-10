@@ -177,6 +177,7 @@ const function HandleEntity(
 
 		entity.lastClientClock = clientClock
 		entity.cframeBuffer = copyB
+		-- If we update the model on native this will cause the client to also update the model 
 		if entity.modelReplicationMode == "NATIVE" and not entity._lockedCFReplication then
 			return
 		end

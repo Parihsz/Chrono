@@ -87,6 +87,7 @@ const function Flush()
 	buffer.writeu32(copy, 0, ClockUnwrap.quantize(clock))
 	buffer.copy(copy, 4, BUFFER, 0, INDEX)
 	if hasTeleport then
+		-- ensures that the teleport flag is sent and not dropped
 		SafeReplicateEvent:FireServer(copy)
 	else
 		UnreliableEvent:FireServer(copy)

@@ -318,7 +318,6 @@ const function HandleUnreliable(id: string, data: buffer)
 end
 
 const function HandleReliable(newEntities: {}, removedEntities: { number }, entityChanges: { any })
-	--RunService.PreAnimation:Wait() -- was encountering an issues where instances were not replicated prob was streaming endabled?
 	if removedEntities then
 		for _, id in removedEntities do
 			HandleRemoved(id)

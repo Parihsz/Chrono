@@ -52,7 +52,7 @@ const BASE_CONFIG = {
 
 	WARNING_SEVERITY = "MEDIUM", -- "NONE", "LOW", "MEDIUM", "HIGH"
 	DEFAULT_NORMAL_TICK_DISTANCE = 50,
-	DEFAULT_HALF_TICK_DISTANCE = 100, -- Anything beyond this distance will not be replicated
+	DEFAULT_HALF_TICK_DISTANCE = 100, -- Anything beyond this distance will not be replicated for non-owned entities. 
 
 	REPLICATE_DEATHS = "PLAYER_CHARACTERS",
 	--[[
