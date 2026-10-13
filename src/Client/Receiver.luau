@@ -275,8 +275,13 @@ const function HandleClientOwned(b: buffer)
 				Warn.medium("Received update for non existent entity with id", id)
 				continue
 			end
+			const owner = entity.networkOwner
+			
+			if owner and owner.Parent == nil then
+				continue
+			end
 
-			const time = ClockUnwrap.unwrapFor(ClientOwnedWrap, entity.networkOwner or "__unknown", rawTime)
+			const time = ClockUnwrap.unwrapFor(ClientOwnedWrap, owner or "__unknown", rawTime)
 			PushCFrameFor(id, true, cf, time, isHalfTickRate, teleport)
 		end
 	end
@@ -359,7 +364,7 @@ ClientClockRelayRemote.OnClientEvent:Connect(function(list: { { player: Player, 
 		const player = entry.player
 		const raw = entry.raw
 		const offset = entry.offset
-		if player and type(raw) == "number" and type(offset) == "number" then
+		if player and player.Parent and type(raw) == "number" and type(offset) == "number" then
 			local state = ClientOwnedWrap[player]
 			if not state then
 				state = ClockUnwrap.new()

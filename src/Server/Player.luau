@@ -56,7 +56,12 @@ const function UnregisterPlayer(player: Player)
 end
 
 const function OnCharacterAdded(character: Model, player: Player)
-	task.wait(0.1)
+	if Config.FLAGS.CHARACTER_WAIT_DELAY then
+		task.wait(0.1) 
+		-- ensure that character is loaded
+		-- we are slightly unsure if InstanceHandlers are fully reliable
+		-- if you encounter weird loading bugs try enabling this flag if disabled
+	end
 	if player.Character ~= character or not player.Parent then
 		return
 	end -- edge case

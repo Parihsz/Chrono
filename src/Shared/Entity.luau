@@ -436,6 +436,15 @@ function Entity.Destroy(self: Entity)
 		self._clientClock:Destroy()
 	end
 
+	const owner = self.networkOwner
+	if owner then
+		const ownedEntities = clientOwned[owner]
+		if ownedEntities and ownedEntities[self] then
+			ownedEntities[self] = nil
+			Events._Signals.PlayerOwnedRemoved:Fire(owner, self)
+		end
+	end
+
 	HumanoidState.Stop(self)
 
 	AlignDriver.Clear(self)
