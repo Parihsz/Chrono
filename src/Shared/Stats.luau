@@ -119,6 +119,10 @@ if RunService:IsServer() then
 		Stats.SERVER._SHOULD_REPLICATE = should
 	end)
 
+	Players.PlayerRemoving:Connect(function(player)
+		HasDebuggerOpened[player.UserId] = nil
+	end)
+
 	statsRemote.OnServerEvent:Connect(function(plr: Player, header: string, ...)
 		if header == StatsRemoteHeaders.DEBUGGER_OPENED then
 			const opened = ...
