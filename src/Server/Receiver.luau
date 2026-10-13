@@ -187,7 +187,7 @@ end
 
 const TotalBytes = {}
 const function OnReceive(player: Player, data: buffer)
-	if typeof(data) ~= "buffer" then
+	if typeof(data) ~= "buffer" or player.Parent == nil then
 		return
 	end
 	TotalBytes[player] = (TotalBytes[player] or 0) + buffer.len(data)
@@ -271,7 +271,7 @@ if RunService:IsServer() then
 	SafeReplicateEvent.OnServerEvent:Connect(OnReceive)
 
 	Shared.Remotes.ClientHeartbeat.OnServerEvent:Connect(function(player: Player, seconds: number)
-		if type(seconds) ~= "number" then
+		if type(seconds) ~= "number" or player.Parent == nil then
 			return
 		end
 		const clientClock = ClockUnwrap.seatFullFor(ClientClockWrap, player, seconds)

@@ -276,7 +276,7 @@ const function HandleClientOwned(b: buffer)
 				continue
 			end
 			const owner = entity.networkOwner
-			
+
 			if owner and owner.Parent == nil then
 				continue
 			end
