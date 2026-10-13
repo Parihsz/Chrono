@@ -959,12 +959,19 @@ Entity.GetEvent = (GetEvent :: any) :: ((
 ) -> Types.Event<(entity: Entity, isLocked: boolean) -> (), Entity, boolean>)
 
 --// Internal
-Players.PlayerAdded:Connect(function(player)
-	clientOwned[player] = {}
-end)
+local function register(player: Player)
+	if not clientOwned[player] then
+		clientOwned[player] = {}
+	end
+end
+Players.PlayerAdded:Connect(register)
 
-if Players.LocalPlayer then
-	clientOwned[Players.LocalPlayer] = {}
+for _, player in Players:GetPlayers() do
+	register(player)
+end
+
+if Players.LocalPlayer  then
+	register(Players.LocalPlayer)
 end
 
 Players.PlayerRemoving:Connect(function(player)

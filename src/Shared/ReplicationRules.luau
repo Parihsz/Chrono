@@ -2,6 +2,7 @@ const Shared = script.Parent.Parent.Shared
 const Warn = require(script.Parent.Warn)
 const Types = require(Shared.Types)
 const Holder = require(Shared.Holder)
+const Events = require(Shared.Events)
 
 export type RuleFn = (entity: Types.Entity, viewer: Player, viewerEntityId: number?) -> boolean
 
@@ -104,6 +105,10 @@ const function Allows(entity: Types.Entity, viewer: Player): boolean
 
 	return fn(entity, viewer, viewerEntityId)
 end
+
+Events.EntityRemoved:Connect(function(entity: Types.Entity)
+	ruleById[entity._lastId or entity.id] = nil
+end)
 
 const function Include(players: { Player }): RuleFn
 	return CompileRule({ filterType = "include", filterPlayers = players })

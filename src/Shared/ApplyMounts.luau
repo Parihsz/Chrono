@@ -1,5 +1,7 @@
 --!native
 
+const IS_SERVER = game:GetService("RunService"):IsServer()
+
 const Entity = require(script.Parent.Entity)
 const Events = require(script.Parent.Events)
 const Holder = require(script.Parent.Holder)
@@ -117,9 +119,23 @@ Events.EntityMountChanged:Connect(function(entity: Types.Entity, mountParentId: 
 end, true)
 
 Events.EntityRemoved:Connect(function(entity: Types.Entity)
+	visited[entity] = nil
 	dp[entity] = nil
 	world[entity] = nil
 	mountedEntities[entity] = nil
+
+	if IS_SERVER then
+		const id = entity._lastId or entity.id
+		const children = {}
+		for child in mountedEntities do
+			if child.mountParentId == id and not child.destroyed then
+				table.insert(children, child)
+			end
+		end
+		for _, child in children do
+			Entity.ClearMount(child)
+		end
+	end
 end, true)
 
 const function ApplyMounts()
