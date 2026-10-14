@@ -24,7 +24,6 @@ return (
 	setmetatable({}, {
 		__index = function(_, level: level)
 			if not checkLevel(level:upper() :: any) then
-				warn(`Invalid level passed to Warn: {level}`)
 				return noop
 			end
 			return warn
