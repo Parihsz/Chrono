@@ -83,6 +83,24 @@ const function SetPartCFrame(entity, cframe: CFrame)
 	end
 end
 
+--anchors depending on interpolation mode,config type and ownership
+const function UpdateClientAnchor(self: Entity)
+	if IS_SERVER or not (self.modelReplicationMode == "CUSTOM" or self._lockedCFReplication) then
+		return
+	end
+	const part = GetPart(self)
+	if not part then
+		return
+	end
+	const mode = self._interpolationMode or self.entityConfig.INTERPOLATION_MODE
+	const anchored = not self.isContextOwner and mode ~= "ALIGN"
+	if anchored and not part.Anchored then
+		part.AssemblyLinearVelocity = Vector3.zero
+		part.AssemblyAngularVelocity = Vector3.zero
+	end
+	part.Anchored = anchored
+end
+
 --// Events
 const function FireEvent(entity: Entity, eventName: string, ...: any)
 	const events = entity._events
@@ -186,6 +204,7 @@ const function CheckNetworkOwner(self: Entity, prev: Player?)
 				CFrameLock.Unlock(part)
 			end
 		end
+		UpdateClientAnchor(self)
 	end
 
 	if isSameOwner then
@@ -229,12 +248,7 @@ const function SetEntityNetworkOwner(self: Entity, player: Player?)
 		Entity.Clear(self)
 	end
 	self.lastCheckedCFrame = nil
-	if not IS_SERVER and self.modelReplicationMode == "CUSTOM" then
-		const primaryPart = Entity.GetPrimaryPart(self)
-		if primaryPart then
-			primaryPart.Anchored = not self.isContextOwner
-		end
-	end
+	UpdateClientAnchor(self)
 end
 
 --// Model
@@ -348,9 +362,7 @@ const function SetModel(
 		self._lockedCFReplication = true
 		self.modelReplicationMode = "NATIVE"
 	end
-	if not IS_SERVER and not self.isContextOwner and (replicationMode == "CUSTOM" or self._lockedCFReplication) then
-		primaryPart.Anchored = true
-	end
+	UpdateClientAnchor(self)
 end
 
 --// Construction
@@ -756,6 +768,7 @@ function Entity.SetConfig(self: Entity, entityConfig: string)
 	if IS_SERVER then
 		return
 	end
+	UpdateClientAnchor(self)
 	const clientClock = self._clientClock
 	if clientClock then
 		const tickRate = config.TICK_RATE
@@ -809,6 +822,7 @@ function Entity.SetInterpolationMode(self: Entity, mode: Types.INTERPOLATION_MOD
 		HumanoidState.Stop(self)
 		AlignDriver.Clear(self)
 	end
+	UpdateClientAnchor(self)
 end
 
 --[=[
@@ -970,7 +984,7 @@ for _, player in Players:GetPlayers() do
 	register(player)
 end
 
-if Players.LocalPlayer  then
+if Players.LocalPlayer then
 	register(Players.LocalPlayer)
 end
 
