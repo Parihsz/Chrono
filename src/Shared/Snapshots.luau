@@ -7,6 +7,7 @@ type SnapshotData<Value, Velocity> = Types.SnapshotData<Value, Velocity>
 type Snapshot<Value, Velocity> = Types.Snapshot<Value, Velocity>
 
 const Config = require(script.Parent.Config)
+const InterpolationMath = require(script.Parent.InterpolationMath)
 const Warn = require(script.Parent.Warn)
 
 local MAX_LENGTH
@@ -112,7 +113,8 @@ const function PushWithCheck<Value, Velocity>(
 	tickrate: number
 )
 	const latestData = GetLatest(self)
-	if latestData and timeStamp - latestData.t > tickrate * 3 and Config.FLAGS.SNAPSHOT_INTERPOLATION_FIX then
+	if latestData and InterpolationMath.IsIdleGap(latestData :: any, timeStamp, (value :: any).Position, tickrate) then
+		latestData.velocity = vector.zero :: any
 		Push(self, timeStamp - tickrate, latestData.value, vector.zero :: any)
 	end
 	Push(self, timeStamp, value, velocity)

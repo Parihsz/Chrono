@@ -32,6 +32,24 @@ const function CalculateVelocity(lP: Vector3, lT: number, cP: Vector3, cT: numbe
 	return (cP - lP) / dt
 end
 
+const function CheckIdle(
+	latest: Types.SnapshotData<CFrame, Vector3>,
+	t: number,
+	position: Vector3,
+	tickrate: number
+): boolean
+	const gap = t - latest.t
+	if gap <= tickrate * 3 or not Config.FLAGS.SNAPSHOT_INTERPOLATION_FIX then
+		return false
+	end
+	const velocity = latest.velocity
+	const speed = if velocity then velocity.Magnitude else 0
+	if speed < 1e-3 then
+		return true
+	end
+	return (position - latest.value.Position).Magnitude < speed * (gap - tickrate) * 0.5
+end
+
 const function VelocityAt(
 	latest: Types.SnapshotData<CFrame, Vector3>?,
 	t: number,
@@ -41,11 +59,17 @@ const function VelocityAt(
 	if not latest then
 		return Vector3.zero
 	end
-	return CalculateVelocity(latest.value.Position, latest.t, cframe.Position, t, tickrate)
+	const rate = tickrate or 1 / 20
+	const position = cframe.Position
+	if t - latest.t > rate * 3 and not CheckIdle(latest, t, position, rate) then
+		return (position - latest.value.Position) / (t - latest.t)
+	end
+	return CalculateVelocity(latest.value.Position, latest.t, position, t, rate)
 end
 
 return {
 	Hermite = Hermite,
 	VelocityAt = VelocityAt,
+	IsIdleGap = CheckIdle,
 	CalculateVelocity = CalculateVelocity,
 }

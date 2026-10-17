@@ -5,6 +5,7 @@ const Types = require(script.Parent.Parent.Shared.Types)
 local MIN_BUFFER
 local MAX_BUFFER
 const ALPHA = 0.1
+const GAP_DECAY = 0.005
 
 Config._WaitForLock(function()
 	MIN_BUFFER = Config._GetConfig("MIN_BUFFER")
@@ -18,6 +19,8 @@ function Buffer.new(clientClock: Types.ClientClock)
 		averageLatency = 0,
 		deviation = 0,
 		lastLatency = 0,
+		lastSendTime = nil,
+		maxSendGap = 0,
 
 		clientClock = clientClock,
 	}
@@ -31,6 +34,19 @@ function Buffer.Register(data: Types.InterpolationBuffer, time: number)
 	if math.abs(latency) > 1 then
 		clientClock:Clear()
 		Warn.low(data.clientClock.name, ` latency too high, cleared cache to repredict in case of error:! {latency}`)
+	end
+
+	const lastSendTime = data.lastSendTime
+	if lastSendTime and time > lastSendTime then
+		const gap = time - lastSendTime
+		if gap <= clientClock.tickRate * 3 then
+			data.maxSendGap = if gap > data.maxSendGap
+				then gap
+				else data.maxSendGap + (gap - data.maxSendGap) * GAP_DECAY
+		end
+	end
+	if not lastSendTime or time > lastSendTime then
+		data.lastSendTime = time
 	end
 
 	if not data.init then
@@ -60,7 +76,7 @@ function Buffer.GetBuffer(data: Types.InterpolationBuffer, tickRate: number)
 	end
 
 	const deviationMargin = data.deviation * 2
-	const rawBuffer = tickRate + deviationMargin
+	const rawBuffer = math.max(tickRate, data.maxSendGap) + deviationMargin
 
 	local buffer = if rawBuffer < MIN_BUFFER then MIN_BUFFER + (MIN_BUFFER - rawBuffer) * 0.2 else rawBuffer
 	if buffer > MAX_BUFFER then

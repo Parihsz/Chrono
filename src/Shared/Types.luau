@@ -160,6 +160,8 @@ export type InterpolationBuffer = {
 	averageLatency: number,
 	deviation: number,
 	lastLatency: number,
+	lastSendTime: number?,
+	maxSendGap: number,
 	clientClock: ClientClock,
 }
 
