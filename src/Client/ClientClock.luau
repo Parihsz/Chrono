@@ -5,8 +5,8 @@ const Config = require(script.Parent.Parent.Shared.Config)
 const Types = require(script.Parent.Parent.Shared.Types)
 const BufferTracker = require(script.Parent.InterpolationBuffer)
 
-const ClientClocks = {}
-const _ServerOwnedClocks = {}
+const ClientClocks: { [Types.ClientClock]: boolean } = {}
+const _ServerOwnedClocks: { [Types.ClientClock]: boolean } = {}
 
 const function GetBuffer(clientClock: Types.ClientClock): number
 	if clientClock.buffer then
@@ -189,7 +189,7 @@ Config._WaitForLock(function()
 			return
 		end
 		clientClocks.NORMAL = new(config.TICK_RATE, name .. "_NORMAL", config.BUFFER)
-		if config.HALF_TICK_DISTANCE < math.huge then
+		if (config.HALF_TICK_DISTANCE or math.huge) < math.huge then
 			clientClocks.HALF = new(config.TICK_RATE * 2, name .. "_HALF", config.BUFFER)
 		end
 	end

@@ -208,7 +208,7 @@ const function PlayerAdded(player: Player)
 	if playerToHolder[player] then
 		return
 	end
-	const t = {
+	const t: PlayerEntityHolder = {
 		PLAYER = player,
 		HALF = {},
 		NORMAL = {},

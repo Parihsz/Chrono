@@ -20,7 +20,7 @@ local userId = localPlayer.UserId
 
 Iris.Init()
 
-local function displayFlagEditor(name, value)
+local function displayFlagEditor(name: string, value: any)
 	local type = typeof(value)
 	if type == "boolean" then
 		Iris.SameLine()
@@ -30,12 +30,12 @@ local function displayFlagEditor(name, value)
 		end
 		Iris.End()
 	elseif type == "number" then
-		local newValue = value
 		Iris.SameLine()
 		Iris.Text({ name .. ": " .. tostring(value) })
-		newValue = Iris.Input({ tostring(value) }).value
-		if newValue and tonumber(newValue) and tonumber(newValue) ~= value then
-			Stats._updateStat("FFLAG", name, tonumber(newValue))
+		local input = Iris.InputNum({ "" }, { number = value })
+		local newValue: number = (input.state.number :: any).value
+		if input.numberChanged() and newValue ~= value then
+			Stats._updateStat("FFLAG", name, newValue)
 		end
 		Iris.End()
 	end
@@ -43,7 +43,7 @@ end
 
 local function displayFlags()
 	Iris.Tree({ "Flags" })
-	for flagName, flagValue in Flags do
+	for flagName, flagValue in Flags :: { [string]: any } do
 		displayFlagEditor(flagName, flagValue)
 	end
 	Iris.End()
@@ -109,7 +109,7 @@ local function cframeToString(cf: CFrame)
 	rx, ry, rz = math.deg(rx), math.deg(ry), math.deg(rz)
 	return displayVector3(cf.Position) .. ` | rot: {displayVector3(Vector3.new(rx, ry, rz))}`
 end
-local function displaySnapShots(snapshots: { t: number, value: CFrame, velocity: Vector3 })
+local function displaySnapShots(snapshots: { Types.SnapshotData<CFrame, Vector3> })
 	Iris.Text({ "Snapshots:" })
 	for _, snap in snapshots do
 		Iris.Text({
@@ -135,13 +135,13 @@ local function displayClientEntityStats(entity: Types.ClientEntitiesStats)
 	Iris.Text({ "Deviation: " .. tostring(entity.deviation) })
 	Iris.Text({ "Buffered Time: " .. tostring(entity.bufferedTime) })
 	if Iris.Button({ "Clear client clock" }).clicked() then
-		local entity = entity.entity
-		local renderCache = entity._clientClock
+		local cEntity = entity.entity
+		local renderCache = cEntity._clientClock
 
 		if not renderCache then
-			local RenderCaches = entity.entityConfig.CLIENT_CLOCK
+			local RenderCaches = cEntity.entityConfig.CLIENT_CLOCK
 			if RenderCaches then
-				renderCache = entity.isHalfTicked and RenderCaches.HALF or RenderCaches.NORMAL
+				renderCache = cEntity.isHalfTicked and RenderCaches.HALF or RenderCaches.NORMAL
 			end
 		end
 		if renderCache then
@@ -150,8 +150,10 @@ local function displayClientEntityStats(entity: Types.ClientEntitiesStats)
 	end
 	if Iris.Tree({ "Snapshots" }).state.isUncollapsed.value then
 		if Iris.Button({ "Clear Snapshots" }).clicked() then
-			local snaps: Types.Snapshot<CFrame, Vector3> = entity.entity.snapshot
-			snaps:Clear()
+			local snaps = entity.entity.snapshot
+			if snaps then
+				snaps:Clear()
+			end
 		end
 		displaySnapShots(entity.snapshots)
 	end

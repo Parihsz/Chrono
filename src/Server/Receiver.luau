@@ -221,7 +221,7 @@ const function SortMiddleMans()
 	for _, data in MiddleMans do
 		table.insert(SortedMiddleMans, data)
 	end
-	table.sort(SortedMiddleMans, function(a, b)
+	table.sort(SortedMiddleMans, function(a: MiddleMan, b: MiddleMan)
 		return a.priority > b.priority
 	end)
 end

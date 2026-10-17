@@ -182,11 +182,11 @@ const function GetBroadPhase(name: string): vector?
 	return MODEL_BROAD_PHASES[name] :: any
 end
 
-const function GetConfig(name: Configs)
+const function GetConfig(name: Configs): any
 	return BASE_CONFIG[name]
 end
 
-const waiting = {}
+const waiting: { () -> () } = {}
 const function WaitForLock(fx: () -> ())
 	if LOCKED then
 		fx()
@@ -222,7 +222,7 @@ const function Lock()
 			cloned.TICKER = (require)(script.Parent.Ticker).new(cloned)
 		else
 			cloned.CLIENT_CLOCK = {} :: any
-			cloned.UpdateBuffer = function(self, buffer: number)
+			cloned.UpdateBuffer = function(self: Types.EntityConfig, buffer: number)
 				if not self.CLIENT_CLOCK or not next(self.CLIENT_CLOCK :: any) then
 					error("Config not initialized yet, cannot update buffer for entity type: " .. self.NAME)
 				end

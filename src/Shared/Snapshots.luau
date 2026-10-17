@@ -10,7 +10,7 @@ const Config = require(script.Parent.Config)
 const InterpolationMath = require(script.Parent.InterpolationMath)
 const Warn = require(script.Parent.Warn)
 
-local MAX_LENGTH
+local MAX_LENGTH: number
 
 Config._WaitForLock(function()
 	MAX_LENGTH = Config._GetConfig("MAX_SNAPSHOT_COUNT")
@@ -197,10 +197,11 @@ end
 const function New<Value, Velocity>(
 	lerpFunction: (Vector3, Vector3, Velocity, Velocity, number, number) -> Vector3
 ): Snapshot<Value, Velocity>
-	const cache = table.create(MAX_LENGTH)
+	const cache: { SnapshotData<Value, Velocity> } = table.create(MAX_LENGTH) :: any
 	for i = 1, MAX_LENGTH do
 		cache[i] = { t = 0, value = (nil :: any) :: Value, velocity = (nil :: any) :: Velocity }
 	end
+
 
 	return {
 		cache = cache,

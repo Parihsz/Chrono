@@ -179,7 +179,7 @@ const function CheckEntityChanges()
 	for entity, changes in Holder._entityChangedFields do
 		const newChanges = { id = entity.id, data = {} }
 		for key, data in changes do
-			data = data or entity[key]
+			data = data or (entity :: any)[key]
 			table.insert(newChanges.data, { key, data })
 		end
 		Holder._entityChangedFields[entity] = nil

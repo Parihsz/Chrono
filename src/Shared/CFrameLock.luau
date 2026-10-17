@@ -19,7 +19,7 @@ end
 
 const function LockCFReplication(part: BasePart?): BasePart?
 	if not part then
-		return
+		return nil
 	end
 	const initCF = part.CFrame
 	const previousLocker = part:FindFirstChild(LOCKER_NAME)

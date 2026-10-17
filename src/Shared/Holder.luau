@@ -4,17 +4,17 @@ const Signals = require(script.Parent.Events)._Signals
 const IS_SERVER = game:GetService("RunService"):IsServer()
 
 local currentId = 0 -- First Id will start at 1
-const idStack = {}
+const idStack: { number } = {}
 const playerChars: { [Player]: Types.Entity } = {}
 const idMap: { [number]: Types.Entity } = {}
 const clientOwned: { [Player]: { [Types.Entity]: true } } = {}
 const entityChangedFields = {}
 
 const function RegisterChange(entity: Types.Entity, key: string, value: any, bypass: boolean?, specialValue: any)
-	if not bypass and entity[key] == value then
+	if not bypass and (entity :: any)[key] == value then
 		return
 	end
-	entity[key] = value
+	(entity :: any)[key] = value
 	if not IS_SERVER then
 		return
 	end

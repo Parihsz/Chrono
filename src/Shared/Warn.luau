@@ -17,16 +17,17 @@ const function checkLevel(level: level): boolean
 	return currentLevel <= checkAgainst
 end
 
-const function noop() end
+const function noop(...: any) end
+const warnAny: (...any) -> () = warn
 
 -- Designed it this way so the first message leads to the place the function was called.
 return (
 	setmetatable({}, {
-		__index = function(_, level: level)
+		__index = function(_, level: level): (...any) -> ()
 			if not checkLevel(level:upper() :: any) then
 				return noop
 			end
-			return warn
+			return warnAny
 		end,
 	}) :: any
 ) :: {

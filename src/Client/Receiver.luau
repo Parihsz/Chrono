@@ -322,7 +322,7 @@ const function HandleUnreliable(id: string, data: buffer)
 	end
 end
 
-const function HandleReliable(newEntities: {}, removedEntities: { number }, entityChanges: { any })
+const function HandleReliable(newEntities: { any }, removedEntities: { number }, entityChanges: { any })
 	if removedEntities then
 		for _, id in removedEntities do
 			HandleRemoved(id)

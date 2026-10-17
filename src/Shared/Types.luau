@@ -26,10 +26,7 @@ export type ClientEntitiesStats = {
 	deviation: number?,
 	bufferedTime: number?,
 	currentPosition: Vector3?,
-	snapshots: {
-		t: number,
-		value: CFrame,
-	},
+	snapshots: { SnapshotData<CFrame, Vector3> },
 }
 
 export type ServerEntitiesStats = {

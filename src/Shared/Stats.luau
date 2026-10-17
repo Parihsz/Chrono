@@ -90,7 +90,7 @@ const function updateStat(type: string, name: string, value: any)
 		Config.SetWarningSeverity(value)
 	end
 	if type == "FFLAG" then
-		Config.FLAGS[name] = value
+		(Config.FLAGS :: any)[name] = value
 	end
 end
 

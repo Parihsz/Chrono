@@ -104,7 +104,7 @@ const function Interpolate(entity: Types.Entity, mode: Types.INTERPOLATION_MODE)
 end
 
 Config._WaitForLock(function()
-	local steppedEntities = {}
+	local steppedEntities: { Types.Entity } = {}
 	RunService.Heartbeat:Connect(function(deltaTime: number)
 		steppedEntities = {}
 		Frustum.Update()

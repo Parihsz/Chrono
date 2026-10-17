@@ -2,8 +2,8 @@ const Warn = require(script.Parent.Parent.Shared.Warn)
 const Config = require(script.Parent.Parent.Shared.Config)
 const Types = require(script.Parent.Parent.Shared.Types)
 
-local MIN_BUFFER
-local MAX_BUFFER
+local MIN_BUFFER: number
+local MAX_BUFFER: number
 const ALPHA = 0.1
 const GAP_DECAY = 0.005
 
@@ -13,7 +13,7 @@ Config._WaitForLock(function()
 end)
 const Buffer = {}
 
-function Buffer.new(clientClock: Types.ClientClock)
+function Buffer.new(clientClock: Types.ClientClock): Types.InterpolationBuffer
 	return {
 		init = false,
 		averageLatency = 0,

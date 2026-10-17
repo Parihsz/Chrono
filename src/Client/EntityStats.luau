@@ -4,7 +4,10 @@ const ClientClock = require(script.Parent.ClientClock)
 const StatsALL = require(Shared.Stats)
 const Entity = require(Shared.Entity)
 const Holder = require(Shared.Holder)
+const Types = require(Shared.Types)
 const Stats = StatsALL.CLIENT
+
+type SnapshotData = Types.SnapshotData<CFrame, Vector3>
 
 const idMap = Holder.idMap
 
@@ -49,12 +52,12 @@ const function UpdateEntityStats()
 		const primaryPart = Entity.GetPrimaryPart(entity)
 		const snapshot = entity.snapshot
 		const currentPosition = primaryPart and primaryPart.Position
-		const snapshots = {}
+		const snapshots: { SnapshotData } = {}
 		if snapshot then
 			for _, snap in snapshot.cache do
 				table.insert(snapshots, { t = snap.t, value = snap.value, velocity = snap.velocity })
 			end
-			table.sort(snapshots, function(a, b)
+			table.sort(snapshots, function(a: SnapshotData, b: SnapshotData)
 				return a.t > b.t
 			end)
 		end

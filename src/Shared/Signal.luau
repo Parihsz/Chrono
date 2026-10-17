@@ -164,10 +164,11 @@ function Event:Once(fn, defer)
 end
 
 -- Signal class
+const Types = require(script.Parent.Types)
 const Signal = {}
 Signal.__index = Signal
 
-function Signal.new()
+function Signal.new(): Types.Signal<any...>
 	return setmetatable({
 		_type_ = "Signal",
 		Event = Event.new(),

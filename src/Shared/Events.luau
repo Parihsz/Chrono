@@ -12,7 +12,7 @@ Signals.EntityRemoved = Signal.new() :: Signal<(entity: Types.Entity) -> (), Typ
 Events.EntityRemoved = Signals.EntityRemoved.Event
 
 Signals.PlayerCharacterRegistered =
-	Signal.new() :: Signal<(player: Player, entity: Types.Entity) -> (), Player, Types.Entity>
+	Signal.new() :: Signal<(player: Player, entity: Types.Entity) -> (), Player, Types.Entity> 
 Events.PlayerCharacterRegistered = Signals.PlayerCharacterRegistered.Event
 
 Signals.PlayerCharacterUnregistered =

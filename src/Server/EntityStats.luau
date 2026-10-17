@@ -37,7 +37,7 @@ const function UpdateEntityStats()
 		const interpolationMode: Types.INTERPOLATION_MODE = entity._interpolationMode
 			or entity.entityConfig.INTERPOLATION_MODE
 			or "CFRAME"
-		const data = {
+		const data: Types.ServerEntitiesStats = {
 			isPaused = entity.paused,
 			id = entity.id,
 			networkOwner = networkOwner,

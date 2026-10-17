@@ -77,11 +77,13 @@ const function OnPlayerAdded(player: Player)
 	if player.Character then
 		OnCharacterAdded(player.Character, player)
 	end
-	local connection2
+	local connection2: RBXScriptConnection? = nil
 	connection2 = player.AncestryChanged:Connect(function()
 		if not player:IsDescendantOf(game) then
 			connection:Disconnect()
-			connection2:Disconnect()
+			if connection2 then
+				connection2:Disconnect()
+			end
 		end
 	end)
 end

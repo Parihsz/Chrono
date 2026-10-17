@@ -20,8 +20,8 @@ const function ReadyModelFromRep(
 		local ModelReplicator: Instance = Shared._CUSTOM_MODEL_REP
 
 		-- This will replicate the model to the player as player guis is not replicated to other players
-		if playerSpecific then
-			const PlayerGui = playerSpecific.PlayerGui
+		const PlayerGui = playerSpecific and playerSpecific:FindFirstChildOfClass("PlayerGui")
+		if PlayerGui then
 			local clientModels = PlayerGui:FindFirstChild("_ChronoClientModels")
 			if not clientModels then
 				const screenGui = Instance.new("ScreenGui")
@@ -69,11 +69,11 @@ const function CreateModelFromData(
 	model: Model | string | BasePart | InstanceHandle?
 ): (Model | string | BasePart?, string?, InstanceHandle?)
 	if not model then
-		return
+		return nil, nil, nil
 	end
 
 	if type(model) == "string" then
-		return model, "CUSTOM"
+		return model, "CUSTOM", nil
 	end
 
 	if typeof(model) == "InstanceHandle" then
@@ -92,12 +92,13 @@ const function CreateModelFromData(
 		const clone = model:Clone()
 		if clone then
 			(clone :: any).Parent = Holder.GetEntityStorageInstance()
-			return clone, "CUSTOM"
+			return clone, "CUSTOM", nil
 		end
-		return CreateTempModel()
+		const tempModel, tempType = CreateTempModel()
+		return tempModel, tempType, nil
 	end
 
-	return model, "NATIVE"
+	return model, "NATIVE", nil
 end
 
 return {
