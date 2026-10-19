@@ -178,7 +178,7 @@ const function CheckEntity(entity: Types.Entity)
 	const primaryPart = Entity.GetPrimaryPart(entity)
 
 	if entity.autoUpdatePosition and primaryPart then
-		Entity.Push(entity, now, primaryPart.CFrame)
+		Entity._Push(entity, now, primaryPart.CFrame)
 	end
 
 	const currentCFrame = entity.latestCFrame

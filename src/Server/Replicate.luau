@@ -131,7 +131,7 @@ const function PushLatest(entity: Types.Entity, time: number)
 			return
 		end
 		const cframe = primaryPart.CFrame
-		Entity.Push(entity, time, cframe)
+		Entity._Push(entity, time, cframe)
 	end
 end
 

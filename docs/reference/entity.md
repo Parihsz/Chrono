@@ -99,7 +99,7 @@ Sets the custom data table for this entity. Can be used to store arbitrary data 
 !!! warning "Server Only"
     This can only be called on the server. Mount state is automatically replicated to clients.
 
-Sets the mount parent of this entity to another entity with an optional offset CFrame. Can be called every frame to animate the offset. Fires `Events.EntityMountChanged`.
+Sets the mount parent of this entity to another entity with an optional offset CFrame. Can be called every frame to animate the offset. Fires `Events.EntityMountChanged`. Errors if `parent` is this entity or is not registered.
 
 - `parent` - The entity to mount this entity to.
 - `offset` - The CFrame offset applied relative to the parent each frame.
@@ -183,11 +183,11 @@ Sets how the client applies interpolated transforms to this entity, overriding t
 
 ### `Destroy(self: Entity) -> ()`
 
-Destroys this entity and unregisters it from the holder. Cleans up model and snapshot data.
+Destroys this entity and unregisters it from the holder. Cleans up model and snapshot data. Calling it again on a destroyed entity does nothing.
 
 ### `GetEvent(self: Entity, eventName: string) -> Event?`
 
-Gets a custom event for this entity by name.
+Gets one of the events listed below by name. Errors on an unknown name.
 
 ## Events
 

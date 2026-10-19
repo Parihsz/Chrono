@@ -21,6 +21,17 @@ const IS_SERVER = RunService:IsServer()
 const LOCAL_PLAYER = if IS_SERVER then nil else Players.LocalPlayer
 
 const CHRONO_PRIMARY = "__CHRONO_PRIMARY"
+const INTERPOLATION_MODES = { CFRAME = true, ALIGN = true, NONE = true }
+const EVENT_NAMES = {
+	Destroying = true,
+	NetworkOwnerChanged = true,
+	PushedSnapShot = true,
+	TickChanged = true,
+	DataChanged = true,
+	Ticked = true,
+	ModelChanged = true,
+	LockChanged = true,
+}
 
 type Entity = Types.Entity
 
@@ -113,6 +124,9 @@ const function FireEvent(entity: Entity, eventName: string, ...: any)
 end
 
 const function GetEvent(self: Entity, eventName: string): Types.Event<any>
+	if not EVENT_NAMES[eventName] then
+		error(`Chrono: Entity.GetEvent got unknown event "{eventName}"`, 2)
+	end
 	if not self._events then
 		self._events = {}
 	end
@@ -429,7 +443,7 @@ function Entity.new(
 	initCFrame: CFrame?
 ): Entity
 	if not READY then
-		error("Entity.new cannot be called until Chrono.Start() is called.")
+		error("Chrono: Entity.new cannot be called until Chrono.Start() is called", 2)
 	end
 	const self = Entity._new(entityConfig, model, modelReplicationMode, initCFrame)
 	Holder.RegisterEntity(self)
@@ -437,9 +451,12 @@ function Entity.new(
 end
 
 --[=[
-	Destroys the entity, unregistering it and cleaning up resources.
+	Destroys the entity, unregistering it and cleaning up resources. Does nothing if already destroyed.
 ]=]
 function Entity.Destroy(self: Entity)
+	if self.destroyed then
+		return
+	end
 	self.destroyed = true
 	FireEvent(self, "Destroying")
 	Holder.UnregisterEntity(self)
@@ -558,7 +575,10 @@ end
 function Entity.LockNativeServerCFrameReplication(self: Entity)
 	if IS_SERVER then
 		if self.modelReplicationMode ~= "NATIVE" then
-			error("LockNativeServerCFrameReplication can only be called on NATIVE model replication mode entities")
+			error(
+				"Chrono: Entity.LockNativeServerCFrameReplication can only be called on NATIVE model replication mode entities",
+				2
+			)
 		end
 		if self._lockedCFReplication then
 			return
@@ -569,7 +589,7 @@ function Entity.LockNativeServerCFrameReplication(self: Entity)
 
 		FireEvent(self, "LockChanged", true)
 	else
-		error("LockNativeServerCFrameReplication can only be called on the server")
+		error("Chrono: Entity.LockNativeServerCFrameReplication can only be called on the server", 2)
 	end
 end
 
@@ -583,7 +603,10 @@ end
 function Entity.UnlockNativeServerCFrameReplication(self: Entity)
 	if IS_SERVER then
 		if self.modelReplicationMode ~= "NATIVE" then
-			error("UnlockNativeServerCFrameReplication can only be called on NATIVE model replication mode entities")
+			error(
+				"Chrono: Entity.UnlockNativeServerCFrameReplication can only be called on NATIVE model replication mode entities",
+				2
+			)
 		end
 		if not self._lockedCFReplication then
 			return
@@ -594,7 +617,7 @@ function Entity.UnlockNativeServerCFrameReplication(self: Entity)
 		CheckNetworkOwner(self, self.networkOwner)
 		FireEvent(self, "LockChanged", false)
 	else
-		error("UnlockNativeServerCFrameReplication can only be called on the server")
+		error("Chrono: Entity.UnlockNativeServerCFrameReplication can only be called on the server", 2)
 	end
 end
 
@@ -635,6 +658,12 @@ end
 	@return Whether the pushed value is the newest.
 ]=]
 function Entity.Push(self: Entity, time: number, value: CFrame, velocity: Vector3?): boolean
+	if type(time) ~= "number" or time ~= time then
+		error(`Chrono: Entity.Push expected time to be a number, got {if time ~= time then "NaN" else typeof(time)}`, 2)
+	end
+	if typeof(value) ~= "CFrame" then
+		error(`Chrono: Entity.Push expected value to be a CFrame, got {typeof(value)}`, 2)
+	end
 	return PushSnapshot(self, time, value, velocity)
 end
 
@@ -709,6 +738,9 @@ end
 	@param cframe The CFrame to set for the entity.
 ]=]
 function Entity.SetCFrame(self: Entity, cframe: CFrame)
+	if typeof(cframe) ~= "CFrame" then
+		error(`Chrono: Entity.SetCFrame expected a CFrame, got {typeof(cframe)}`, 2)
+	end
 	const latestTime = (self.latestTime or 0) + 0.00002
 	if Config.FLAGS.SET_CFRAME_FIX then
 		if IS_SERVER or self.networkOwner then
@@ -721,7 +753,7 @@ function Entity.SetCFrame(self: Entity, cframe: CFrame)
 	if self.snapshot and Config.FLAGS.FIX_TELEPORT_JITTER then
 		self.snapshot.lockedTime = latestTime
 	end
-	Entity.Push(self, latestTime, cframe)
+	PushSnapshot(self, latestTime, cframe)
 	RegisterChange(self, "latestCFrame", cframe, true)
 
 	if self.isContextOwner or not IS_SERVER then
@@ -752,7 +784,7 @@ end
 
 --// Ownership API
 --[=[
-	Sets the network owner of the entity. Does nothing if called on the client.
+	Sets the network owner of the entity. Can only be called on the server.
 
 	@param player The player to set as the network owner. If nil, will clear the network owner.
 ]=]
@@ -761,7 +793,7 @@ function Entity.SetNetworkOwner(self: Entity, player: Player?)
 		SetEntityNetworkOwner(self, player)
 		RegisterChange(self, "isHalfTicked", self.isHalfTicked, true)
 	elseif not IS_SERVER then
-		error("SetNetworkOwner can only be called on the server")
+		error("Chrono: Entity.SetNetworkOwner can only be called on the server", 2)
 	end
 end
 
@@ -805,7 +837,7 @@ end
 ]=]
 function Entity.SetClockBuffer(self: Entity, buffer: number?)
 	if IS_SERVER then
-		error("SetClockBuffer can only be called on the client")
+		error("Chrono: Entity.SetClockBuffer can only be called on the client", 2)
 	end
 	const clientClock = self._clientClock
 	if clientClock and (self.networkOwner or buffer ~= nil) then
@@ -829,9 +861,12 @@ end
 --[=[
 	Switches how the client applies interpolated transforms to this entity.
 
-	@param mode "CFRAME" or "ALIGN".
+	@param mode "CFRAME", "ALIGN" or "NONE".
 ]=]
 function Entity.SetInterpolationMode(self: Entity, mode: Types.INTERPOLATION_MODE)
+	if mode and not INTERPOLATION_MODES[mode] then
+		error(`Chrono: Entity.SetInterpolationMode expected "CFRAME", "ALIGN" or "NONE", got {mode}`, 2)
+	end
 	RegisterChange(self, "_interpolationMode", mode)
 
 	if mode == "ALIGN" then
@@ -907,7 +942,7 @@ end
 ]=]
 function Entity.SetMount(self: Entity, parent: Entity?, offset: CFrame?)
 	if not IS_SERVER then
-		error("SetMount can only be called on the server")
+		error("Chrono: Entity.SetMount can only be called on the server", 2)
 	end
 
 	if parent == nil then
@@ -915,13 +950,11 @@ function Entity.SetMount(self: Entity, parent: Entity?, offset: CFrame?)
 	end
 
 	if self == parent then
-		Warn.medium("An entity cannot mount itself")
-		return
+		error("Chrono: Entity.SetMount cannot mount an entity to itself", 2)
 	end
 
 	if not parent.registered then
-		Warn.high("Parent entity must be registered before mounting")
-		return
+		error("Chrono: Entity.SetMount parent entity must be registered before mounting", 2)
 	end
 
 	RegisterChange(self, "mountParentId", parent.id)
@@ -934,7 +967,7 @@ end
 ]=]
 function Entity.ClearMount(self: Entity)
 	if not IS_SERVER then
-		error("ClearMount can only be called on the server")
+		error("Chrono: Entity.ClearMount can only be called on the server", 2)
 	end
 	if not self.mountParentId then
 		return
@@ -1011,6 +1044,7 @@ Players.PlayerRemoving:Connect(function(player)
 end)
 
 Entity._FireEvent = FireEvent
+Entity._Push = PushSnapshot
 
 Entity._GetPart = GetPart
 Entity._SetPartCFrame = SetPartCFrame

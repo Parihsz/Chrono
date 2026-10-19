@@ -183,7 +183,7 @@ const function HandleNewEntity(data: Types.EntityReceivePacket)
 	entity._lockedCFReplication = data._lockedCFReplication or false
 	entity._interpolationMode = data._interpolationMode
 
-	Entity.Push(entity, data.time, data.cframe)
+	Entity._Push(entity, data.time, data.cframe)
 
 	Entity._SetEntityNetworkOwner(entity, data.networkOwner)
 
@@ -247,7 +247,7 @@ const function PushCFrameFor(
 	if isStop then
 		Entity._PushStopped(entity, time, cframe)
 	else
-		Entity.Push(entity, time, cframe)
+		Entity._Push(entity, time, cframe)
 	end
 	return true
 end

@@ -69,7 +69,7 @@ end
 ]=]
 const function SetAsCharacter(player: Player, entity: Types.Entity)
 	if not idMap[entity.id] or entity.id < 1 then
-		error("Entity must be registered before being set as a player character")
+		error("Chrono: Holder.SetAsCharacter entity must be registered first", 2)
 	end
 	const old: Types.Entity? = playerChars[player]
 	if old then
@@ -88,7 +88,7 @@ end
 ]=]
 const function RegisterEntity(entity: Types.Entity)
 	if entity.destroyed then
-		error("Cannot register a destroyed entity")
+		error("Chrono: Holder.RegisterEntity cannot register a destroyed entity", 2)
 	end
 	if idMap[entity.id] then
 		Warn.medium("Entity is already registered", entity)

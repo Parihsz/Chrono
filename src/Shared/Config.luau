@@ -141,7 +141,9 @@ const MODEL_BROAD_PHASES = {}
 	@param config The configuration for the entity type.
 ]=]
 const function RegisterEntityType(name: string, config: Types.EntityConfigInput)
-	assert(not LOCKED, "Config is locked and cannot be modified after startup.")
+	if LOCKED then
+		error("Chrono: Config.RegisterEntityType must be called before Chrono.Start()", 2)
+	end
 	ENTITY_TYPES[name] = config :: any
 end
 
@@ -155,14 +157,19 @@ end
 ]=]
 const function RegisterEntityModel(name: string, model: Model | BasePart | false, broadPhase: vector | Vector3?)
 	if model ~= false and model:IsA("Model") and not model.PrimaryPart then
-		error(name .. " must have a PrimaryPart to be registered as an entity model.")
+		error(`Chrono: Config.RegisterEntityModel model "{name}" must have a PrimaryPart`, 2)
 	end
 	ENTITY_MODELS[name] = model
 	MODEL_BROAD_PHASES[name] = broadPhase
 end
 
 const SetConfig = function(name, value)
-	assert(not LOCKED, "Config is locked and cannot be modified after startup.")
+	if LOCKED then
+		error("Chrono: Config.SetConfig must be called before Chrono.Start()", 2)
+	end
+	if BASE_CONFIG[name] == nil or name == "__VERSION" then
+		error(`Chrono: Config.SetConfig got unknown config "{name}"`, 2)
+	end
 	BASE_CONFIG[name] = value
 end :: SetConfig
 
@@ -197,7 +204,7 @@ end
 
 const function SetWarningSeverity(level: WarningLevels)
 	if level ~= "NONE" and level ~= "LOW" and level ~= "MEDIUM" and level ~= "HIGH" then
-		error("Invalid warning level: " .. tostring(level))
+		error(`Chrono: Config.SetWarningSeverity expected "NONE", "LOW", "MEDIUM" or "HIGH", got {level}`, 2)
 	end
 	BASE_CONFIG.WARNING_SEVERITY = level
 end

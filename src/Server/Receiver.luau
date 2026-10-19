@@ -183,7 +183,7 @@ const function HandleEntity(
 	end
 	const pushed = if isStop
 		then Entity._PushStopped(entity, serverClock, cframe)
-		else Entity.Push(entity, serverClock, cframe, velocity)
+		else Entity._Push(entity, serverClock, cframe, velocity)
 	if pushed then
 		entity.arriveFrame = Ticker.GetGlobalTick()
 
