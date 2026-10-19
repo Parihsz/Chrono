@@ -130,7 +130,7 @@ const function PushWithCheck<Value, Velocity>(
 	const position = (value :: any).Position
 	local teleported = false
 	if latestData and isNewest and latestData.t == self.stoppedAt then
-		const moved = (position - (latestData.value :: any).Position).Magnitude
+		const moved = vector.magnitude(position - (latestData.value :: any).Position)
 		const gap = timeStamp - latestData.t
 		const travelTime = if self.peakSpeed > 1e-3 then moved / self.peakSpeed else 0
 
@@ -154,7 +154,7 @@ const function PushWithCheck<Value, Velocity>(
 
 	Push(self, timeStamp, value, pushVelocity)
 	if not teleported then
-		self.peakSpeed = math.max((pushVelocity :: any).Magnitude, self.peakSpeed * PEAK_SPEED_DECAY)
+		self.peakSpeed = math.max(vector.magnitude(pushVelocity :: any), self.peakSpeed * PEAK_SPEED_DECAY)
 	end
 end
 

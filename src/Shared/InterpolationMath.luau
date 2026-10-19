@@ -1,3 +1,5 @@
+--!native
+
 const Types = require(script.Parent.Types)
 const Config = require(script.Parent.Config)
 
@@ -5,18 +7,18 @@ const function Hermite(p0: Vector3, p1: Vector3, v0: Vector3, v1: Vector3, t: nu
 	v0 = v0 or Vector3.zero
 	v1 = v1 or Vector3.zero
 	if not dt or dt == 0 then
-		return p0:Lerp(p1, t)
+		return p0 + (p1 - p0) * t
 	end
 
 	-- Cap tangent at 3x the segment length to reduce overshoot.
 	-- https://en.wikipedia.org/wiki/Monotone_cubic_interpolation
 
-	const maxTangent = (p1 - p0).Magnitude * 3
-	const t0Length = v0.Magnitude * dt
+	const maxTangent = vector.magnitude((p1 - p0) :: any) * 3
+	const t0Length = vector.magnitude(v0 :: any) * dt
 	if t0Length > maxTangent then
 		v0 *= maxTangent / t0Length
 	end
-	const t1Length = v1.Magnitude * dt
+	const t1Length = vector.magnitude(v1 :: any) * dt
 	if t1Length > maxTangent then
 		v1 *= maxTangent / t1Length
 	end
@@ -57,19 +59,22 @@ const function CheckIdle(
 		return false
 	end
 	const velocity = latest.velocity
-	const latestSpeed = if velocity then velocity.Magnitude else 0
+	const latestSpeed = if velocity then vector.magnitude(velocity :: any) else 0
 	const moved = position - latest.value.Position
 	const speed = math.max(latestSpeed, peakSpeed or 0)
 
 	const predictedTravel = latestSpeed * gap
-	if predictedTravel > speed * tickrate * 1.5 and (moved - velocity * gap).Magnitude < predictedTravel * 0.15 then
+	if
+		predictedTravel > speed * tickrate * 1.5
+		and vector.magnitude((moved - velocity * gap) :: any) < predictedTravel * 0.15
+	then
 		return false
 	end
 	if speed < 1e-3 then
 		return true
 	end
 
-	return moved.Magnitude < speed * (gap + tickrate) * 0.5
+	return vector.magnitude(moved :: any) < speed * (gap + tickrate) * 0.5
 end
 
 const function VelocityAt(

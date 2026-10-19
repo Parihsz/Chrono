@@ -21,8 +21,6 @@ const IS_SERVER = RunService:IsServer()
 const LOCAL_PLAYER = if IS_SERVER then nil else Players.LocalPlayer
 
 const CHRONO_PRIMARY = "__CHRONO_PRIMARY"
-const POSITION_EPSILON = 0.001
-const ROTATION_EPSILON = 0.001
 
 type Entity = Types.Entity
 
@@ -601,6 +599,7 @@ function Entity.UnlockNativeServerCFrameReplication(self: Entity)
 end
 
 --// CFrame & snapshots
+@native
 const function PushSnapshot(self: Entity, time: number, value: CFrame, velocity: Vector3?, stopped: boolean?): boolean
 	const snapshot = self.snapshot
 	const newer = not self.latestTime or time > self.latestTime
@@ -644,23 +643,12 @@ function Entity._PushStopped(self: Entity, time: number, value: CFrame): boolean
 	return PushSnapshot(self, time, value, nil, true)
 end
 
-function Entity._CFrameChanged(cframe1: CFrame?, cframe2: CFrame?): boolean
-	if cframe1 == cframe2 then
-		return false
-	end
-	if cframe1 == nil or cframe2 == nil then
-		return true
-	end
-	return (cframe1.Position - cframe2.Position).Magnitude > POSITION_EPSILON
-		or (cframe1.LookVector - cframe2.LookVector).Magnitude > ROTATION_EPSILON
-		or (cframe1.UpVector - cframe2.UpVector).Magnitude > ROTATION_EPSILON
-end
-
 -- Records a replicated change for stop events
 function Entity._RecordMove(self: Entity, step: Vector3, gap: number)
 	if gap > 1 then
 		const lastStep = self._lastStep
-		const repeats = lastStep ~= nil and (step - lastStep).Magnitude < lastStep.Magnitude * 0.25
+		const repeats = lastStep ~= nil
+			and vector.magnitude((step - lastStep) :: any) < vector.magnitude(lastStep :: any) * 0.25
 		self._pausedSteps = if repeats then (self._pausedSteps or 0) + 1 else 0
 	end
 	self._stopAfter = if (self._pausedSteps or 0) >= 2 then gap + 1 else nil

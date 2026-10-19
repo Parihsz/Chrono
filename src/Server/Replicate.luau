@@ -30,9 +30,15 @@ local lastHeartbeat = 0
 const CLIENT_CLOCK_SYNC_RATE = 60
 local lastClientClockRelay = 0
 
+const POSITION_EPSILON = 0.001
+const ROTATION_EPSILON = 0.001
+
 const tickers: { Types.Ticker } = {}
 
 Config._WaitForLock(function()
+	if not RunService:IsServer() then
+		return
+	end
 	for _, entityConfig in Config._EntityConfigs do
 		if entityConfig.TICKER then
 			table.insert(tickers, entityConfig.TICKER)
@@ -41,6 +47,18 @@ Config._WaitForLock(function()
 		end
 	end
 end)
+
+const function HasCFrameChanged(cframe1: CFrame?, cframe2: CFrame?): boolean
+	if cframe1 == cframe2 then
+		return false
+	end
+	if cframe1 == nil or cframe2 == nil then
+		return true
+	end
+	return vector.magnitude((cframe1.Position - cframe2.Position) :: any) > POSITION_EPSILON
+		or vector.magnitude((cframe1.LookVector - cframe2.LookVector) :: any) > ROTATION_EPSILON
+		or vector.magnitude((cframe1.UpVector - cframe2.UpVector) :: any) > ROTATION_EPSILON
+end
 
 const function FireEvent(entity: Types.Entity, eventName: string, ...: any)
 	const events = entity._events
@@ -121,7 +139,7 @@ const function CheckForChanges(entity: Types.Entity): CFrame?
 	const lastCFrame = entity.lastCheckedCFrame
 	const currentCFrame = entity.latestCFrame
 
-	if Entity._CFrameChanged(lastCFrame, currentCFrame) then
+	if HasCFrameChanged(lastCFrame, currentCFrame) then
 		entity.lastCheckedCFrame = currentCFrame
 		return currentCFrame
 	end
@@ -366,4 +384,6 @@ Config._WaitForLock(function()
 	RunService.PostSimulation:Connect(Update)
 end)
 
-return nil
+return {
+	HasCFrameChanged = HasCFrameChanged,
+}

@@ -124,7 +124,7 @@ const function UpdateVelocity(driver: AlignDriver, position: Vector3, renderTime
 	const lastPosition = driver.lastPosition
 	if lastTime and lastPosition and renderTime > lastTime and renderTime - lastTime < 0.5 then
 		const velocity = (position - lastPosition) / (renderTime - lastTime)
-		if velocity.Magnitude < MAX_SPEED then
+		if vector.magnitude(velocity :: any) < MAX_SPEED then
 			driver.velocity = velocity
 			table.insert(velocityUpdates, driver)
 		end

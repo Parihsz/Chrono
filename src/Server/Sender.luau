@@ -1,3 +1,4 @@
+--!native
 const RunService = game:GetService("RunService")
 
 const Ticker = require(script.Parent.Parent.Shared.Ticker)
@@ -305,18 +306,21 @@ const function ReplicatePlayer(player: Player)
 end
 
 local lastStatTime = os.clock()
-RunService.Heartbeat:Connect(function()
-	Stats.REPLICATE_PLAYER_TIME_MS = playerReplicateTotal / math.max(playerReplicateCount, 1) * 1000
-	if os.clock() - lastStatTime > 1 then
-		Stats.BYTES_SENT_PER_SEC = BytesSentPerSec
-		Stats.PACKETS_SENT_PER_SEC = PacketsSentPerSec
-		BytesSentPerSec = 0
-		PacketsSentPerSec = 0
-		lastStatTime = os.clock()
-		playerReplicateTotal = 0
-		playerReplicateCount = 0
-	end
-end)
+
+if RunService:IsServer() then
+	RunService.Heartbeat:Connect(function()
+		Stats.REPLICATE_PLAYER_TIME_MS = playerReplicateTotal / math.max(playerReplicateCount, 1) * 1000
+		if os.clock() - lastStatTime > 1 then
+			Stats.BYTES_SENT_PER_SEC = BytesSentPerSec
+			Stats.PACKETS_SENT_PER_SEC = PacketsSentPerSec
+			BytesSentPerSec = 0
+			PacketsSentPerSec = 0
+			lastStatTime = os.clock()
+			playerReplicateTotal = 0
+			playerReplicateCount = 0
+		end
+	end)
+end
 
 return {
 	ReplicatePlayer = ReplicatePlayer,

@@ -6,6 +6,7 @@ const Holder = require(Shared.Holder)
 const Types = require(Shared.Types)
 const Entity = require(Shared.Entity)
 const ClockUnwrap = require(Shared.ClockUnwrap)
+const ServerReplicate = require(script.Parent.Parent.Server.Replicate)
 const UnreliableEvent = Shared.Remotes.Replicate
 const SafeReplicateEvent = Shared.Remotes.SafeReplicate
 
@@ -182,7 +183,7 @@ const function CheckEntity(entity: Types.Entity)
 
 	const currentCFrame = entity.latestCFrame
 	const lastCFrame = entity.lastCheckedCFrame
-	if currentCFrame and Entity._CFrameChanged(lastCFrame, currentCFrame) then
+	if currentCFrame and ServerReplicate.HasCFrameChanged(lastCFrame, currentCFrame) then
 		entity.lastReplicatedTime = now
 		const fullCFrame = config.FULL_ROTATION
 		entity.lastCheckedCFrame = currentCFrame

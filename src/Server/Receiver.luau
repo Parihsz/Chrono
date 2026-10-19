@@ -1,3 +1,4 @@
+--!native
 const RunService = game:GetService("RunService")
 const Players = game:GetService("Players")
 const Receiver = {}
