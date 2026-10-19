@@ -8,6 +8,19 @@ const function Hermite(p0: Vector3, p1: Vector3, v0: Vector3, v1: Vector3, t: nu
 		return p0:Lerp(p1, t)
 	end
 
+	-- Cap tangent at 3x the segment length to reduce overshoot.
+	-- https://en.wikipedia.org/wiki/Monotone_cubic_interpolation
+
+	const maxTangent = (p1 - p0).Magnitude * 3
+	const t0Length = v0.Magnitude * dt
+	if t0Length > maxTangent then
+		v0 *= maxTangent / t0Length
+	end
+	const t1Length = v1.Magnitude * dt
+	if t1Length > maxTangent then
+		v1 *= maxTangent / t1Length
+	end
+
 	const t2 = t * t
 	const t3 = t2 * t
 	const h00 = 2 * t3 - 3 * t2 + 1
@@ -36,32 +49,42 @@ const function CheckIdle(
 	latest: Types.SnapshotData<CFrame, Vector3>,
 	t: number,
 	position: Vector3,
-	tickrate: number
+	tickrate: number,
+	peakSpeed: number?
 ): boolean
 	const gap = t - latest.t
 	if gap <= tickrate * 3 or not Config.FLAGS.SNAPSHOT_INTERPOLATION_FIX then
 		return false
 	end
 	const velocity = latest.velocity
-	const speed = if velocity then velocity.Magnitude else 0
+	const latestSpeed = if velocity then velocity.Magnitude else 0
+	const moved = position - latest.value.Position
+	const speed = math.max(latestSpeed, peakSpeed or 0)
+	
+	const predictedTravel = latestSpeed * gap
+	if predictedTravel > speed * tickrate * 1.5 and (moved - velocity * gap).Magnitude < predictedTravel * 0.15 then
+		return false
+	end
 	if speed < 1e-3 then
 		return true
 	end
-	return (position - latest.value.Position).Magnitude < speed * (gap - tickrate) * 0.5
+
+	return moved.Magnitude < speed * (gap + tickrate) * 0.5
 end
 
 const function VelocityAt(
 	latest: Types.SnapshotData<CFrame, Vector3>?,
 	t: number,
 	cframe: CFrame,
-	tickrate: number?
+	tickrate: number?,
+	peakSpeed: number?
 ): Vector3
 	if not latest then
 		return Vector3.zero
 	end
 	const rate = tickrate or 1 / 20
 	const position = cframe.Position
-	if t - latest.t > rate * 3 and not CheckIdle(latest, t, position, rate) then
+	if t - latest.t > rate * 3 and not CheckIdle(latest, t, position, rate, peakSpeed) then
 		return (position - latest.value.Position) / (t - latest.t)
 	end
 	return CalculateVelocity(latest.value.Position, latest.t, position, t, rate)
@@ -70,6 +93,6 @@ end
 return {
 	Hermite = Hermite,
 	VelocityAt = VelocityAt,
-	IsIdleGap = CheckIdle,
+	CheckIdle = CheckIdle,
 	CalculateVelocity = CalculateVelocity,
 }

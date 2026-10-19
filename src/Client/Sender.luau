@@ -26,6 +26,7 @@ const TAU = math.pi * 2
 
 local clock = 0
 local hasTeleport = false
+local hasStop = false
 
 const function MapRotation(radians: number): number
 	return math.round((radians + math.pi) / (TAU / 65535))
@@ -86,8 +87,7 @@ const function Flush()
 	const copy = buffer.create(INDEX + 4)
 	buffer.writeu32(copy, 0, ClockUnwrap.quantize(clock))
 	buffer.copy(copy, 4, BUFFER, 0, INDEX)
-	if hasTeleport then
-		-- ensures that the teleport flag is sent and not dropped
+	if hasTeleport or hasStop then
 		SafeReplicateEvent:FireServer(copy)
 	else
 		UnreliableEvent:FireServer(copy)
@@ -96,7 +96,14 @@ const function Flush()
 	INDEX = 0
 end
 
-const function WriteEntity(id: number, cf: CFrame, fullCFrame: boolean?, halfTicked: boolean?, teleport: boolean?)
+const function WriteEntity(
+	id: number,
+	cf: CFrame,
+	fullCFrame: boolean?,
+	halfTicked: boolean?,
+	teleport: boolean?,
+	stop: boolean?
+)
 	const length = if fullCFrame then FULL_BYTES else YAW_BYTES
 
 	if INDEX + length > MAX_BUFFER_SIZE then
@@ -115,6 +122,10 @@ const function WriteEntity(id: number, cf: CFrame, fullCFrame: boolean?, halfTic
 		packed += 4
 	end
 
+	if stop then
+		packed += 8
+	end
+
 	buffer.writeu8(BUFFER, INDEX, packed)
 	INDEX += 1
 
@@ -123,16 +134,6 @@ const function WriteEntity(id: number, cf: CFrame, fullCFrame: boolean?, halfTic
 	else
 		INDEX = SerializeYaw(BUFFER, cf, INDEX)
 	end
-end
-
-const function CFrameChanged(cframe1: CFrame?, cframe2: CFrame?): boolean
-	if cframe1 == cframe2 then
-		return false
-	end
-	if cframe1 == nil or cframe2 == nil then
-		return true
-	end
-	return cframe1:FuzzyEq(cframe2, 0.0001) == false
 end
 
 --//This is to catch an edge case where the primarypart hasn't been replicated
@@ -181,7 +182,7 @@ const function CheckEntity(entity: Types.Entity)
 
 	const currentCFrame = entity.latestCFrame
 	const lastCFrame = entity.lastCheckedCFrame
-	if currentCFrame and CFrameChanged(lastCFrame, currentCFrame) then
+	if currentCFrame and Entity._CFrameChanged(lastCFrame, currentCFrame) then
 		entity.lastReplicatedTime = now
 		const fullCFrame = config.FULL_ROTATION
 		entity.lastCheckedCFrame = currentCFrame
@@ -189,6 +190,17 @@ const function CheckEntity(entity: Types.Entity)
 		hasTeleport = hasTeleport or teleport
 		WriteEntity(entity.id, currentCFrame, fullCFrame, entity.isHalfTicked, teleport)
 		entity._teleport = nil
+		const step = if lastCFrame then currentCFrame.Position - lastCFrame.Position else Vector3.zero
+		const paused = (entity._idleTicks or 0) > 0
+		Entity._RecordMove(entity, step, if paused then math.max(math.round(difference / tickRate), 2) else 1)
+	elseif currentCFrame then
+		const idleTicks = difference // tickRate
+		const stopAfter = entity._stopAfter or 1
+		if idleTicks >= stopAfter and (entity._idleTicks or 0) < stopAfter then
+			hasStop = true
+			WriteEntity(entity.id, currentCFrame, config.FULL_ROTATION, entity.isHalfTicked, false, true)
+		end
+		entity._idleTicks = idleTicks
 	end
 end
 
@@ -200,6 +212,7 @@ const function Update()
 
 	Flush()
 	hasTeleport = false
+	hasStop = false
 end
 
 return {

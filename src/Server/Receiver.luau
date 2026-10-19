@@ -83,13 +83,14 @@ const function DeserializeYaw(b: buffer, index: number): CFrame
 	return CFrame.new(x, y, z) * CFrame.fromOrientation(0, ry, 0)
 end
 
-const function DeserializeEntityPacket(b: buffer, index: number): (number, CFrame, number, boolean)
+const function DeserializeEntityPacket(b: buffer, index: number): (number, CFrame, number, boolean, boolean)
 	const id = buffer.readu16(b, index)
 	index += 2
 	const packed = buffer.readu8(b, index)
 	index += 1
 	const isFull = bit32.band(packed, 1) == 1
 	const isTeleport = bit32.band(packed, 4) == 4
+	const isStop = bit32.band(packed, 8) == 8
 
 	local cframe: CFrame
 	if isFull then
@@ -100,7 +101,7 @@ const function DeserializeEntityPacket(b: buffer, index: number): (number, CFram
 		index += YAW_BYTES
 	end
 
-	return id, cframe, index, isTeleport
+	return id, cframe, index, isTeleport, isStop
 end
 
 const function CalculateMaxThroughputForPlayer(player: Player): number
@@ -118,7 +119,8 @@ const function HandleEntity(
 	clientClock: number,
 	cframe: CFrame,
 	copyB: buffer,
-	isTeleport: boolean
+	isTeleport: boolean,
+	isStop: boolean
 )
 	const entity = Holder.GetEntityFromId(id)
 	if not entity or entity.networkOwner ~= player then
@@ -150,6 +152,12 @@ const function HandleEntity(
 		return
 	end
 
+	if isStop and entity.snapshot and entity.snapshot.stoppedAt then
+		isStop = false
+		const packed = buffer.readu8(copyB, 2)
+		buffer.writeu8(copyB, 2, bit32.band(packed, bit32.bnot(8)))
+	end
+
 	debug.profilebegin("HandleEntity.FireMiddleMans")
 	if FireMiddleMans(player, entity, cframe, serverClock) then
 		debug.profileend()
@@ -172,7 +180,10 @@ const function HandleEntity(
 			)
 		end
 	end
-	if Entity.Push(entity, serverClock, cframe, velocity) then
+	const pushed = if isStop
+		then Entity._PushStopped(entity, serverClock, cframe)
+		else Entity.Push(entity, serverClock, cframe, velocity)
+	if pushed then
 		entity.arriveFrame = Ticker.GetGlobalTick()
 
 		entity.lastClientClock = clientClock
@@ -207,11 +218,11 @@ const function OnReceive(player: Player, data: buffer)
 	ServerClock.Store(player, clientClock)
 
 	while index < dataLength do
-		const id, cframe, newIndex, isTeleport = DeserializeEntityPacket(data, index)
+		const id, cframe, newIndex, isTeleport, isStop = DeserializeEntityPacket(data, index)
 		const copy = buffer.create(newIndex - index)
 		buffer.copy(copy, 0, data, index, newIndex - index)
 		index = newIndex
-		HandleEntity(player, id, serverClock, clientClock, cframe, copy, isTeleport)
+		HandleEntity(player, id, serverClock, clientClock, cframe, copy, isTeleport, isStop)
 	end
 	debug.profileend()
 end

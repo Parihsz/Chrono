@@ -198,7 +198,8 @@ const function PushCFrameFor(
 	cframe: CFrame,
 	time: number,
 	isHalfTick: boolean,
-	teleport: boolean?
+	teleport: boolean?,
+	isStop: boolean?
 ): boolean
 	const entity = Holder.GetEntityFromId(id)
 	if not entity then
@@ -223,13 +224,15 @@ const function PushCFrameFor(
 			else
 				renderCache:SetTickRate(renderCache._baseTickRate)
 			end
-			renderCache:OnSnapShot(time)
+			if not isStop then
+				renderCache:OnSnapShot(time)
+			end
 		end
 	else
 		const renderCaches = entity.entityConfig.CLIENT_CLOCK
 		if renderCaches then
 			const renderCache = isHalfTick and renderCaches.HALF or renderCaches.NORMAL
-			if renderCache then
+			if renderCache and not isStop then
 				renderCache:OnSnapShot(time)
 			end
 		end
@@ -240,7 +243,11 @@ const function PushCFrameFor(
 	end
 	entity.isHalfTicked = isHalfTick
 
-	Entity.Push(entity, time, cframe)
+	if isStop then
+		Entity._PushStopped(entity, time, cframe)
+	else
+		Entity.Push(entity, time, cframe)
+	end
 	return true
 end
 
@@ -262,6 +269,7 @@ const function HandleClientOwned(b: buffer)
 			const isFull = bit32.band(packed, 1) == 1
 			const isHalfTickRate = bit32.band(packed, 2) == 2
 			const teleport = bit32.band(packed, 4) == 4
+			const isStop = bit32.band(packed, 8) == 8
 			local cf: CFrame
 			if isFull then
 				cf = DeserializeFull(b, index)
@@ -282,12 +290,12 @@ const function HandleClientOwned(b: buffer)
 			end
 
 			const time = ClockUnwrap.unwrapFor(ClientOwnedWrap, owner or "__unknown", rawTime)
-			PushCFrameFor(id, true, cf, time, isHalfTickRate, teleport)
+			PushCFrameFor(id, true, cf, time, isHalfTickRate, teleport, isStop)
 		end
 	end
 end
 
-const function HandleServerOwned(b: buffer)
+const function HandleServerOwned(b: buffer, isStop: boolean?)
 	const bLen = buffer.len(b)
 	BytesReceived += bLen
 	local index = 0
@@ -307,7 +315,7 @@ const function HandleServerOwned(b: buffer)
 				cframe = DeserializeYaw(b, index)
 				index += YAW_BYTES
 			end
-			PushCFrameFor(id, false, cframe, lastTicked, isHalfTickRate)
+			PushCFrameFor(id, false, cframe, lastTicked, isHalfTickRate, nil, isStop)
 		end
 	end
 end
@@ -347,6 +355,15 @@ end
 
 UnreliableEvent.OnClientEvent:Connect(HandleUnreliable)
 ReliableEvent.OnClientEvent:Connect(HandleReliable)
+Shared.Remotes.SafeReplicate.OnClientEvent:Connect(function(id: string, data: buffer)
+	if id == "X" then
+		HandleServerOwned(data, true)
+	elseif id == "O" then 
+		HandleClientOwned(data)
+	else
+		Warn.high("Unknown replicate id", id)
+	end
+end)
 
 HeartbeatRemote.OnClientEvent:Connect(function(time: number)
 	const unwrapped = ClockUnwrap.unwrap(ServerWrap, ClockUnwrap.quantize(time))

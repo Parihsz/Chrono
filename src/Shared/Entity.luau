@@ -15,13 +15,14 @@ const AlignDriver = require(script.Parent.Parent.Client.AlignDriver)
 const Warn = require(script.Parent.Warn)
 const HumanoidState = require(script.Parent.HumanoidState)
 const CFrameLock = require(script.Parent.CFrameLock)
-const VelocityAt = InterpolationMath.VelocityAt
 
 const clientOwned = Holder._clientOwned
 const IS_SERVER = RunService:IsServer()
 const LOCAL_PLAYER = if IS_SERVER then nil else Players.LocalPlayer
 
 const CHRONO_PRIMARY = "__CHRONO_PRIMARY"
+const POSITION_EPSILON = 0.001
+const ROTATION_EPSILON = 0.001
 
 type Entity = Types.Entity
 
@@ -600,16 +601,7 @@ function Entity.UnlockNativeServerCFrameReplication(self: Entity)
 end
 
 --// CFrame & snapshots
---[=[
-	Pushes a new CFrame value into the entity's snapshot.
-
-	@param time The time associated with the CFrame value.
-	@param value The CFrame value to push.
-	@param velocity Optional velocity to push with the snapshot. If not provided, will be calculated based on the latest snapshot value.
-
-	@return Whether the pushed value is the newest.
-]=]
-function Entity.Push(self: Entity, time: number, value: CFrame, velocity: Vector3?): boolean
+const function PushSnapshot(self: Entity, time: number, value: CFrame, velocity: Vector3?, stopped: boolean?): boolean
 	const snapshot = self.snapshot
 	const newer = not self.latestTime or time > self.latestTime
 	if newer then
@@ -627,15 +619,53 @@ function Entity.Push(self: Entity, time: number, value: CFrame, velocity: Vector
 		end
 		const baseTickRate = self.entityConfig.TICK_RATE
 		const tickrate = if self.isHalfTicked then baseTickRate * 2 else baseTickRate
-		snapshot:PushWithCheck(
-			time,
-			value,
-			velocity or VelocityAt(snapshot:GetLatest(), time, value, tickrate),
-			tickrate
-		)
+		-- for 2.2.4+ velocity calculation is done in the snapshot rather here
+		snapshot:PushWithCheck(time, value, velocity, tickrate, stopped)
 	end
 	FireEvent(self, "PushedSnapShot", time, value, newer)
 	return newer
+end
+
+--[=[
+	Pushes a new CFrame value into the entity's snapshot.
+
+	@param time The time associated with the CFrame value.
+	@param value The CFrame value to push.
+	@param velocity Optional velocity to push with the snapshot. If not provided, will be calculated based on the latest snapshot value.
+
+	@return Whether the pushed value is the newest.
+]=]
+function Entity.Push(self: Entity, time: number, value: CFrame, velocity: Vector3?): boolean
+	return PushSnapshot(self, time, value, velocity)
+end
+
+-- pushes a stopped snapshot 
+function Entity._PushStopped(self: Entity, time: number, value: CFrame): boolean
+	return PushSnapshot(self, time, value, nil, true)
+end
+
+function Entity._CFrameChanged(cframe1: CFrame?, cframe2: CFrame?): boolean
+	if cframe1 == cframe2 then
+		return false
+	end
+	if cframe1 == nil or cframe2 == nil then
+		return true
+	end
+	return (cframe1.Position - cframe2.Position).Magnitude > POSITION_EPSILON
+		or (cframe1.LookVector - cframe2.LookVector).Magnitude > ROTATION_EPSILON
+		or (cframe1.UpVector - cframe2.UpVector).Magnitude > ROTATION_EPSILON
+end
+
+-- Records a replicated change for stop events
+function Entity._RecordMove(self: Entity, step: Vector3, gap: number)
+	if gap > 1 then
+		const lastStep = self._lastStep
+		const repeats = lastStep ~= nil and (step - lastStep).Magnitude < lastStep.Magnitude * 0.25
+		self._pausedSteps = if repeats then (self._pausedSteps or 0) + 1 else 0
+	end
+	self._stopAfter = if (self._pausedSteps or 0) >= 2 then gap + 1 else nil
+	self._lastStep = step
+	self._idleTicks = 0
 end
 
 --[=[

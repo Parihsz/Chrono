@@ -11,6 +11,7 @@ const InterpolationMath = require(script.Parent.InterpolationMath)
 const Warn = require(script.Parent.Warn)
 
 local MAX_LENGTH: number
+const PEAK_SPEED_DECAY = 0.98
 
 Config._WaitForLock(function()
 	MAX_LENGTH = Config._GetConfig("MAX_SNAPSHOT_COUNT")
@@ -94,12 +95,15 @@ const function Push<Value, Velocity>(self: Snapshot<Value, Velocity>, timeStamp:
 			self.cache[insertIndex] = newData
 			self.count += 1
 		else
-			for i = 1, insertionPos - 1 do
+			if insertionPos == 1 then
+				return
+			end
+			for i = 1, insertionPos - 2 do
 				const fromIndex = GetBufferIndex(self.head, i + 1)
 				const toIndex = GetBufferIndex(self.head, i)
 				self.cache[toIndex] = self.cache[fromIndex]
 			end
-			const insertIndex = GetBufferIndex(self.head, insertionPos)
+			const insertIndex = GetBufferIndex(self.head, insertionPos - 1)
 			self.cache[insertIndex] = newData
 		end
 	end
@@ -109,15 +113,49 @@ const function PushWithCheck<Value, Velocity>(
 	self: Snapshot<Value, Velocity>,
 	timeStamp: number,
 	value: Value,
-	velocity: Velocity,
-	tickrate: number
+	velocity: Velocity?,
+	tickrate: number,
+	stopped: boolean?
 )
 	const latestData = GetLatest(self)
-	if latestData and InterpolationMath.IsIdleGap(latestData :: any, timeStamp, (value :: any).Position, tickrate) then
+	const isNewest = not latestData or timeStamp > latestData.t
+	if stopped then
+		Push(self, timeStamp, value, vector.zero :: any)
+		if isNewest then
+			self.stoppedAt = timeStamp
+		end
+		return
+	end
+
+	const position = (value :: any).Position
+	local teleported = false
+	if latestData and isNewest and latestData.t == self.stoppedAt then
+		const moved = (position - (latestData.value :: any).Position).Magnitude
+		const gap = timeStamp - latestData.t
+		const travelTime = if self.peakSpeed > 1e-3 then moved / self.peakSpeed else 0
+
+		teleported = travelTime > tickrate * 5
+		const startAt = timeStamp - (if teleported then tickrate else math.max(tickrate, travelTime))
+		if startAt > latestData.t and gap > tickrate * 1.5 then
+			Push(self, startAt, latestData.value, vector.zero :: any)
+		end
+	elseif
+		latestData and InterpolationMath.CheckIdle(latestData :: any, timeStamp, position, tickrate, self.peakSpeed)
+	then
 		latestData.velocity = vector.zero :: any
 		Push(self, timeStamp - tickrate, latestData.value, vector.zero :: any)
 	end
-	Push(self, timeStamp, value, velocity)
+	if isNewest then
+		self.stoppedAt = nil
+	end
+
+	const pushVelocity: Velocity = velocity
+		or InterpolationMath.VelocityAt(GetLatest(self) :: any, timeStamp, value :: any, tickrate, self.peakSpeed) :: any
+		
+	Push(self, timeStamp, value, pushVelocity)
+	if not teleported then
+		self.peakSpeed = math.max((pushVelocity :: any).Magnitude, self.peakSpeed * PEAK_SPEED_DECAY)
+	end
 end
 
 const function GetAt<Value, Velocity>(self: Snapshot<Value, Velocity>, at: number, bypassLock: boolean?): Value?
@@ -192,6 +230,8 @@ const function Clear<Value, Velocity>(self: Snapshot<Value, Velocity>)
 	self.head = 1
 	self.count = 0
 	self.lockedTime = 0
+	self.peakSpeed = 0
+	self.stoppedAt = nil
 end
 
 const function New<Value, Velocity>(
@@ -202,12 +242,12 @@ const function New<Value, Velocity>(
 		cache[i] = { t = 0, value = (nil :: any) :: Value, velocity = (nil :: any) :: Velocity }
 	end
 
-
 	return {
 		cache = cache,
 		head = 1,
 		count = 0,
 		lockedTime = 0,
+		peakSpeed = 0,
 		Lerp = lerpFunction,
 
 		Push = Push,

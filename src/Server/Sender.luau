@@ -21,6 +21,7 @@ const BUFFER = buffer.create(MAX_BUFFER_SIZE + 51)
 type BufferHolder = { [Types.Ticker]: { buffer } }
 const UnreliableEvent = Shared.Remotes.Replicate
 const ReliableEvent = Shared.Remotes.ReplicateFull
+const SafeReplicateEvent = Shared.Remotes.SafeReplicate
 
 const function WriteTickerHeader(b: buffer, index: number, ticker: Types.Ticker, isHalf: boolean?): number
 	const lastTicked = ticker.lastTicked
@@ -40,16 +41,17 @@ const function WriteTickerHeader(b: buffer, index: number, ticker: Types.Ticker,
 	return index
 end
 
-const function Flush(player, index: number, id)
+const function Flush(player, index: number, id, event: (RemoteEvent | UnreliableRemoteEvent)?)
 	const copy = buffer.create(index)
 	buffer.copy(copy, 0, BUFFER, 0, index)
 
-	UnreliableEvent:FireClient(player, id, copy)
+	const remote: any = event or UnreliableEvent
+	remote:FireClient(player, id, copy)
 	BytesSentPerSec += index
 	PacketsSentPerSec += 1
 end
 
-const function FlushClientOwned(player, buffersT: { [number]: { buffer } })
+const function FlushClientOwned(player, buffersT: { [number]: { buffer } }, event: RemoteEvent?)
 	local index = 0
 
 	for time, buffers in buffersT do
@@ -65,7 +67,7 @@ const function FlushClientOwned(player, buffersT: { [number]: { buffer } })
 
 			if index + sizeOffset > MAX_BUFFER_SIZE then
 				buffer.writeu8(BUFFER, indexToWriteLength, length)
-				Flush(player, index, "O")
+				Flush(player, index, "O", event)
 				index = 0
 				buffer.writeu32(BUFFER, index, quantized)
 				index += 4
@@ -83,11 +85,11 @@ const function FlushClientOwned(player, buffersT: { [number]: { buffer } })
 	end
 
 	if index > 0 then
-		Flush(player, index, "O")
+		Flush(player, index, "O", event)
 	end
 end
 
-const function FlushEntities(player, buffers: BufferHolder, isHalf: boolean?)
+const function FlushEntities(player, buffers: BufferHolder, isHalf: boolean?, event: RemoteEvent?)
 	local index = 0
 	const BUFFER = BUFFER
 	for ticker, bufferT in buffers do
@@ -100,7 +102,7 @@ const function FlushEntities(player, buffers: BufferHolder, isHalf: boolean?)
 		for _, buf in bufferT do
 			if index + sizeOffset > MAX_BUFFER_SIZE then
 				buffer.writeu8(BUFFER, indexToWriteLength, length)
-				Flush(player, index, "X")
+				Flush(player, index, "X", event)
 				index = WriteTickerHeader(BUFFER, 0, ticker, isHalf)
 				indexToWriteLength = index
 				index += 1
@@ -116,8 +118,17 @@ const function FlushEntities(player, buffers: BufferHolder, isHalf: boolean?)
 	end
 
 	if index > 0 then
-		Flush(player, index, "X")
+		Flush(player, index, "X", event)
 	end
+end
+
+const function AddBuffer(holder: BufferHolder, ticker: Types.Ticker, b: buffer)
+	local bufferTable = holder[ticker]
+	if not bufferTable then
+		bufferTable = {}
+		holder[ticker] = bufferTable
+	end
+	table.insert(bufferTable, b)
 end
 
 --//honestly tables should beeeee fine for nowww, could buffer it later if reallllly needed
@@ -189,10 +200,13 @@ const function ReplicatePlayer(player: Player)
 	const toSendFull = {}
 	const toRemove = {}
 	const clientOwned = {}
+	const clientReliable = {}
 	const entityChanges = {}
 
 	const normalBuffers: BufferHolder = {}
 	const halfBuffers: BufferHolder = {}
+	const normalStops: BufferHolder = {}
+	const halfStops: BufferHolder = {}
 	const frameTimeNow = Ticker.GetGlobalTick()
 
 	const function HandleClientEntities(entity: Types.Entity)
@@ -203,11 +217,14 @@ const function ReplicatePlayer(player: Player)
 			return
 		end
 		const clientTime = entity.lastClientClock or 0
-		if not clientOwned[clientTime] then
-			clientOwned[clientTime] = {}
+		const cframeBuffer = entity.cframeBuffer :: buffer
+		const reliable = bit32.band(buffer.readu8(cframeBuffer, 2), 12) ~= 0 -- teleport or stop
+		const target = if reliable then clientReliable else clientOwned
+		if not target[clientTime] then
+			target[clientTime] = {}
 		end
 
-		table.insert(clientOwned[clientTime], entity.cframeBuffer :: buffer)
+		table.insert(target[clientTime], cframeBuffer)
 	end
 
 	const function Handle(entity: Types.Entity, isNormal: boolean)
@@ -235,23 +252,26 @@ const function ReplicatePlayer(player: Player)
 		end
 
 		const ticker = entity._ticker
-		if not (ticker and ticker.tickedFrame == frameTimeNow and entity.cframeBuffer) then
+		if not (ticker and ticker.tickedFrame == frameTimeNow) then
 			return
 		end
 
 		const isHalf = entity.isHalfTicked or not isNormal
+		const cframeBuffer = entity.cframeBuffer
+
+		if cframeBuffer and (entity._idleTicks or 0) > 0 then
+			AddBuffer(isHalf and halfStops or normalStops, ticker, cframeBuffer)
+			return
+		end
 
 		if isHalf and not ticker.tickedHalf then
 			return
 		end
 
-		const buffers = if isHalf then halfBuffers else normalBuffers
-		local bufferTable = buffers[ticker]
-		if not bufferTable then
-			bufferTable = {}
-			buffers[ticker] = bufferTable
+		const toSend = if isHalf then cframeBuffer or entity._halfBuffer else cframeBuffer
+		if toSend then
+			AddBuffer(isHalf and halfBuffers or normalBuffers, ticker, toSend)
 		end
-		table.insert(bufferTable, entity.cframeBuffer)
 	end
 	const startTime = os.clock()
 	for _, entity in normal do
@@ -270,6 +290,10 @@ const function ReplicatePlayer(player: Player)
 	FlushClientOwned(player, clientOwned)
 	FlushEntities(player, normalBuffers)
 	FlushEntities(player, halfBuffers, true)
+
+	FlushClientOwned(player, clientReliable, SafeReplicateEvent)
+	FlushEntities(player, normalStops, false, SafeReplicateEvent)
+	FlushEntities(player, halfStops, true, SafeReplicateEvent)
 
 	if #toRemove > 0 or #toSendFull > 0 or #entityChanges > 0 then
 		ReliableEvent:FireClient(player, toSendFull, toRemove, entityChanges)

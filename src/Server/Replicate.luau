@@ -94,14 +94,15 @@ const function SerializeYaw(b: buffer, cf: CFrame, index: number)
 	return index
 end
 
-const function CFrameChanged(cframe1: CFrame?, cframe2: CFrame?): boolean
-	if cframe1 == cframe2 then
-		return false
+const function SerializeEntityCFrame(id: number, cframe: CFrame, useFull: boolean): buffer
+	const b = buffer.create(if useFull then FULL_BYTES else YAW_BYTES)
+	buffer.writeu16(b, 0, id)
+	if useFull then
+		SerializeFull(b, cframe, 2)
+	else
+		SerializeYaw(b, cframe, 2)
 	end
-	if cframe1 == nil or cframe2 == nil then
-		return true
-	end
-	return cframe1:FuzzyEq(cframe2, 0.0001) == false
+	return b
 end
 
 const function PushLatest(entity: Types.Entity, time: number)
@@ -120,7 +121,7 @@ const function CheckForChanges(entity: Types.Entity): CFrame?
 	const lastCFrame = entity.lastCheckedCFrame
 	const currentCFrame = entity.latestCFrame
 
-	if CFrameChanged(lastCFrame, currentCFrame) then
+	if Entity._CFrameChanged(lastCFrame, currentCFrame) then
 		entity.lastCheckedCFrame = currentCFrame
 		return currentCFrame
 	end
@@ -138,6 +139,7 @@ const function CheckEntity(entity: Types.Entity, ticker: Types.Ticker, useFull: 
 	end
 
 	const entityIsHalf = entity.isHalfTicked
+	entity._halfBuffer = nil
 	if (entityIsHalf and not isHalfTick) or entity.paused then
 		entity.cframeBuffer = nil
 		return
@@ -149,26 +151,28 @@ const function CheckEntity(entity: Types.Entity, ticker: Types.Ticker, useFull: 
 	end
 
 	PushLatest(entity, ticker.lastTicked)
+	const previous = entity.lastCheckedCFrame
 	const changes = CheckForChanges(entity)
 
 	if changes then
 		if entity.id == 0 then
 			Warn.high(entity, "has an id of 0, skipping replication")
+			entity.cframeBuffer = nil
 			return
 		end
-		if useFull then
-			const b = buffer.create(FULL_BYTES)
-			buffer.writeu16(b, 0, entity.id)
-			SerializeFull(b, changes, 2)
-			entity.cframeBuffer = b
-		else
-			const b = buffer.create(YAW_BYTES)
-			buffer.writeu16(b, 0, entity.id)
-			SerializeYaw(b, changes, 2)
-			entity.cframeBuffer = b
-		end
+		entity.cframeBuffer = SerializeEntityCFrame(entity.id, changes, useFull)
+		const step = if previous then changes.Position - previous.Position else Vector3.zero
+		Entity._RecordMove(entity, step, (entity._idleTicks or 0) + 1)
 	else
 		entity.cframeBuffer = nil
+		const idleTicks = (entity._idleTicks or 0) + 1
+		entity._idleTicks = idleTicks
+		const resting = entity.lastCheckedCFrame
+		if resting and idleTicks == (entity._stopAfter or 1) then
+			entity.cframeBuffer = SerializeEntityCFrame(entity.id, resting, useFull)
+		elseif resting and isHalfTick and idleTicks == 1 and not entityIsHalf then
+			entity._halfBuffer = SerializeEntityCFrame(entity.id, resting, useFull)
+		end
 	end
 end
 

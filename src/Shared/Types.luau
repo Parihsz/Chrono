@@ -59,6 +59,8 @@ export type Snapshot<Value, Velocity> = {
 	head: number,
 	count: number,
 	lockedTime: number,
+	peakSpeed: number,
+	stoppedAt: number?, -- time of the newest snapshot if it is where the entity stopped
 	Lerp: (p0: Vector3, p1: Vector3, v0: Velocity, v1: Velocity, t: number, dt: number) -> Vector3,
 
 	Push: (self: Snapshot<Value, Velocity>, t: number, value: Value, velocity: Velocity) -> (),
@@ -66,8 +68,9 @@ export type Snapshot<Value, Velocity> = {
 		self: Snapshot<Value, Velocity>,
 		t: number,
 		value: Value,
-		velocity: Velocity,
-		tickrate: number
+		velocity: Velocity?,
+		tickrate: number,
+		stopped: boolean?
 	) -> (),
 
 	GetLatest: (self: Snapshot<Value, Velocity>) -> SnapshotData<Value, Velocity>?,
@@ -249,6 +252,11 @@ export type Entity = {
 	_ticker: Ticker?,
 	_tickerIndex: number?,
 	cframeBuffer: buffer?, -- serialized cframe to send this frame
+	_idleTicks: number?, -- ticks in a row with no change
+	_stopAfter: number?, -- unchanged ticks before a pause counts as a stop (1 if nil)
+	_lastStep: Vector3?, 
+	_pausedSteps: number?, -- changes in a row that came after a pause and repeated the step before
+	_halfBuffer: buffer?, -- serialized resting cframe for half rate 
 	arriveFrame: number?, -- tick a client owned update arrived on
 
 	-- Interpolation (Client)
