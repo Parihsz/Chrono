@@ -358,7 +358,7 @@ ReliableEvent.OnClientEvent:Connect(HandleReliable)
 Shared.Remotes.SafeReplicate.OnClientEvent:Connect(function(id: string, data: buffer)
 	if id == "X" then
 		HandleServerOwned(data, true)
-	elseif id == "O" then 
+	elseif id == "O" then
 		HandleClientOwned(data)
 	else
 		Warn.high("Unknown replicate id", id)

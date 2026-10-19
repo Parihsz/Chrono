@@ -639,7 +639,7 @@ function Entity.Push(self: Entity, time: number, value: CFrame, velocity: Vector
 	return PushSnapshot(self, time, value, velocity)
 end
 
--- pushes a stopped snapshot 
+-- pushes a stopped snapshot
 function Entity._PushStopped(self: Entity, time: number, value: CFrame): boolean
 	return PushSnapshot(self, time, value, nil, true)
 end

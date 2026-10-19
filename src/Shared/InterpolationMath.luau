@@ -60,7 +60,7 @@ const function CheckIdle(
 	const latestSpeed = if velocity then velocity.Magnitude else 0
 	const moved = position - latest.value.Position
 	const speed = math.max(latestSpeed, peakSpeed or 0)
-	
+
 	const predictedTravel = latestSpeed * gap
 	if predictedTravel > speed * tickrate * 1.5 and (moved - velocity * gap).Magnitude < predictedTravel * 0.15 then
 		return false

@@ -151,7 +151,7 @@ const function PushWithCheck<Value, Velocity>(
 
 	const pushVelocity: Velocity = velocity
 		or InterpolationMath.VelocityAt(GetLatest(self) :: any, timeStamp, value :: any, tickrate, self.peakSpeed) :: any
-		
+
 	Push(self, timeStamp, value, pushVelocity)
 	if not teleported then
 		self.peakSpeed = math.max((pushVelocity :: any).Magnitude, self.peakSpeed * PEAK_SPEED_DECAY)

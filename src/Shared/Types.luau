@@ -254,9 +254,9 @@ export type Entity = {
 	cframeBuffer: buffer?, -- serialized cframe to send this frame
 	_idleTicks: number?, -- ticks in a row with no change
 	_stopAfter: number?, -- unchanged ticks before a pause counts as a stop (1 if nil)
-	_lastStep: Vector3?, 
+	_lastStep: Vector3?,
 	_pausedSteps: number?, -- changes in a row that came after a pause and repeated the step before
-	_halfBuffer: buffer?, -- serialized resting cframe for half rate 
+	_halfBuffer: buffer?, -- serialized resting cframe for half rate
 	arriveFrame: number?, -- tick a client owned update arrived on
 
 	-- Interpolation (Client)
