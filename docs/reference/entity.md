@@ -139,7 +139,7 @@ Pushes a new snapshot value for this entity at the given time. Returns true if i
 - `value` - The CFrame value of the snapshot.
 - `velocity` - The velocity of the snapshot. If nil, velocity will be calculated based on the previous snapshot.
 
-### `GetAtTime(self: Entity, time: number) -> CFrame?`
+### `GetAt(self: Entity, time: number) -> CFrame?`
 
 Gets the interpolated CFrame of this entity at the given time. Returns nil if no data
 
