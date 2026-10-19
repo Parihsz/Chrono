@@ -21,6 +21,7 @@ function Buffer.new(clientClock: Types.ClientClock): Types.InterpolationBuffer
 		lastLatency = 0,
 		lastSendTime = nil,
 		maxSendGap = 0,
+		idle = false,
 
 		clientClock = clientClock,
 	}
@@ -37,7 +38,7 @@ function Buffer.Register(data: Types.InterpolationBuffer, time: number)
 	end
 
 	const lastSendTime = data.lastSendTime
-	if lastSendTime and time > lastSendTime then
+	if lastSendTime and time > lastSendTime and not data.idle then
 		const gap = time - lastSendTime
 		if gap <= clientClock.tickRate * 3 then
 			data.maxSendGap = if gap > data.maxSendGap
@@ -47,6 +48,7 @@ function Buffer.Register(data: Types.InterpolationBuffer, time: number)
 	end
 	if not lastSendTime or time > lastSendTime then
 		data.lastSendTime = time
+		data.idle = false
 	end
 
 	if not data.init then
@@ -68,6 +70,15 @@ function Buffer.Register(data: Types.InterpolationBuffer, time: number)
 
 	data.averageLatency = data.averageLatency + (latency - data.averageLatency) * ALPHA
 	data.lastLatency = latency
+end
+
+function Buffer.MarkIdle(data: Types.InterpolationBuffer, time: number)
+	const lastSendTime = data.lastSendTime
+	if lastSendTime and time < lastSendTime then
+		return
+	end
+	data.lastSendTime = time
+	data.idle = true
 end
 
 function Buffer.GetBuffer(data: Types.InterpolationBuffer, tickRate: number)

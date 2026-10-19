@@ -162,6 +162,7 @@ export type InterpolationBuffer = {
 	lastLatency: number,
 	lastSendTime: number?,
 	maxSendGap: number,
+	idle: boolean,
 	clientClock: ClientClock,
 }
 
@@ -180,6 +181,7 @@ export type ClientClock = {
 	GetTargetRenderTime: (self: ClientClock) -> number,
 	GetEstimatedServerTime: (self: ClientClock) -> number,
 	OnSnapShot: (self: ClientClock, currentTime: number) -> (),
+	OnStop: (self: ClientClock, stopTime: number) -> (),
 	Refresh: (self: ClientClock, currentTime: number) -> boolean,
 	SetTickRate: (self: ClientClock, tickRate: number) -> (),
 	UpdateBuffer: (self: ClientClock, time: number?) -> (),

@@ -225,7 +225,9 @@ const function PushCFrameFor(
 			else
 				renderCache:SetTickRate(renderCache._baseTickRate)
 			end
-			if not isStop then
+			if isStop then
+				renderCache:OnStop(time)
+			else
 				renderCache:OnSnapShot(time)
 			end
 		end
@@ -233,7 +235,9 @@ const function PushCFrameFor(
 		const renderCaches = entity.entityConfig.CLIENT_CLOCK
 		if renderCaches then
 			const renderCache = isHalfTick and renderCaches.HALF or renderCaches.NORMAL
-			if renderCache and not isStop then
+			if renderCache and isStop then
+				renderCache:OnStop(time)
+			elseif renderCache then
 				renderCache:OnSnapShot(time)
 			end
 		end

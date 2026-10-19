@@ -85,6 +85,12 @@ const function OnSnapShot(clientClock: Types.ClientClock, currentSendTime: numbe
 	end
 end
 
+const function OnStop(clientClock: Types.ClientClock, stopTime: number)
+	if clientClock.buffer then
+		BufferTracker.MarkIdle(clientClock.buffer, stopTime)
+	end
+end
+
 const function SetTickRate(clientClock: Types.ClientClock, tickRate: number)
 	if clientClock.tickRate == tickRate then
 		return
@@ -152,6 +158,7 @@ const function new(tickRate: number, name: string, bufferNumber: number?, networ
 		bufferConst = bufferNumber,
 
 		OnSnapShot = OnSnapShot,
+		OnStop = OnStop,
 		Refresh = Refresh,
 		GetEstimatedServerTime = GetEstimatedServerTime,
 		GetTargetRenderTime = GetTargetRenderTime,
