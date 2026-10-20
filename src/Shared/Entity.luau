@@ -702,24 +702,32 @@ function Entity.GetAt(self: Entity, time: number): CFrame?
 end
 
 --[=[
+	Gets the entity's client clock. First checks _clientClock then falls back to entity config
+
+	@return The client clock, or nil if no clock is available
+]=]
+function Entity.GetClock(self: Entity): Types.ClientClock?
+	if self._clientClock then
+		return self._clientClock
+	end
+	const clocks = self.entityConfig.CLIENT_CLOCK
+	if not clocks then
+		return nil
+	end
+	return self.isHalfTicked and clocks.HALF or clocks.NORMAL
+end
+
+--[=[
 	Gets the target render time from the entity's client clock.
 
-	@return The target render time.
+	@return The target render time, or -1 if no clock is available.
 ]=]
 function Entity.GetTargetRenderTime(self: Entity): number
-	local renderCache = self._clientClock
-
-	if not renderCache then
-		const RenderCaches = self.entityConfig.CLIENT_CLOCK
-		if not RenderCaches then
-			return -1
-		end
-		renderCache = self.isHalfTicked and RenderCaches.HALF or RenderCaches.NORMAL
-	end
-	if not renderCache then
+	const clock = Entity.GetClock(self)
+	if not clock then
 		return -1
 	end
-	return renderCache:GetTargetRenderTime()
+	return clock:GetTargetRenderTime()
 end
 
 --[=[

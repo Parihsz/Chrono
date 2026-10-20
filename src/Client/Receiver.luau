@@ -371,7 +371,7 @@ Shared.Remotes.SafeReplicate.OnClientEvent:Connect(function(id: string, data: bu
 end)
 
 HeartbeatRemote.OnClientEvent:Connect(function(time: number)
-	const unwrapped = ClockUnwrap.unwrap(ServerWrap, ClockUnwrap.quantize(time))
+	const unwrapped = ClockUnwrap.seatFull(ServerWrap, time)
 	for clock in ClientClock.serverOwnedClocks do
 		clock:Refresh(unwrapped)
 	end
