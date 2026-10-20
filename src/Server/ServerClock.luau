@@ -1,27 +1,22 @@
 const Players = game:GetService("Players")
+const Types = require(script.Parent.Parent.Shared.Types)
+
+
 const ServerClockData = {} :: { [Player]: {
-	clockOffset: number,
-	oneWayDelay: number,
+	arrivalOffset: number,
 } }
 
-const function Store(player: Player, clientClockTime: number, clientServerTimeNow: number?)
-	local data = ServerClockData[player]
+const SMOOTHING = 0.2
+const DEFAULT_MAX_REWIND = 1
+
+const function Store(player: Player, clientClockTime: number)
+	const measured = os.clock() - clientClockTime
+	const data = ServerClockData[player]
 	if not data then
-		data = { clockOffset = 0, oneWayDelay = 0.05 }
-		ServerClockData[player] = data
+		ServerClockData[player] = { arrivalOffset = measured }
+		return
 	end
-
-	if clientServerTimeNow then
-		const latency = workspace:GetServerTimeNow() - clientServerTimeNow
-		if latency > 0 and latency <= player:GetNetworkPing() + 0.05 then
-			data.oneWayDelay = latency
-		end
-	end
-
-	const ping = math.max(player:GetNetworkPing(), 0) + 0.05 -- network ping was 0 for some reason
-	const measuredClockOffset = os.clock() - clientClockTime - math.clamp(data.oneWayDelay, 0, ping)
-
-	data.clockOffset = data.clockOffset + 0.2 * (measuredClockOffset - data.clockOffset)
+	data.arrivalOffset += SMOOTHING * (measured - data.arrivalOffset)
 end
 
 const function ConvertTo(player: Player, clock: number, environment: "Server" | "Client")
@@ -31,10 +26,37 @@ const function ConvertTo(player: Player, clock: number, environment: "Server" | 
 	end
 
 	if environment == "Server" then
-		return clock + data.clockOffset
+		return clock + data.arrivalOffset
 	else
-		return clock - data.clockOffset
+		return clock - data.arrivalOffset
 	end
+end
+
+--[=[
+	Converts a client's render time for an entity 
+	into the server's timeline, ready for Entity.GetAt. Clamped to the last maxRewind seconds.
+
+	@param maxRewind How far back to allow, in seconds. Defaults to 1.
+]=]
+const function ToServerTime(entity: Types.Entity?, renderTime: number, maxRewind: number?): number?
+	if not entity or type(renderTime) ~= "number" or renderTime ~= renderTime then
+		return nil
+	end
+	local serverTime = renderTime
+	const owner = entity.networkOwner
+	if owner then
+		const data = ServerClockData[owner]
+		if not data then
+			return nil
+		end
+		serverTime += data.arrivalOffset
+	end
+	local window = maxRewind or DEFAULT_MAX_REWIND
+	if not (window >= 0) then -- negative or NaN
+		window = DEFAULT_MAX_REWIND
+	end
+	const now = os.clock()
+	return math.clamp(serverTime, now - window, now)
 end
 
 const function Remove(player: Player)
@@ -46,5 +68,6 @@ Players.PlayerRemoving:Connect(Remove)
 return {
 	Store = Store,
 	ConvertTo = ConvertTo,
+	ToServerTime = ToServerTime,
 	Remove = Remove,
 }

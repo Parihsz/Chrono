@@ -30,6 +30,7 @@ const Stats = {
 	},
 	--// Server
 	SERVER = {
+		_FORCE = false,
 		_SHOULD_REPLICATE = false,
 		AVG_TICKER_TIME_MS = 0,
 		ENTITY_GRID_UPDATE_TIME_MS = 0,
@@ -47,6 +48,8 @@ const Stats = {
 		SERVER_ENTITIES = {} :: { [number]: Types.ServerEntitiesStats },
 		GRID_STATS = {} :: { [string]: { HALF: { number }, NORMAL: { number } } },
 	},
+	
+	
 }
 
 const function processID(id: number, replicate)
@@ -101,6 +104,11 @@ const StatsRemoteHeaders = {
 	CLIENT_STATS_ACTION = "CLIENT_STATS_ACTION",
 }
 
+function Stats.SetForced(value: boolean)
+	Stats.SERVER._FORCE = value
+	Stats.SERVER._SHOULD_REPLICATE = value
+end
+
 if RunService:IsServer() then
 	const statsRemote = Instance.new("RemoteEvent", script)
 	statsRemote.Name = "Stats"
@@ -116,7 +124,7 @@ if RunService:IsServer() then
 			end
 		end
 
-		Stats.SERVER._SHOULD_REPLICATE = should
+		Stats.SERVER._SHOULD_REPLICATE = Stats.SERVER._FORCE or should
 	end)
 
 	Players.PlayerRemoving:Connect(function(player)
