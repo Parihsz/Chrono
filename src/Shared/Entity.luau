@@ -824,6 +824,13 @@ function Entity.SetConfig(self: Entity, entityConfig: string)
 	RegisterChange(self, "entityConfig", config, false, config.NAME)
 	HumanoidState.Refresh(self)
 	if IS_SERVER then
+		if self.isContextOwner then
+			if not config.STORE_SNAPSHOTS then
+				self.snapshot = nil
+			elseif not self.snapshot then
+				self.snapshot = Snapshot(InterpolationMath.Hermite)
+			end
+		end
 		return
 	end
 	UpdateClientAnchor(self)
