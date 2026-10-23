@@ -74,6 +74,7 @@ const function Check(entity: Entity)
 		-- if entity is native then we keep it half ticked else remove it
 		if distance > halfTickDistance and isNotNative then
 			if holder == ownedHolder then -- always replicate to the owner
+				hasNormalTickers = true
 				table.insert(holder._TEMP_NORMAL, entity)
 			end
 			continue
