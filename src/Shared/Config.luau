@@ -133,6 +133,60 @@ const ENTITY_TYPES: { [string]: Types.EntityConfig } = {
 const ENTITY_MODELS = {}
 const MODEL_BROAD_PHASES = {}
 
+const MODEL_MODES = { "NATIVE", "NATIVE_WITH_LOCK", "CUSTOM" }
+const INTERPOLATION_MODES = { "CFRAME", "ALIGN", "NONE" }
+const PLAYER_FILTERS = { "NONE", "PLAYER_ENTITIES", "PLAYER_CHARACTERS" }
+const CONFIG_OPTIONS = {
+	DEFAULT_MODEL_REPLICATION_MODE = MODEL_MODES,
+	DEFAULT_INTERPOLATION_MODE = INTERPOLATION_MODES,
+	PLAYER_REPLICATION = { "AUTOMATIC", "CUSTOM" },
+	REPLICATE_DEATHS = PLAYER_FILTERS,
+	REPLICATE_CFRAME_SETTERS = PLAYER_FILTERS,
+	WARNING_SEVERITY = { "NONE", "LOW", "MEDIUM", "HIGH" },
+}
+
+const function CheckOption(name: string, value: any, options: { string })
+	assert(table.find(options, value), `Chrono: {name} must be {table.concat(options, ", ")}, got {tostring(value)}`)
+end
+
+const function CheckEntityType(name: string, config: Types.EntityConfigInput)
+	assert(type(name) == "string" and name ~= "", "Chrono: entity type name must be a non-empty string")
+	assert(type(config) == "table", `Chrono: entity type "{name}" must be a table`)
+	assert(
+		type(config.TICK_RATE) == "number" and config.TICK_RATE > 0 and config.TICK_RATE < math.huge,
+		`Chrono: entity type "{name}" needs a finite TICK_RATE greater than 0, such as 1 / 20`
+	)
+	if config.BUFFER ~= nil then
+		assert(
+			type(config.BUFFER) == "number" and math.abs(config.BUFFER) < math.huge,
+			`Chrono: entity type "{name}" BUFFER must be a finite number`
+		)
+	end
+	for _, field in { "NORMAL_TICK_DISTANCE", "HALF_TICK_DISTANCE" } do
+		const value = (config :: any)[field]
+		assert(
+			value == nil or (type(value) == "number" and value >= 0),
+			`Chrono: entity type "{name}" {field} must be a non-negative number`
+		)
+	end
+	for _, field in {
+		"FULL_ROTATION",
+		"AUTO_UPDATE_POSITION",
+		"STORE_SNAPSHOTS",
+		"ASSEMBLY_ROOT_PART_CHECK",
+		"CUSTOM_INTERPOLATION",
+	} do
+		const value = (config :: any)[field]
+		assert(value == nil or type(value) == "boolean", `Chrono: entity type "{name}" {field} must be a boolean`)
+	end
+	if config.MODEL_REPLICATION_MODE ~= nil then
+		CheckOption(`entity type "{name}" MODEL_REPLICATION_MODE`, config.MODEL_REPLICATION_MODE, MODEL_MODES)
+	end
+	if config.INTERPOLATION_MODE ~= nil then
+		CheckOption(`entity type "{name}" INTERPOLATION_MODE`, config.INTERPOLATION_MODE, INTERPOLATION_MODES)
+	end
+end
+
 --[=[
 	Registers an entity type configuration.
 	Can only be called before the config is locked.
@@ -144,6 +198,7 @@ const function RegisterEntityType(name: string, config: Types.EntityConfigInput)
 	if LOCKED then
 		error("Chrono: Config.RegisterEntityType must be called before Chrono.Start()", 2)
 	end
+	CheckEntityType(name, config)
 	ENTITY_TYPES[name] = config :: any
 end
 
@@ -169,6 +224,21 @@ const SetConfig = function(name, value)
 	end
 	if BASE_CONFIG[name] == nil or name == "__VERSION" then
 		error(`Chrono: Config.SetConfig got unknown config "{name}"`, 2)
+	end
+	assert(type(value) == type(BASE_CONFIG[name]), `Chrono: Config.{name} must be a {type(BASE_CONFIG[name])}`)
+	if type(value) == "number" then
+		if name == "DEFAULT_NORMAL_TICK_DISTANCE" or name == "DEFAULT_HALF_TICK_DISTANCE" then
+			assert(value >= 0, `Chrono: Config.{name} must be 0 or greater (math.huge is allowed)`)
+		else
+			assert(value >= 0 and value < math.huge, `Chrono: Config.{name} must be a finite number, 0 or greater`)
+		end
+		if name == "MAX_SNAPSHOT_COUNT" then
+			assert(value >= 1 and value % 1 == 0, "Chrono: Config.MAX_SNAPSHOT_COUNT must be a positive integer")
+		elseif name == "GRID_MAX_UPDATE_TIME" then
+			assert(value > 0, "Chrono: Config.GRID_MAX_UPDATE_TIME must be greater than 0")
+		end
+	elseif CONFIG_OPTIONS[name] then
+		CheckOption(`Config.{name}`, value, CONFIG_OPTIONS[name])
 	end
 	BASE_CONFIG[name] = value
 end :: SetConfig
@@ -210,6 +280,10 @@ const function SetWarningSeverity(level: WarningLevels)
 end
 
 const function Lock()
+	assert(BASE_CONFIG.MIN_BUFFER <= BASE_CONFIG.MAX_BUFFER, "Chrono: Config.MIN_BUFFER must not exceed MAX_BUFFER")
+	for name, config in ENTITY_TYPES do
+		CheckEntityType(name, config)
+	end
 	(require)(script.Parent.Warn).low("Config is now locked")
 
 	LOCKED = true
@@ -241,8 +315,6 @@ const function Lock()
 					self.CLIENT_CLOCK.HALF:UpdateBuffer(buffer)
 				end
 
-				-- Owned entities of this type use their own per-entity clock, so update those too.
-				-- Skip any entity that set an explicit per-entity override (_clockBuffer), which wins over the config.
 				const Holder = (require)(script.Parent.Holder)
 				const Entity = (require)(script.Parent.Entity)
 				for _, entity in Holder.idMap do
@@ -265,7 +337,7 @@ return {
 	RegisterEntityType = RegisterEntityType,
 	RegisterEntityModel = RegisterEntityModel,
 	FLAGS = {
-		["CHARACTER_WAIT_DELAY"] = false,
+		["CHARACTER_WAIT_DELAY"] = true, -- Waits for CharacterAppearanceLoaded before loading
 		["SERVER_VELOCITY_FIX"] = true, -- Fixes velocity calculation on the server when two packets are received next to each other
 		["VELOCITY_CALC_FIX"] = true, -- Fixes velocity calculation when dt is less then tickrate
 		["SNAPSHOT_INTERPOLATION_FIX"] = true, -- Fixes interpolation of snapshots when replication is stopped briefly and resumed rapidly which can cause slight jitter due to velocity.

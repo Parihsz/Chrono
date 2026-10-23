@@ -168,7 +168,16 @@ end
 
 const function HandleNewEntity(data: Types.EntityReceivePacket)
 	const model, modelType, handle = ModelHelper.CreateModelFromData(data.model)
-	const entity = Entity._new(data.config, model, modelType :: any, data.cframe)
+	local cframe = data.cframe
+	const localPlayer = Players.LocalPlayer
+	-- initializes cframe for local character just in case client loads in a different spot
+	if data.networkOwner == localPlayer and model and model == localPlayer.Character then
+		const root = (model :: Model).PrimaryPart
+		if root then
+			cframe = root.CFrame
+		end
+	end
+	const entity = Entity._new(data.config, model, modelType :: any, cframe)
 
 	entity.id = data.id
 	entity._player = data._player
@@ -183,7 +192,7 @@ const function HandleNewEntity(data: Types.EntityReceivePacket)
 	entity._lockedCFReplication = data._lockedCFReplication or false
 	entity._interpolationMode = data._interpolationMode
 
-	Entity._Push(entity, data.time, data.cframe)
+	Entity._Push(entity, data.time, cframe)
 
 	Entity._SetEntityNetworkOwner(entity, data.networkOwner)
 

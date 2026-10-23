@@ -11,6 +11,9 @@ const Types = require(script.Parent.Parent.Shared.Types)
 
 const playerEntities = Holder._playerChars
 
+const APPEARANCE_TIMEOUT = 3
+const loadedAppearance: { [Player]: Model } = {}
+
 const function RegisterPlayer(
 	player: Player,
 	character: Model,
@@ -57,29 +60,45 @@ end
 
 const function OnCharacterAdded(character: Model, player: Player)
 	if Config.FLAGS.CHARACTER_WAIT_DELAY then
-		task.wait(0.1) 
-		-- ensure that character is loaded
-		-- we are slightly unsure if InstanceHandlers are fully reliable
-		-- if you encounter weird loading bugs try enabling this flag if disabled
+		const start = os.clock()
+		while
+			loadedAppearance[player] ~= character
+			and player.Character == character
+			and os.clock() - start < APPEARANCE_TIMEOUT
+		do
+			task.wait()
+		end
 	end
 	if player.Character ~= character or not player.Parent then
 		return
 	end -- edge case
+	const existing = playerEntities[player]
+	if existing and existing.model == character then
+		return 
+	end
 	RegisterPlayer(player, character, {
 		config = "PLAYER",
 	})
 end
 
 const function OnPlayerAdded(player: Player)
+	const appearanceConnection = player.CharacterAppearanceLoaded:Connect(function(character: Model)
+		loadedAppearance[player] = character
+	end)
 	const connection = player.CharacterAdded:Connect(function(character: Model)
 		OnCharacterAdded(character, player)
 	end)
 	if player.Character then
-		OnCharacterAdded(player.Character, player)
+		if player:HasAppearanceLoaded() then
+			loadedAppearance[player] = player.Character
+		end
+		task.spawn(OnCharacterAdded, player.Character, player)
 	end
 	local connection2: RBXScriptConnection? = nil
 	connection2 = player.AncestryChanged:Connect(function()
 		if not player:IsDescendantOf(game) then
+			loadedAppearance[player] = nil
+			appearanceConnection:Disconnect()
 			connection:Disconnect()
 			if connection2 then
 				connection2:Disconnect()
