@@ -124,7 +124,7 @@ end
 Config._WaitForLock(function()
 	local steppedEntities: { Types.Entity } = {}
 	RunService.Heartbeat:Connect(function(deltaTime: number)
-		steppedEntities = {}
+		table.clear(steppedEntities)
 		Frustum.Update()
 		RenderCache.UpdateAll(deltaTime)
 		LastClockUpdate = os.clock()
