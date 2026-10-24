@@ -267,6 +267,8 @@ export type Entity = {
 	_alignDriver: AlignDriver?,
 	_clockBuffer: number?, -- per entity buffer override from SetClockBuffer
 	_clientClock: ClientClock?, -- own clock for player owned or custom buffered entities
+	_ownerChangedAt: number?, -- time when owner changed
+	_ownerSmoothing: { offset: Vector3, rotation: CFrame, start: number }?, 
 	_outofBroadPhaseTick: number?,
 
 	-- Humanoid state replication

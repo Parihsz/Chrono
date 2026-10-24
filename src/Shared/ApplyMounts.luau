@@ -60,9 +60,12 @@ const function ResolveWorldCFrame(entity: Types.Entity): CFrame
 				const part = Entity.GetPrimaryPart(current)
 				rootCFrame = if part then part.CFrame else (current.latestCFrame or CFrame.identity)
 			else
-				rootCFrame = Entity.GetAt(current, Entity.GetTargetRenderTime(current))
-					or current.latestCFrame
-					or CFrame.identity
+				const at = Entity.GetAt(current, Entity.GetTargetRenderTime(current))
+				const part = if at then nil else Entity.GetPrimaryPart(current)
+				rootCFrame = if at
+					then Entity._ApplyOwnerSmoothing(current, at)
+					elseif part then part.CFrame
+					else (current.latestCFrame or CFrame.identity)
 			end
 			dp[current] = currentTime
 			world[current] = rootCFrame

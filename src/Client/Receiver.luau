@@ -216,6 +216,10 @@ const function PushCFrameFor(
 		Warn.high("Received update for non existent entity with id", id)
 		return false
 	end
+	
+	if entity.isContextOwner or clientOwned ~= (entity.networkOwner ~= nil) then
+		return false
+	end
 
 	const withinTeleportThreshold = entity._teleport and os.clock() - entity._teleport < 0.5
 	if withinTeleportThreshold then
@@ -224,6 +228,10 @@ const function PushCFrameFor(
 		else
 			return false
 		end
+	end
+	if teleport then
+		entity._ownerChangedAt = nil
+		entity._ownerSmoothing = nil
 	end
 
 	if clientOwned then

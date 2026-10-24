@@ -18,6 +18,7 @@ const UpdateEntityStats = require(script.Parent.EntityStats)
 const Stats = require(Shared.Stats).CLIENT
 
 const CLIENT_CLOCK_SYNC_RATE = 15 -- should be fine having lower then server
+const MAX_OWNER_SMOOTH_DELAY = 2 -- seconds after an ownership change 
 require(script.Parent.Player)
 require(script.Parent.Receiver)
 
@@ -68,6 +69,22 @@ const function CanInterpolate(entity: Types.Entity, primaryPart: BasePart): bool
 	return true
 end
 
+const function SmoothOwnerChange(entity: Types.Entity, primaryPart: BasePart, targetCFrame: CFrame): CFrame
+	const changedAt = entity._ownerChangedAt
+	if changedAt then
+		entity._ownerChangedAt = nil
+		if os.clock() - changedAt < MAX_OWNER_SMOOTH_DELAY then
+			const drawn = primaryPart.CFrame
+			entity._ownerSmoothing = {
+				offset = drawn.Position - targetCFrame.Position,
+				rotation = drawn.Rotation * targetCFrame.Rotation:Inverse(),
+				start = os.clock(),
+			}
+		end
+	end
+	return Entity._ApplyOwnerSmoothing(entity, targetCFrame)
+end
+
 const function Interpolate(entity: Types.Entity, mode: Types.INTERPOLATION_MODE)
 	const primaryPart = Entity.GetPrimaryPart(entity)
 	if not primaryPart or not CanInterpolate(entity, primaryPart) then
@@ -80,11 +97,12 @@ const function Interpolate(entity: Types.Entity, mode: Types.INTERPOLATION_MODE)
 	if mode == "ALIGN" then
 		targetTime += os.clock() - LastClockUpdate
 	end
-	const targetCFrame = snapshot:GetAt(targetTime)
+	local targetCFrame = snapshot:GetAt(targetTime)
 	debug.profileend()
 	if not targetCFrame then
 		return
 	end
+	targetCFrame = SmoothOwnerChange(entity, primaryPart, targetCFrame)
 	if entity.broadPhase and Frustum.IsCulled(entity, targetCFrame) then
 		return
 	end

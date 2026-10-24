@@ -21,6 +21,7 @@ const IS_SERVER = RunService:IsServer()
 const LOCAL_PLAYER = if IS_SERVER then nil else Players.LocalPlayer
 
 const CHRONO_PRIMARY = "__CHRONO_PRIMARY"
+const OWNER_SMOOTH_TIME = 0.3
 const INTERPOLATION_MODES = { CFRAME = true, ALIGN = true, NONE = true }
 const EVENT_NAMES = {
 	Destroying = true,
@@ -166,8 +167,14 @@ const function CheckNetworkOwner(self: Entity, prev: Player?)
 	self.isContextOwner = self.networkOwner == LOCAL_PLAYER
 	const isSameOwner = self.networkOwner == prev
 	if not isSameOwner then
-		self.latestTime = 0
-		self.lastClientClock = 0
+		if IS_SERVER then
+			self.lastClientClock = nil
+		else
+			self.latestTime = 0
+			self.lastClientClock = 0
+			self._ownerChangedAt = if self.isContextOwner or not self.registered then nil else os.clock()
+			self._ownerSmoothing = nil
+		end
 	end
 	if IS_SERVER then
 		const part = GetPart(self)
@@ -222,7 +229,7 @@ const function CheckNetworkOwner(self: Entity, prev: Player?)
 
 	if isSameOwner then
 		return
-	elseif self.snapshot then
+	elseif self.snapshot and not IS_SERVER then
 		self.snapshot:Clear()
 	end
 
@@ -258,7 +265,9 @@ const function SetEntityNetworkOwner(self: Entity, player: Player?)
 		const prev = self.networkOwner
 		RegisterChange(self, "networkOwner", player)
 		CheckNetworkOwner(self, prev)
-		Entity.Clear(self)
+		if not IS_SERVER then
+			Entity.Clear(self)
+		end
 	end
 	self.lastCheckedCFrame = nil
 	UpdateClientAnchor(self)
@@ -701,6 +710,21 @@ function Entity.GetAt(self: Entity, time: number): CFrame?
 	end
 end
 
+function Entity._ApplyOwnerSmoothing(self: Entity, cframe: CFrame): CFrame
+	const smoothing = self._ownerSmoothing
+	if not smoothing then
+		return cframe
+	end
+	const left = 1 - (os.clock() - smoothing.start) / OWNER_SMOOTH_TIME
+	if left <= 0 then
+		self._ownerSmoothing = nil
+		return cframe
+	end
+	return CFrame.new(cframe.Position + smoothing.offset * left)
+		* CFrame.identity:Lerp(smoothing.rotation, left)
+		* cframe.Rotation
+end
+
 --[=[
 	Gets the entity's client clock. First checks _clientClock then falls back to entity config
 
@@ -758,6 +782,9 @@ function Entity.SetCFrame(self: Entity, cframe: CFrame)
 			Entity.Clear(self)
 		end
 	end
+
+	self._ownerChangedAt = nil
+	self._ownerSmoothing = nil
 	if self.snapshot and Config.FLAGS.FIX_TELEPORT_JITTER then
 		self.snapshot.lockedTime = latestTime
 	end

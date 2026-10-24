@@ -166,9 +166,9 @@ const function HandleEntity(
 	end
 	debug.profileend()
 	local velocity = nil
-	if Config.FLAGS.SERVER_VELOCITY_FIX and entity.snapshot then
+	if Config.FLAGS.SERVER_VELOCITY_FIX and entity.snapshot and entity.lastClientClock then
 		const latest = entity.snapshot:GetLatest()
-		const lastClientClock = entity.lastClientClock or clientClock
+		const lastClientClock = entity.lastClientClock
 		const baseTickRate = entity.entityConfig.TICK_RATE
 		const tickrate = if entity.isHalfTicked then baseTickRate * 2 else baseTickRate
 		if latest then
