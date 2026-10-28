@@ -34,6 +34,15 @@ const function GetDisabledStateMask(humanoid: Humanoid): number
 	return mask
 end
 
+const function ApplyDisabledStateMask(humanoid: Humanoid, mask: number)
+	for value, state in HUMANOID_STATES do
+		if state == Enum.HumanoidStateType.None then
+			continue
+		end
+		humanoid:SetStateEnabled(state, bit32.band(mask, bit32.lshift(1, value)) == 0)
+	end
+end
+
 const function StopHumanoidStateWatch(self: Entity)
 	const connection = self._humanoidStateConn
 	if connection then
@@ -127,11 +136,41 @@ const function SetHumanoidDisabledStates(self: Entity, mask: number?)
 		return
 	end
 
-	for value, state in HUMANOID_STATES do
-		if state == Enum.HumanoidStateType.None then
-			continue
+	if self._ownDisabledStates == nil then
+		self._ownDisabledStates = GetDisabledStateMask(humanoid)
+	end
+	ApplyDisabledStateMask(humanoid, mask)
+end
+
+const function OnNetworkOwnerChanged(self: Entity, wasOwner: boolean)
+	if IS_SERVER then
+		return
+	end
+
+	if self.isContextOwner then
+		const ownDisabledStates = self._ownDisabledStates
+		self._ownDisabledStates = nil
+		const humanoid = GetHumanoid(self)
+		if not humanoid then
+			return
 		end
-		humanoid:SetStateEnabled(state, bit32.band(mask, bit32.lshift(1, value)) == 0)
+		if ownDisabledStates then
+			ApplyDisabledStateMask(humanoid, ownDisabledStates)
+		end
+	
+		const replicated = self._humanoidState
+		if
+			humanoid:GetState() == Enum.HumanoidStateType.Physics
+			and (
+				replicated == Enum.HumanoidStateType.Physics.Value
+				or replicated == Enum.HumanoidStateType.Ragdoll.Value
+			)
+		then
+			humanoid:ChangeState(Enum.HumanoidStateType.GettingUp)
+		end
+	elseif wasOwner then
+		SetHumanoidDisabledStates(self, self._humanoidDisabledStates)
+		SetHumanoidState(self, self._humanoidState)
 	end
 end
 
@@ -140,4 +179,5 @@ return {
 	Stop = StopHumanoidStateWatch,
 	SetState = SetHumanoidState,
 	SetDisabledStates = SetHumanoidDisabledStates,
+	OnNetworkOwnerChanged = OnNetworkOwnerChanged,
 }

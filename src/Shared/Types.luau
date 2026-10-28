@@ -274,6 +274,7 @@ export type Entity = {
 	-- Humanoid state replication
 	_humanoidState: number?,
 	_humanoidDisabledStates: number?,
+	_ownDisabledStates: number?, 
 	_humanoidStateConn: RBXScriptConnection?,
 	_humanoidStateEnabledConn: RBXScriptConnection?,
 

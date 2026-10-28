@@ -174,6 +174,7 @@ const function CheckNetworkOwner(self: Entity, prev: Player?)
 			self.lastClientClock = 0
 			self._ownerChangedAt = if self.isContextOwner or not self.registered then nil else os.clock()
 			self._ownerSmoothing = nil
+			HumanoidState.OnNetworkOwnerChanged(self, prev == LOCAL_PLAYER)
 		end
 	end
 	if IS_SERVER then
