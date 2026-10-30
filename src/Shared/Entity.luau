@@ -238,8 +238,6 @@ const function CheckNetworkOwner(self: Entity, prev: Player?)
 		SetClock(self)
 	end
 
-	FireEvent(self, "NetworkOwnerChanged", self.networkOwner, prev)
-
 	if prev then
 		const ownedEntities = clientOwned[prev]
 
@@ -252,13 +250,14 @@ const function CheckNetworkOwner(self: Entity, prev: Player?)
 	if self.networkOwner then
 		const ownedEntities = clientOwned[self.networkOwner]
 
-		if not ownedEntities then
-			return
-		end
-		ownedEntities[self] = true
+		if ownedEntities then
+			ownedEntities[self] = true
 
-		Events._Signals.PlayerOwnedAdded:Fire(self.networkOwner, self)
+			Events._Signals.PlayerOwnedAdded:Fire(self.networkOwner, self)
+		end
 	end
+
+	FireEvent(self, "NetworkOwnerChanged", self.networkOwner, prev)
 end
 
 const function SetEntityNetworkOwner(self: Entity, player: Player?)
