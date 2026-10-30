@@ -208,6 +208,11 @@ end
 const function Update()
 	clock = os.clock()
 	for entity in PlayerEntities do
+		if entity.destroyed then
+			PlayerEntities[entity] = nil
+			continue
+		end
+		
 		CheckEntity(entity)
 	end
 
