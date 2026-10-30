@@ -389,6 +389,10 @@ end)
 
 HeartbeatRemote.OnClientEvent:Connect(function(time: number)
 	const unwrapped = ClockUnwrap.seatFull(ServerWrap, time)
+	if unwrapped == nil then
+		Warn.medium("Ignored server heartbeat with invalid timestamp:", time)
+		return
+	end
 	for clock in ClientClock.serverOwnedClocks do
 		clock:Refresh(unwrapped)
 	end

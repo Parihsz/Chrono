@@ -287,6 +287,9 @@ if RunService:IsServer() then
 			return
 		end
 		const clientClock = ClockUnwrap.seatFullFor(ClientClockWrap, player, seconds)
+		if clientClock == nil then
+			return
+		end
 		ServerClock.Store(player, clientClock)
 	end)
 

@@ -50,15 +50,20 @@ function ClockUnwrap.unwrapFor(store: Store, key: any, raw: number): number
 end
 
 -- for f64 syncing
-function ClockUnwrap.seatFull(state: State, seconds: number): number
+function ClockUnwrap.seatFull(state: State, seconds: number): number?
 	const scaled = math.floor(seconds * CLOCK_SCALE)
+
+	if scaled == math.huge or scaled ~= scaled or seconds < 0 then
+		
+		return nil
+	end
 	const raw = scaled % TWO32
 	state.lastRaw = raw
 	state.offset = (scaled - raw) / CLOCK_SCALE
 	return scaled / CLOCK_SCALE
 end
 
-function ClockUnwrap.seatFullFor(store: Store, key: any, seconds: number): number
+function ClockUnwrap.seatFullFor(store: Store, key: any, seconds: number): number?
 	local state = store[key]
 	if not state then
 		state = ClockUnwrap.new()
