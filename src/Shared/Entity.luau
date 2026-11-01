@@ -23,6 +23,10 @@ const LOCAL_PLAYER = if IS_SERVER then nil else Players.LocalPlayer
 const CHRONO_PRIMARY = "__CHRONO_PRIMARY"
 const OWNER_SMOOTH_TIME = 0.3
 const INTERPOLATION_MODES = { CFRAME = true, ALIGN = true, NONE = true }
+
+const function GetInterpolationFunction(config: Types.EntityConfig): Types.InterpolationFunction
+	return config.INTERPOLATION_FUNCTION or InterpolationMath.HermiteCFrame
+end
 const EVENT_NAMES = {
 	Destroying = true,
 	NetworkOwnerChanged = true,
@@ -204,7 +208,7 @@ const function CheckNetworkOwner(self: Entity, prev: Player?)
 		if self.isContextOwner and not self.entityConfig.STORE_SNAPSHOTS then
 			self.snapshot = nil
 		elseif not self.snapshot then
-			self.snapshot = Snapshot(InterpolationMath.Hermite)
+			self.snapshot = Snapshot(GetInterpolationFunction(self.entityConfig))
 		end
 	else
 		if self.isContextOwner then
@@ -426,7 +430,7 @@ function Entity._new(
 	}
 
 	if LOCAL_PLAYER then
-		self.snapshot = Snapshot(InterpolationMath.Hermite)
+		self.snapshot = Snapshot(GetInterpolationFunction(config))
 	end
 	SetModel(self, model, modelReplicationMode)
 	HumanoidState.Refresh(self, true)
@@ -850,12 +854,15 @@ function Entity.SetConfig(self: Entity, entityConfig: string)
 	end
 	RegisterChange(self, "entityConfig", config, false, config.NAME)
 	HumanoidState.Refresh(self)
+	if self.snapshot then
+		self.snapshot.Lerp = GetInterpolationFunction(config)
+	end
 	if IS_SERVER then
 		if self.isContextOwner then
 			if not config.STORE_SNAPSHOTS then
 				self.snapshot = nil
 			elseif not self.snapshot then
-				self.snapshot = Snapshot(InterpolationMath.Hermite)
+				self.snapshot = Snapshot(GetInterpolationFunction(config))
 			end
 		end
 		return

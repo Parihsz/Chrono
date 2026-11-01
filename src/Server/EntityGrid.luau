@@ -57,6 +57,8 @@ const function Check(entity: Entity)
 	local hasHalfTickers = false
 	const halfTickDistance = entityConfig.HALF_TICK_DISTANCE or math.huge
 	const normalTickDistance = entityConfig.NORMAL_TICK_DISTANCE or math.huge
+
+	const keepDistance = halfTickDistance + (entityConfig.HALF_TICK_MARGIN or 0)
 	const networkOwner = entity.networkOwner
 	const ownedHolder = networkOwner and playerToHolder[networkOwner]
 
@@ -73,11 +75,14 @@ const function Check(entity: Entity)
 
 		-- if entity is native then we keep it half ticked else remove it
 		if distance > halfTickDistance and isNotNative then
-			if holder == ownedHolder then -- always replicate to the owner
-				hasNormalTickers = true
-				table.insert(holder._TEMP_NORMAL, entity)
+			const kept = distance <= keepDistance and holder.REPLICATED[entity] ~= nil
+			if not kept then
+				if holder == ownedHolder then -- always replicate to the owner
+					hasNormalTickers = true
+					table.insert(holder._TEMP_NORMAL, entity)
+				end
+				continue
 			end
-			continue
 		end
 
 		if distance <= normalTickDistance then
@@ -205,6 +210,11 @@ const function GetEntityHolder(Player: Player): PlayerEntityHolder?
 	return playerToHolder[Player]
 end
 
+const function IsReplicated(player: Player, entity: Entity): boolean
+	const holder = playerToHolder[player]
+	return holder ~= nil and holder.REPLICATED[entity] == true
+end
+
 const function PlayerAdded(player: Player)
 	if playerToHolder[player] then
 		return
@@ -243,4 +253,5 @@ return {
 	Update = Update,
 	UpdatePlayerPosition = UpdatePlayerPosition,
 	GetEntityHolder = GetEntityHolder,
+	IsReplicated = IsReplicated,
 }

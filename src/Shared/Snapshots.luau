@@ -208,13 +208,7 @@ const function GetAt<Value, Velocity>(self: Snapshot<Value, Velocity>, at: numbe
 		end
 		const alpha = (at - beforeData.t) / dt
 
-		const p0, p1 = (beforeData.value :: any).Position, (afterData.value :: any).Position
-		const v0, v1 = beforeData.velocity, afterData.velocity
-
-		const position = lerpFunction(p0, p1, v0, v1, alpha, dt)
-		const cf = (beforeData.value :: any):Lerp(afterData.value, alpha)
-
-		return CFrame.new(position) * cf.Rotation
+		return lerpFunction(beforeData.value, afterData.value, beforeData.velocity, afterData.velocity, alpha, dt)
 	elseif beforeData then
 		Warn.low("Tried to fetch a time that was ahead of snapshot storage!")
 		return beforeData.value
@@ -235,7 +229,7 @@ const function Clear<Value, Velocity>(self: Snapshot<Value, Velocity>)
 end
 
 const function New<Value, Velocity>(
-	lerpFunction: (Vector3, Vector3, Velocity, Velocity, number, number) -> Vector3
+	lerpFunction: (Value, Value, Velocity, Velocity, number, number) -> Value
 ): Snapshot<Value, Velocity>
 	const cache: { SnapshotData<Value, Velocity> } = table.create(MAX_LENGTH) :: any
 	for i = 1, MAX_LENGTH do

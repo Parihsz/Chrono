@@ -242,12 +242,11 @@ const function UpdateTickers()
 end
 
 const function UpdatePlayerPositions()
-	for _, entity: Types.Entity in Holder._playerChars do
-		const player = entity.networkOwner
+	for player, entity: Types.Entity in Holder._playerChars do
 		const primaryPart = Entity.GetPrimaryPart(entity)
 		const cframe = primaryPart and primaryPart.CFrame or entity.latestCFrame
 
-		if player and cframe then
+		if cframe then
 			EntityGrid.UpdatePlayerPosition(player, cframe.Position :: any)
 		end
 	end

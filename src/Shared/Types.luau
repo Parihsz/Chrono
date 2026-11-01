@@ -61,7 +61,7 @@ export type Snapshot<Value, Velocity> = {
 	lockedTime: number,
 	peakSpeed: number,
 	stoppedAt: number?, -- time of the newest snapshot if it is where the entity stopped
-	Lerp: (p0: Vector3, p1: Vector3, v0: Velocity, v1: Velocity, t: number, dt: number) -> Vector3,
+	Lerp: (from: Value, to: Value, v0: Velocity, v1: Velocity, t: number, dt: number) -> Value,
 
 	Push: (self: Snapshot<Value, Velocity>, t: number, value: Value, velocity: Velocity) -> (),
 	PushWithCheck: (
@@ -93,6 +93,8 @@ export type MODEL_REPLICATION_MODE = "NATIVE" | "NATIVE_WITH_LOCK" | "CUSTOM"
 
 export type INTERPOLATION_MODE = "CFRAME" | "ALIGN" | "NONE"
 
+export type InterpolationFunction = (from: CFrame, to: CFrame, v0: Vector3, v1: Vector3, t: number, dt: number) -> CFrame
+
 export type AlignDriver = {
 	part: BasePart,
 	container: Camera,
@@ -120,9 +122,11 @@ export type EntityConfig = {
 	MODEL_REPLICATION_MODE: MODEL_REPLICATION_MODE?,
 	NORMAL_TICK_DISTANCE: number?,
 	HALF_TICK_DISTANCE: number?,
+	HALF_TICK_MARGIN: number?, -- defaults to 0
 	CUSTOM_INTERPOLATION: boolean?,
 	ASSEMBLY_ROOT_PART_CHECK: boolean?,
 	INTERPOLATION_MODE: INTERPOLATION_MODE?, -- defaults to DEFAULT_INTERPOLATION_MODE
+	INTERPOLATION_FUNCTION: InterpolationFunction?, -- nil uses Hermite position + CFrame:Lerp rotation
 	UpdateBuffer: (self: EntityConfig, buffer: number) -> ()?,
 }
 
@@ -137,8 +141,10 @@ export type EntityConfigInput = {
 
 	NORMAL_TICK_DISTANCE: number?,
 	HALF_TICK_DISTANCE: number?,
+	HALF_TICK_MARGIN: number?, -- Studs past HALF_TICK_DISTANCE an entity a player already has stays replicated
 	CUSTOM_INTERPOLATION: boolean?,
 	INTERPOLATION_MODE: INTERPOLATION_MODE?, -- "CFRAME" sets CFrame directly, "ALIGN" drives AlignPosition/AlignOrientation
+	INTERPOLATION_FUNCTION: InterpolationFunction?, -- Interpolates between two snapshots.
 	-- Might consider giving a config level replication rules instead of just entity
 }
 

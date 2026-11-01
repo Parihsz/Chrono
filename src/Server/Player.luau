@@ -25,6 +25,10 @@ const function RegisterPlayer(
 	const entity = playerEntities[player]
 
 	if entity then
+		if entity.model == character then
+			--if models is the same, detach the model from the prev entity.
+			Entity.SetModel(entity, nil, nil, true)
+		end
 		Entity.Destroy(entity)
 	end
 
@@ -74,7 +78,7 @@ const function OnCharacterAdded(character: Model, player: Player)
 	end -- edge case
 	const existing = playerEntities[player]
 	if existing and existing.model == character then
-		return 
+		return
 	end
 	RegisterPlayer(player, character, {
 		config = "PLAYER",

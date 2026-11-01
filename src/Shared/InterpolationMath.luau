@@ -33,6 +33,10 @@ const function Hermite(p0: Vector3, p1: Vector3, v0: Vector3, v1: Vector3, t: nu
 	return p0 * h00 + v0 * dt * h10 + p1 * h01 + v1 * dt * h11
 end
 
+const function HermiteCFrame(c0: CFrame, c1: CFrame, v0: Vector3, v1: Vector3, t: number, dt: number): CFrame
+	return CFrame.new(Hermite(c0.Position, c1.Position, v0, v1, t, dt)) * c0:Lerp(c1, t).Rotation
+end
+
 const function CalculateVelocity(lP: Vector3, lT: number, cP: Vector3, cT: number, tickrate: number?): Vector3
 	local rate = tickrate or 1 / 20
 	local dt = cT - lT
@@ -97,6 +101,7 @@ end
 
 return {
 	Hermite = Hermite,
+	HermiteCFrame = HermiteCFrame,
 	VelocityAt = VelocityAt,
 	CheckIdle = CheckIdle,
 	CalculateVelocity = CalculateVelocity,

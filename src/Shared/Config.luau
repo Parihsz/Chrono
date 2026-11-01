@@ -162,7 +162,7 @@ const function CheckEntityType(name: string, config: Types.EntityConfigInput)
 			`Chrono: entity type "{name}" BUFFER must be a finite number`
 		)
 	end
-	for _, field in { "NORMAL_TICK_DISTANCE", "HALF_TICK_DISTANCE" } do
+	for _, field in { "NORMAL_TICK_DISTANCE", "HALF_TICK_DISTANCE", "HALF_TICK_MARGIN" } do
 		const value = (config :: any)[field]
 		assert(
 			value == nil or (type(value) == "number" and value >= 0),
@@ -185,6 +185,10 @@ const function CheckEntityType(name: string, config: Types.EntityConfigInput)
 	if config.INTERPOLATION_MODE ~= nil then
 		CheckOption(`entity type "{name}" INTERPOLATION_MODE`, config.INTERPOLATION_MODE, INTERPOLATION_MODES)
 	end
+	assert(
+		config.INTERPOLATION_FUNCTION == nil or type(config.INTERPOLATION_FUNCTION) == "function",
+		`Chrono: entity type "{name}" INTERPOLATION_FUNCTION must be a function`
+	)
 end
 
 --[=[
