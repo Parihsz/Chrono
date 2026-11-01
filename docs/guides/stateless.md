@@ -1,128 +1,99 @@
 # Integration Patterns
 
-This guide covers advanced patterns for integrating Chrono when you need more control over player management, server-side entity replication, or custom interpolation behavior.
+Manage player characters, replicate entities without server models, or apply interpolation yourself.
 
----
+## Custom player management
 
-## Custom Player Management
-
-### How It Works
-
-To take manual control of player replication, set `PLAYER_REPLICATION = "CUSTOM"` in your config:
+To create player entities yourself, set `PLAYER_REPLICATION` to `CUSTOM` in your config module:
 
 ```lua
 Config.SetConfig("PLAYER_REPLICATION", "CUSTOM")
 ```
 
-This prevents Chrono from automatically registering players. Instead, you'll handle player setup yourself.
+You'll need to register characters and handle deaths yourself. `REPLICATE_DEATHS` is disabled in this mode, which can affect respawning with locked or custom models. `REPLICATE_CFRAME_SETTERS` still works.
 
-!!!note
-    Setting it to custom means will also intern disable `REPLICATE_DEATHS` which may cause issues with player respawning in `NATIVE_WITH_LOCK` and `CUSTOM` replication modes. If you want to replicate deaths, you will need to handle it yourself.
+Use Chrono's player helper:
 
-### Implementation
-
-Register a player's character entity manually using either approach:
-
-**Option 1: Direct API calls**
 ```lua
-local entity = -- your entity
-local player = -- the player
+-- Server
+local entity = chrono.Player.RegisterPlayer(player, character, { config = "PLAYER" })
+```
 
--- Register entity as the player's character
+This replaces the previous character entity, handles R6's primary part and assigns ownership. Registering the same character again keeps the model.
+
+Chrono doesn't remove character entities when players leave in this mode. Destroy them yourself:
+
+```lua
+-- Server
+Players.PlayerRemoving:Connect(chrono.Player.UnregisterPlayer)
+```
+
+You can also register a character manually:
+
+```lua
+local entity = Entity.new("PLAYER", character)
 Holder.SetAsCharacter(player, entity)
-
--- Give the player network ownership
 Entity.SetNetworkOwner(entity, player)
 ```
 
-**Option 2: Using the Player helper API**
+!!! note
+    Without a registered character (`SetAsCharacter` for player), the [distance-based tick rate](npcs.md#distance-based-tick-rate) treats the player as standing at `(0, 0, 0)`. Set their position with `EntityGrid.UpdatePlayerPosition(player, position)` whenever it changes.
+
+## Stateless replication
+
+For an entity with no server model, register `false` on the server and a model on clients. Use `CUSTOM` mode:
+
 ```lua
-local Player = require(Chrono.Server.Player)
-Player.RegisterPlayer(player, entity)
+-- In your config module (runs on both sides)
+if RunService:IsServer() then
+	Config.RegisterEntityModel("Rocket", false)
+else
+	Config.RegisterEntityModel("Rocket", ReplicatedStorage.Models.Rocket)
+end
 ```
 
----
-
-## Stateless Replication
-
-If you have entities that don't have physical instances in the world rather stored as data, you can still replicate them to clients using chrono.
-
-### How It Works
-
-Since the entity is stored only as server-side data, you manually push transform updates to replicate it to clients:
-
 ```lua
-local entity = -- your server entity
-local currentTime = os.clock()
-local transform = -- your CFrame 
-local velocity = -- this is optional, chrono will calculate it if not provided
-
--- Push the update to clients
-Entity.Push(entity, currentTime, transform,velocity)
+-- Server
+local rocket = Entity.new("DEFAULT", "Rocket", "CUSTOM", startCFrame)
 ```
 
-### Integration Pattern
-
-Call `Entity.Push()` at regular intervals—either each frame or when the entity ticks:
+Push CFrames from your simulation with `Entity.Push`. Use `os.clock()` for server timestamps:
 
 ```lua
--- Option 1: Every frame
-game:GetService("RunService").Heartbeat:Connect(function()
-    for _, entity in  entities do
-        local newTransform = -- calculate new transform
-        Entity.Push(entity, os.clock(), newTransform)
-    end
-end)
+-- Server
+local function update()
+	Entity.Push(rocket, os.clock(), GetRocketCFrame()) -- your simulation
+end
 
--- Option 2: On entity tick event
-local tickEvent = Entity.GetEvent(entity, "Ticked")
-tickEvent:Connect(function()
-    Entity.Push(entity, os.clock(), newTransform)
+RunService.Heartbeat:Connect(update)
+```
+
+Or push from `Ticked`, just before Chrono sends the update:
+
+```lua
+Entity.GetEvent(rocket, "Ticked"):Connect(function(entity, dt)
+	Entity.Push(entity, os.clock(), GetRocketCFrame())
 end)
 ```
 
----
 
-## Custom Interpolation
+## Custom interpolation
 
-If you don't want chrono to automatically interpolate the instance CFrame, you can disable it and apply your own logic to the interpolated value. Examples being when dealing with ecs systems or when you want to apply custom logic.
+To apply CFrames yourself, such as in an ECS, disable Chrono's interpolation:
 
-### How It Works
+- **Entity, at runtime:** `Entity.SetInterpolationMode(entity, "NONE")`. Called on the server, it replicates to clients.
+- **A whole entity type:** `INTERPOLATION_MODE = "NONE"`, or `CUSTOM_INTERPOLATION = true`, which can't be changed at runtime.
 
-By default, Chrono interpolates entity positions automatically. To take full control:
 
-1. **Disable automatic interpolation** in your entity config:
-   ```lua
-   Config.RegisterEntityType("CUSTOM_ENTITY", {
-        ...,
-        CUSTOM_INTERPOLATION = true,
-    })
-   ```
+```lua
+-- Client
+RunService.Heartbeat:Connect(function()
+	local cframe = Entity.GetAt(entity, Entity.GetTargetRenderTime(entity))
+	if cframe then
+		world:set(jecsEntity, TRANSFORM_COMPONENT, cframe)
+	end
+end)
+```
 
-2. **Manually retrieve interpolated values** using this helper function:
-   ```lua
-   local function GetInterpolated(entity): CFrame?
-       local snapshot = entity.snapshot
-       if not snapshot then
-           return
-       end
-       
-       local targetTime = Entity.GetTargetRenderTime(entity)
-       local targetCFrame = snapshot:GetAt(targetTime)
-       
-       if not targetCFrame then
-           return
-       end
-       
-       return targetCFrame
-   end
-   ```
-
-3. **Apply your custom logic** to the interpolated value:
-   ```lua
-   local cframe = GetInterpolated(entity)
-   if cframe then
-       world:set(jecsEntity, TRANSFORM_COMPONENT, cframe)
-   end
-   ```
-
+!!! note
+    This turns off everything Chrono does while moving the entity, including `ALIGN` mode, culling, ownership smoothing and `ASSEMBLY_ROOT_PART_CHECK`. Handle these yourself if you need them. Mounted entities still follow their mount.

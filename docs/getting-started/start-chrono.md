@@ -1,14 +1,29 @@
-# Start Chrono!
-Chrono runs on top of roblox's replication by default, and can optionally take full control. This makes it easy to drop in without breaking your existing character setup/hitbox logic. Most people just wan't faster replication with minimal overhead!
+# Start Chrono
 
-Starting chrono will automatically set your players up to use chrono's replication and snapshot interpolation 💖
+Chrono runs on top of Roblox's replication by default, so you can drop it into an existing game. Starting it registers player characters and enables Chrono's interpolation.
+
+Call `Start` once on the server and once on each client:
+
 ```lua
---Client
+-- Script in ServerScriptService
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 require(ReplicatedStorage.Packages.chrono).Start()
 ```
+
 ```lua
---Server
+-- LocalScript in StarterPlayerScripts
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 require(ReplicatedStorage.Packages.chrono).Start()
 ```
+
+
+## Startup order
+
+- Apply settings before `Start`. `Config.SetConfig` and `Config.RegisterEntityType` error afterwards. See [Configuration](configurations.md).
+- Create entities after `Start`. `Entity.new` errors before it.
+- `Start` only runs once, and running multiple time will warn you.
+## Next steps
+
+- [Configuration](configurations.md): tick rates, buffers and replication modes.
+- [Entities](../guides/npcs.md): replicating NPCs and other objects.
+- [Debugger](../guides/debugger.md): inspect entities and replication stats.

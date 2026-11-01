@@ -49,22 +49,24 @@ repo_name = "parihsz/chrono"
 nav = [
   { Home = "index.md" },
   { "Getting started" = [
-        {"Getting Started" = "getting-started/installation.md"},
+        {"Installation" = "getting-started/installation.md"},
         {"Start Chrono" = "getting-started/start-chrono.md"},
-        {"Configurate Chrono" = "getting-started/configurations.md"}
+        {"Configuration" = "getting-started/configurations.md"}
   ]},
 
   { Guides = [
     {"Migration" = "guides/migration.md"},
-    {"Lag Compensation" = "guides/lag-compensation.md"},
     { "Entities" = "guides/npcs.md" },
+    {"Lag Compensation" = "guides/lag-compensation.md"},
     { "Mounting" = "guides/mounting.md" },
     { "Ragdolls" = "guides/ragdolls.md" },
     {"Debugger" = "guides/debugger.md"},
-    {"Manual Replication Integration" = "guides/stateless.md"}
+    {"Integration Patterns" = "guides/stateless.md"},
+    {"ECS" = "guides/ecs.md"}
   ]},
 
   { Reference = [
+        { Overview = "reference/index.md" },
         { Entity = "reference/entity.md" },
         { Holder = "reference/holder.md" },
         { Events = "reference/event.md" },
@@ -81,7 +83,6 @@ nav = [
       { Overview = "v1/index.md" },
 
       { API = [
-          { Overview = "v1/API/index.md" },
           { Character = "v1/API/Character.md" },
           { ChronoClient = "v1/API/ChronoClient.md" },
           { ChronoServer = "v1/API/ChronoServer.md" },

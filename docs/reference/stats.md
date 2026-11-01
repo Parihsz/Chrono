@@ -1,106 +1,55 @@
 # Shared.Stats
 
-Stores statistical data used by Chrono.
+Live replication stats, also shown in the [debugger](../guides/debugger.md).
 
-### `REPLICATE_PERMISSIONS` : { [`number`]: `boolean` } 
+```lua
+local Stats = require(ReplicatedStorage.Packages.chrono).Stats
+print(Stats.SERVER.AVG_TICKER_TIME_MS)
+```
 
-A table mapping UserIds to booleans indicating whether that user is allowed to receive server stats updates. 
+Read client stats from `Stats.CLIENT` and server stats from `Stats.SERVER`. Collection runs while an authorized debugger is open, or when enabled with `Stats.SetForced(true)`. Server stats are sent only to clients that have perms and has the debugger open.
 
-## Client
+## Permissions
 
-### `TOTAL_ENTITIES_CULLED` : `number`
+### `ReplicateStatsForPlayer(player: Player | number) -> ()`
 
-Total number of entities that have been culled on the client.
+Server only. Grants debugger access to a player or UserId.
 
-### `ENTITIES_MOVED_THIS_FRAME` : `number`
+### `StopReplicatingStatsForPlayer(player: Player | number) -> ()`
 
-Number of entities whose CFrame was moved during the current frame.
+Server only. Revokes debugger access.
 
-### `TOTAL_CLIENT_ENTITIES_CHECKED_THIS_FRAME` : `number`
+### `HasPermissionToReplicate(player: Player | number) -> boolean`
 
-Total number of client entities checked for updates in the current frame during interpolation.
+Returns whether the player has permission. Works on clients too.
 
-### `TOTAL_CLIENT_ENTITIES` : `number`
 
-Total number of entities registered on the client.
+## `Stats.CLIENT`
 
-### `AVG_INTERPOLATION_TIME_MS` : `number`
+| Field | Meaning |
+|---|---|
+| `TOTAL_ENTITIES_CULLED` | Entities culled on the client. |
+| `ENTITIES_MOVED_THIS_FRAME` | Entities whose CFrame was set this frame. |
+| `TOTAL_CLIENT_ENTITIES_CHECKED_THIS_FRAME` | Entities checked for interpolation this frame. |
+| `TOTAL_CLIENT_ENTITIES` | Entities registered on the client. |
+| `AVG_INTERPOLATION_TIME_MS` | Average time spent interpolating, in milliseconds. |
+| `BYTES_RECEIVED_PER_SEC` | Raw bytes received per second for entity replication. |
+| `NEW_ENTITIES_PER_SEC` | New entities registered per second. |
+| `ENTITY_CHANGES_PER_SEC` | Entity changes processed per second. |
+| `ENTITY_REMOVALS_PER_SEC` | Entity removals processed per second. |
 
-Average time in milliseconds spent on interpolation calculations on the client.
+## `Stats.SERVER`
 
-### `BYTES_RECEIVED_PER_SEC` : `number`
-
-Average raw bytes received per second by the client for entity replication.
-
-### `NEW_ENTITIES_PER_SEC` : `number`
-
-Average number of new entities registered per second on the client.
-
-### `ENTITY_CHANGES_PER_SEC` : `number`
-
-Average number of entity change events processed per second on the client.
-
-### `ENTITY_REMOVALS_PER_SEC` : `number`
-
-Average number of entity removals processed per second on the client.
-
-## Server
-
-### `AVG_TICKER_TIME_MS` : `number`
-
-Average time in milliseconds taken for the server ticker to process entity updates.
-
-### `ENTITY_GRID_UPDATE_TIME_MS` : `number`
-
-Total time in milliseconds taken for the entity grid update in the last cycle.
-
-### `GRID_UPDATE_SECTIONS` : `number`
-
-Number of grid sections updated during the last grid update cycle.
-
-### `NUMBER_OF_ENTITIES` : `number`
-
-Total number of entities registered on the server.
-
-### `ENTITIES_FULL_TICKED` : `number`
-
-Number of entities being fully ticked on the server.
-
-### `ENTITIES_HALF_TICKED` : `number`
-
-Number of entities being half-ticked on the server.
-
-### `NON_TICKED` : `number`
-
-Number of entities that are not being ticked on the server.
-
-### `REPLICATE_PLAYER_TIME_MS` : `number`
-
-Average time in milliseconds taken to replicate entities to a player.
-
-### `BYTES_RECEIVED_PER_SEC` : `number`
-
-Average raw bytes received per second by the server for entity replication.
-
-### `BYTES_SENT_PER_SEC` : `number`
-
-Average raw bytes sent per second by the server for entity replication.
-
-### `PACKETS_SENT_PER_SEC` : `number`
-
-Average number of packets sent per second by the server for entity replication.
-
-## Functions
-
-### `HasPermissionToReplicate(userId: number | Player)` : `boolean`
-
-Returns whether the specified player or userId is allowed to receive replicated stats.
-
-### `ReplicateStatsForPlayer(userId: number | Player)`
-
-Marks the given player or userId as allowed to receive server stats updates. SERVER ONLY.
-
-### `StopReplicatingStatsForPlayer(userId: number | Player)`
-
-Removes the given player or userId from the stats replication permission list. SERVER ONLY.
-
+| Field | Meaning |
+|---|---|
+| `AVG_TICKER_TIME_MS` | Average time the ticker takes to process entities, in milliseconds. |
+| `ENTITY_GRID_UPDATE_TIME_MS` | Time the last entity grid update took, in milliseconds. |
+| `GRID_UPDATE_SECTIONS` | Grid sections updated in the last cycle. |
+| `NUMBER_OF_ENTITIES` | Entities registered on the server. |
+| `ENTITIES_FULL_TICKED` | Entities ticking at full rate. |
+| `ENTITIES_HALF_TICKED` | Entities ticking at half rate. |
+| `NON_TICKED` | Entities not ticking. |
+| `REPLICATE_PLAYER_TIME_MS` | Average time to replicate entities to a player, in milliseconds. |
+| `BYTES_RECEIVED_PER_SEC` | Raw bytes received per second from clients for entity replication. |
+| `BYTES_SENT_PER_SEC` | Raw bytes sent per second for entity replication. |
+| `PACKETS_SENT_PER_SEC` | Packets sent per second for entity replication. |

@@ -1,37 +1,23 @@
 # Shared.Events
-Holds shared event definitions for Chrono.
 
-### `EntityAdded` 
-Fired when an entity is added to the holder.
+Shared events for entities and players.
 
-- `entity` - The entity that was added.
+```lua
+local Events = require(ReplicatedStorage.Packages.chrono).Events
 
-### `EntityRemoved`
-Fired when an entity is removed from the holder.    
-- `entity` - The entity that was removed.
+Events.EntityAdded:Connect(function(entity)
+	print("entity", entity.id, "added")
+end)
+```
 
-### `PlayerCharacterRegistered`
-Fired when a player character entity is registered.
-- `player` - The player whose character was registered.
-- `entity` - The entity that was registered as the player's character.
+| Event | Arguments | Fires when |
+|---|---|---|
+| `EntityAdded` | `entity` | An entity is registered or arrives on a client. |
+| `EntityRemoved` | `entity` | An entity is unregistered. |
+| `PlayerCharacterRegistered` | `player`, `entity` | An entity becomes a player's character. |
+| `PlayerCharacterUnregistered` | `player`, `entity` | An entity stops being a player's character. |
+| `PlayerOwnedAdded` | `player`, `entity` | A player becomes an entity's owner. |
+| `PlayerOwnedRemoved` | `player`, `entity` | `player` stops owning the entity. |
+| `EntityMountChanged` | `entity`, `mountParentId: number?` | An entity's mount changes, with nil when it's cleared. Fires on the server from `SetMount` and `ClearMount`, and on clients when the change arrives. |
 
-### `PlayerCharacterUnregistered`
-Fired when a player character entity is unregistered.
-- `player` - The player whose character was unregistered.
-- `entity` - The entity that was unregistered as the player's character.
-
-### `PlayerOwnedAdded`
-Fired when a player-owned entity is added.
-- `player` - The player who owns the entity.
-- `entity` - The entity that was added as player-owned.
-
-### `PlayerOwnedRemoved`
-Fired when a player-owned entity is removed.
-- `player` - The player who owned the entity.
-- `entity` - The entity that was removed as player-owned.
-
-### `EntityMountChanged`
-Fired when an entity's mount parent changes. Fires on both server (via `Entity.SetMount`/`Entity.ClearMount`) and client (via replication).
-- `entity` - The entity whose mount changed.
-- `mountParentId` - The new parent entity ID, or `nil` if the mount was cleared.
-
+See also [Entity events](entity.md#events).

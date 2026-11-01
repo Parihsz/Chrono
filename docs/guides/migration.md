@@ -1,19 +1,19 @@
 # Migrating from Chrono v1 to v2
 
-When v1 was being developed it was designed around for player characters and adding support for npcs was an afterthought. This led to a lot of limitations and complications in the codebase. With v2 we redesigned the entire system from the ground up to be more flexible and extensible.
+v2 brings players and NPCs into one Entity API, with per-type replication settings.
 
 ## Starting Chrono
 
-The startup process remains the same-call `Chrono.Start()` on both server and client.
+Starting is the same: call `Chrono.Start()` on both the server and the client.
 
 ## Configurations
 
-v1 provided direct access to the `Config` table. v2 uses a function-based API instead. Before calling `Chrono.Start()`, create a shared module that requires the config module and uses `SetConfig()`, `RegisterEntityType()`, and `RegisterEntityModel()`.
+v1 gave you direct access to the `Config` table. v2 uses functions instead: before calling `Chrono.Start()`, create a shared module that calls `SetConfig()`, `RegisterEntityType()` and `RegisterEntityModel()`. See [Configuration](../getting-started/configurations.md).
 
 !!! info
-    In v2 we highly encourage using these functions instead of directly modifying the config table because it allows your configurations to not be reset when updating Chrono.
+    Use a separate config module so updating Chrono doesn't overwrite your settings.
 
-**v1 Configuration:**
+**v1 configuration:**
 
 ```lua
 local Config = ...
@@ -21,17 +21,17 @@ Config.SHOW_WARNINGS = false
 Config.NPC_TYPES.NPC = { TICK_RATE = 1 / 30 }
 ```
 
-**v2 Configuration:**
+**v2 configuration:**
 
 ```lua
-local Config = ...
-Config.SetConfig("WARNING_SEVERITY", "NONE") --// or Config.SetWarningSeverity("NONE")
+local Config = require(ReplicatedStorage.Packages.chrono).Config
+Config.SetConfig("WARNING_SEVERITY", "NONE") -- or Config.SetWarningSeverity("NONE")
 Config.RegisterEntityType("NPC", { TICK_RATE = 1 / 30 })
 ```
 
-v2 expands configurability with custom entity types, proximity controls, and per-entity full rotation options.
+v2 adds custom entity types, distance controls, and full rotation per entity type.
 
-**v1 Entity Config Type:**
+**v1 entity config type:**
 
 ```lua
 export type NPC_CONFIG = {
@@ -40,7 +40,7 @@ export type NPC_CONFIG = {
 }
 ```
 
-**v2 Entity Config Type:**
+**v2 entity config type**:
 
 ```lua
 export type EntityConfigInput = {
@@ -50,11 +50,15 @@ export type EntityConfigInput = {
     AUTO_UPDATE_POSITION: boolean?,
     STORE_SNAPSHOTS: boolean?,
     MODEL_REPLICATION_MODE: MODEL_REPLICATION_MODE?,
+    ASSEMBLY_ROOT_PART_CHECK: boolean?,
     NORMAL_TICK_DISTANCE: number?,
     HALF_TICK_DISTANCE: number?,
     CUSTOM_INTERPOLATION: boolean?,
+    INTERPOLATION_MODE: INTERPOLATION_MODE?,
 }
 ```
+
+The fields are explained under [Entity types](../getting-started/configurations.md#entity-types).
 
 ### Replication Modes
 
@@ -67,33 +71,32 @@ v2 allows replication mode configuration per entity instead of globally.
 | `DISABLE_DEFAULT_REPLICATION = false` | `NATIVE`           | Roblox native replication without modification              |
 
 !!! info
-    We changed how `DISABLE_DEFAULT_REPLICATION` replication works. In v1 we would anchor the part on the server and unanchored on the client. And for moving the character on the server required a `REPLICATOR` model. With v2 we do a new trick using welds that allows replication to stay disabled while still allowing the server to move the character without needing a mock model.
+    v1 anchored the server part and used a `REPLICATOR` model for server movement. v2 uses a hidden welded part, so you can move the model directly while replication is locked.
 
-### Replication Proximity
+### Replication proximity
 
-v1 Only have one global replication proximity setting for players. v2 allows you to configure replication proximity separately for player and npcs.
+v1 had a single global replication distance for players (`PROXIMITY`). v2 has `DEFAULT_NORMAL_TICK_DISTANCE` and `DEFAULT_HALF_TICK_DISTANCE`, and each entity type can override them. See [Distance-based replication](../getting-started/configurations.md#distance-based-replication).
 
 ## Entity API
 
-v2 has a single `Entity` class for all entities instead of separate `NpcRegistry` and `Character`. v2 also supports parts for entity models instead of just models. 
+v2 has a single `Entity` module for everything, instead of the separate `NpcRegistry` and `Character` modules. Entity models can also be plain parts, not just models.
 
 ### Usage
 
-Here are some examples of creating entities, setting network owner and destroying entities in v1 vs v2.
+Creating an entity, moving it, setting its network owner and destroying it, in v1 and v2:
 
 ```lua
---v1
-local id = NpcRegistry.Register(model, "NPC",nil,true)
-NpcRegister.SetPosition(id, cframe)
-SetPosition.SetNetworkOwner(id, player)
-local latestCFrame = Replicate.GetLatestCFrame(id)
+-- v1
+local id = NpcRegistry.Register(model, "NPC", nil, true)
+NpcRegistry.SetPosition(id, cframe)
+NpcRegistry.SetNetworkOwner(id, player)
+local latestCFrame = ChronoServer.GetLatestCFrame(id)
 NpcRegistry.UnRegister(id)
-
 ```
 
 ```lua
---v2
-local entity = Entity.New("NPC",modelOrpartOrModelName)
+-- v2
+local entity = Entity.new("NPC", modelOrPartOrModelName)
 Entity.SetCFrame(entity, cframe)
 Entity.SetNetworkOwner(entity, player)
 local latestCFrame = entity.latestCFrame
@@ -102,26 +105,28 @@ Entity.Destroy(entity)
 
 ## Holder
 
-Holder is a centralized module that keeps track of player entities and character entities. In v1 player entities were stored in its own `Replicate` modules that were different between server and client. In v2 we moved all the player entity management to `Holder` which is shared between server and client. 
+`Holder` replaces v1's separate server and client registries. It tracks entities and player characters on both sides.
 
 ## Player handling
 
-v1 had Player handling hardcoded. In v2 you can chose to either use the built in player handling or implement your own custom player replication by setting `PLAYER_REPLICATION` to `AUTOMATIC` or `CUSTOM` respectively. With `AUTOMATIC` Chrono will automatically create entities for player characters and replicate them according to the `PLAYER` entity type settings. With `CUSTOM` you can create and manage player entities yourself which is useful for advanced use cases like custom character rigs or non-character player entities.
+`PLAYER_REPLICATION = "AUTOMATIC"` registers characters using the `PLAYER` entity type. Set it to `CUSTOM` to manage player entities yourself.
 
 ### Registering players
 
-With `AUTOMATIC` player entities are automatically created when players join and destroyed when players leave. With `CUSTOM` you can create player entities manually like this:
+With `AUTOMATIC`, player entities are created when characters spawn and destroyed when players leave. With `CUSTOM`, register them yourself:
 
 ```lua
-local newEntity = Entity.new(config, character, modelRepMode :: any)
+local newEntity = Entity.new("PLAYER", character)
 Holder.SetAsCharacter(player, newEntity)
 Entity.SetNetworkOwner(newEntity, player)
 ```
 
-!!! info
-    `Holder.SetAsCharacter` is just a way to tell chrono that this entity is the character for this player. It just allows chrono to set the character as the camera subject and do other character related things. It doesn't have any special replication behavior by itself.
+`chrono.Player.RegisterPlayer(player, character, {})` does the same in one call. See [Custom player management](stateless.md#custom-player-management).
 
-Because this uses the Entity api you can also change the Character model without having to go through a separate character api like in v1.
+!!! info
+    `Holder.SetAsCharacter` sets up character handling, including the camera. It doesn't change replication settings.
+
+Because this uses the Entity API, you can also change a player's character model without a separate character API like v1's.
 
 ```lua
 -- v1
@@ -137,10 +142,10 @@ Entity.SetModel(playerEntity, newModel)
 ## Optimizations
 
 ### Ticker
-Chrono v2 now uses a ticker system per entity type instead of a single global tick rate. This allows you to have different tick rates for different entity types while being very performant. v2 also only keeps track of one Interpolation buffer per entity type instead of per entity which allows for more consistent interpolation and less memory usage.
+Each entity type has its own ticker. Server-owned entities of the same type share a client clock and interpolation buffer, saving memory and keeping their interpolation consistent.
 
-### Rotation Replication
-v2 allows you to choose whether to replicate full rotation (CFrame) or just the y-axis rotation per entity type. While v1 only had 1 global setting for this. You can also change the entity type at runtime which allows you to change whether to replicate full rotation or not at runtime.
+### Rotation replication
+Rotation is set per entity type instead of globally. Use `Entity.SetConfig` to switch types at runtime.
 
 ### Culling
-v2 has built in frustum culling which helps improve performance by only updating entities that are within the camera's view.
+v2 has built-in frustum culling, which saves client time by only updating entities the camera can see.

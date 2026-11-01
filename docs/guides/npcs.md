@@ -1,197 +1,166 @@
 # Entities
 
-## Introduction
+Players, NPCs and other replicated objects share the `Entity` API. If you're coming from v1, see [Migration](migration.md).
 
-In chrono v1 we kept Entities and Player's separate, but in v2 we have merged them together. This means both players and entities utilize the same systems. v2 Npcs also get more configuration options such as model replication mode and distance-based tick rate which v1 npcs didn't have.
+## Creating an entity
 
-## Creating an Entity
-
-When you create an entity via `Entity.new` this will automatically register it and replicate the data to other clients. Entities will also take on the `DEFAULT` config if no config is specified.
-
-!!! note
-    You could have more manual control over when the entity via `Entity._new` where it will create the entity but not register it. You would have to call `Holder.RegisterEntity` manually to register it and replicate it to clients. 
-
-### Sending data related to the entity
-
-When you create an entity you can add data to it via `Entity.SetData` and retrieve it via `Entity.GetData`. This is useful for sending information related to the entity that isn't easily derived from the model. For example you can send small details like hair color/style and when the client receives the entity data, they can apply the hair color/style to the model.
-
-Example:
+`Entity.new(entityType, model, modelReplicationMode?, initCFrame?)` creates an entity on the server, registers it, and replicates it to clients. Call it after `Chrono.Start()`.
 
 ```lua
 -- Server
-local myEntity = Entity.new("Entity", "BasicR6Rig")
-Entity.SetData(myEntity, {
-    HAIR_COLOR = "Bright red",
-    HAIR_STYLE = "Curly",
-})
+local goblin = Entity.new("DEFAULT", workspace.Goblin)
+```
 
---- Client
+- `entityType` is the name of an [entity type](../getting-started/configurations.md#entity-types). If it's left out or misspelled, the entity uses `DEFAULT`.
+- `model` can be a `Model` with a `PrimaryPart`, a `BasePart`, or the name of a registered [entity model](../getting-started/configurations.md#entity-models).
+
+!!! note
+    For manual registration, use `Entity._new` followed by `Holder.RegisterEntity`. 
+
+### Sending data with an entity
+
+Use `Entity.SetData` to send extra data with the entity, and `Entity.GetData` to read it. For example, hair color and style:
+
+```lua
+-- Server
+local npc = Entity.new("DEFAULT", "BasicR6Rig")
+Entity.SetData(npc, {
+	HAIR_COLOR = "Bright red",
+	HAIR_STYLE = "Curly",
+})
+```
+
+```lua
+-- Client
 local function ApplyHairStyle(model: Model, hairColor: string, hairStyle: string)
-    -- apply the hairstyle to the model
+	-- apply the hairstyle to the model
 end
 
 Events.EntityAdded:Connect(function(entity)
-    local data = Entity.GetData(entity)
-    local hairColor = data.HAIR_COLOR
-    local hairStyle = data.HAIR_STYLE
-
-    local model = entity.model
-    ApplyHairStyle(model, hairColor, hairStyle)
+	local data = Entity.GetData(entity)
+	if data and entity.model then
+		ApplyHairStyle(entity.model, data.HAIR_COLOR, data.HAIR_STYLE)
+	end
 end)
-
 ```
 
+Connect to `EntityAdded` early, and check `Holder.idMap` for existing entities. Listen to the entity's `DataChanged` event for later changes.
+
 !!! note
-    If you want to send other data that is related to the entity such as when a state changes we recommend using your own implementation via remotes and using `entity.id` as and identifier to send the data related to that entity.
+    For data that changes often, such as a state machine, use your own remotes and identify the entity by `entity.id`.
 
-## Model Replication Mode
+## Model replication mode
 
-When you create an entity, you can specify the model replication mode via the entity configuration. This controls how the model is replicated to clients. The options are:
+The model replication mode decides how the entity's model reaches clients. Set it per entity type with `MODEL_REPLICATION_MODE`, per entity in `Entity.new`, or change it later with `Entity.SetModel`.
 
-### NATIVE
-
-Chrono replicates the model along with using Roblox's native model replication. The server models can simulate physics normally while clients receive live updates.
-
-**Best for:** Physics-based NPCs, simpler setups where you want to leverage Roblox's native replication and don't mind the extra bandwidth.
-
-**Bandwidth:** High
+| | `NATIVE` | `NATIVE_WITH_LOCK` | `CUSTOM` |
+|---|---|---|---|
+| Model on clients | Replicated by Roblox | Replicated by Roblox | Each client builds its own |
+| CFrame replication | Roblox's and Chrono's | Chrono's only | Chrono's only |
+| Bandwidth | Highest | Low to medium | Lowest |
+| Server's model | Normal physics | Limited physics, including no `Touched` events on server | Separate copy, which can be a plain part |
+| Setup | None | None | Register the model on both sides |
+| Good for | Dropping Chrono into an existing game, physics NPCs | Characters and other client-owned entities | Many NPCs, or a simple server hitbox with a detailed client model |
 
 ### NATIVE_WITH_LOCK
 
-Chrono replicates the model using Roblox's native replication, but disables physics replication. Calls `Entity.LockNativeServerCFrameReplication` internally. For client owned entities they their server physics will be disabled.
-
-**Best for:** Cases where you want to reduce bandwidth compared to NATIVE mode but still want to use Roblox's native model replication. 
-
-**Bandwidth:** Low - Medium
-
-!!! info
-    Another benefit of this mode is for client owned entities the server model will have a more update to date CFrame. [see](../index.md#showcase)
+Chrono calls `Entity.LockNativeServerCFrameReplication` to disable Roblox's CFrame replication. For client-owned entities, this also keeps the server model more up to date. See the [showcase](../index.md#showcase).
 
 !!! warning
-    The way we current implement this is by having an server-side  part (hidden via camera) welded to the primary part of the model. This method will stop replication but still allow the model to be moved on the server. However, this has not been thoroughly tested in live environments so any feedback on this method is appreciated.
-
+    This uses a hidden server-side part welded to the primary part. It hasn't been thoroughly tested in live games yet, so feedback is welcome.
 
 ### CUSTOM
 
-Chrono creates a server and client model separately and only replicates CFrames. This is good for low-bandwidth but requires more manual setup. 
+For a registered model name, each client clones its own template. Otherwise, Chrono sends a model copy and keeps it in the client's `PlayerGui` until the entity goes out of range.
 
-**Best for:** NPCs where you want a more detailed client model but a simpler server model for hitbox calculations and performance, or any entity where you want to minimize bandwidth and are okay with the extra setup.
+## Different server and client models
 
-**Bandwidth:** Low
-
-!!! note
-    Initial model replication differs by mode. For `NATIVE` and `NATIVE_WITH_LOCK`, the model is replicated using Roblox's native system. For `CUSTOM`, if the model is a string reference it's passed to the client to load, otherwise a copy is created and temporarily stored in the client's `PlayerGui` until it's out of range.
-
-## Different Server and Client Models
-
-With `CUSTOM` replication mode, you can have completely different models on the server and client. This is useful for NPCs where you want the client to have a more detailed model while the server has a simpler model for hitbox calculations and performance. You can specify the server and client models when registering the entity model in your config.`
-
-Example:
+In `CUSTOM` mode, register different models under the same name to use a simple server hitbox and a detailed client model:
 
 ```lua
---server.luau
-Config.RegisterEntityModel("TestChar", Instance.new("Part"))
-
---client.luau
-Config.RegisterEntityModel("TestChar", Path.To.Model)
+-- In your config module
+local RunService = game:GetService("RunService")
+if RunService:IsServer() then
+	chrono.Config.RegisterEntityModel("TestChar", Instance.new("Part"))
+else
+	chrono.Config.RegisterEntityModel("TestChar", ReplicatedStorage.Models.TestChar)
+end
 ```
-
-This would register a part as the model for the entity on the server and a different model on the client. This is useful for NPCs where you want the client to have a more detailed model while the server has a simpler model for hitbox calculations and performance.
 
 ## Network ownership
 
-Entities will have a default ownership of the server, to give a client control of an entity you can set it via `Entity.SetNetworkOwner`.
+Entities are server-owned by default. Call `Entity.SetNetworkOwner(entity, player)` on the server to let a client move one. Pass `nil` to return ownership to the server.
 
 !!! warning
-    There has been issues where even thought chrono explicitly sets the network owner to nil, disabling roblox's `OwnershipAuto` feature, adding parts/welds may cause ownership to be reset to `OwnershipAuto` which can cause the model to be client owned if the client is near. If you ever encounter this issue we recommend calling `BasePart:SetNetworkOwner(nil)` on the primary part after adding a new weld/part to the model to reset the ownership back to server owned. Or you can do it through chrono by calling `Entity.SyncOwnerShip(entity)` which will update the ownership status of the entity and model.
+    Adding parts or welds can reset Roblox ownership to automatic. Call `Entity.SyncOwnerShip(entity)` after changing the model to restore ownership if you encounter this.
 
-## Player Character
+## Player characters
 
-The only thing that separates a player character from a client-owned entity is that player characters should also be registered to `Holder.SetAsCharacter` so that when a character is added chrono knows to change the camera logic on the client.
-
-```lua
---Example from Server/Player.luau
-
-character.Archivable = true
-local newEntity = Entity.new(config, character, modelRepMode)
-Holder.SetAsCharacter(player, newEntity)
-Entity.SetNetworkOwner(newEntity, player)
-```
+A player character is a client-owned entity registered with `Holder.SetAsCharacter`, which also sets up the client's camera. Chrono handles this by default. See [Custom player management](stateless.md#custom-player-management) to register characters yourself.
 
 ## Pushing CFrames
 
-By default `AUTO_UPDATE_POSITION` is set as true. This means Chrono will automatically call `Entity.Push` every tick passing in the primary part's CFrame to replicate movement.
+With `AUTO_UPDATE_POSITION = true` (the default), move the model normally. Chrono reads its primary part's CFrame every tick and sends changes.
 
-If set to false, you must manually call `Entity.Push` whenever the entity's position changes. This is useful if you want to control exactly when position updates are sent (e.g., only on significant movements to save bandwidth).
-
-!!! note
-    When `AUTO_UPDATE_POSITION` is true, calling `Entity.Push` manually will also work and its update will be sent alongside the automatic one.
+With `false`, call `Entity.Push(entity, time, cframe)` yourself. Use `os.clock()` on the server. The newest CFrame is sent next tick. Automatic updates overwrite manually pushed CFrames.
 
 ### SetCFrame vs Push
 
-`Entity.SetCFrame` will set the CFrame of the entity's model on the server and if the entity is client-owned, it will also teleport the client model to that CFrame. While `Entity.Push` is ment to be used for non-teleporting movement where you want the server to replicate the movement.
+- `Entity.Push` is for normal movement, and is interpolated like any other update.
+- `Entity.SetCFrame` is a teleport: clients jump straight to the new CFrame instead of interpolating to it, and for a client-owned entity the owner's model is moved too.
 
 ## Distance-based tick rate
 
-Entities automatically adjust their update frequency based on distance to nearby players, reducing network traffic for distant entities.
+Entities send less often to players who are far away:
 
-**Distance Zones:**
+- **Full rate** within `NORMAL_TICK_DISTANCE`.
+- **Half rate** between `NORMAL_TICK_DISTANCE` and `HALF_TICK_DISTANCE`.
+- **Beyond `HALF_TICK_DISTANCE`:** `CUSTOM` and `NATIVE_WITH_LOCK` entities aren't sent to that player at all, and are removed from their client until they come back in range. `NATIVE` entities keep being sent at half rate.
 
-- **Full Updates** (0 to NORMAL_TICK_DISTANCE): Full tick rate - updates every tick
-- **Half Updates** (NORMAL_TICK_DISTANCE to HALF_TICK_DISTANCE): Reduced tick rate - updates every other tick
-- **No Replication** (beyond HALF_TICK_DISTANCE): Entity is not replicated to this player only applies for `CUSTOM` and `NATIVE_WITH_LOCK` replication modes. NATIVE entities will continue to replicate at half tick
-
-By default, Chrono uses `DEFAULT_NORMAL_TICK_DISTANCE` and `DEFAULT_HALF_TICK_DISTANCE` from your config. You can override these per-entity by setting `NORMAL_TICK_DISTANCE` and `HALF_TICK_DISTANCE` in the entity configuration.
-    
-**Example:**
+By default every type uses `DEFAULT_NORMAL_TICK_DISTANCE` and `DEFAULT_HALF_TICK_DISTANCE` from your config, and you can override them per type:
 
 ```lua
-Config.RegisterEntityType("NPC", {
-    TICK_RATE = 1 / 30,           -- Replicates every 1/30th of a second (30 hz)
-    NORMAL_TICK_DISTANCE = 50,    -- Full updates up to 50 studs (30 hz)
-    HALF_TICK_DISTANCE = 150,     -- Half updates up to 150 studs (15 hz)
-
+-- In your config module
+chrono.Config.RegisterEntityType("NPC", {
+	TICK_RATE = 1 / 30, -- 30 Hz
+	NORMAL_TICK_DISTANCE = 50, -- 30 Hz up to 50 studs
+	HALF_TICK_DISTANCE = 150, -- 15 Hz up to 150 studs
 })
 
-local myNPC = Entity.new("NPC",...)
+local myNPC = Entity.new("NPC", workspace.Goblin)
 ```
 
-!!! note
-    For `CUSTOM` and `NATIVE_WITH_LOCK` replication modes: Entities are completely removed from clients when outside `HALF_TICK_DISTANCE` and re-added when within range. To keep entities always present on the client, set `HALF_TICK_DISTANCE = math.huge`.
+To keep an entity a player already has for a few more studs past `HALF_TICK_DISTANCE`, so one moving along the edge isn't removed and re-sent each time it crosses, set `HALF_TICK_MARGIN`. See [Distance-based replication](../getting-started/configurations.md#distance-based-replication).
 
-## Client Side Culling
+To keep an entity on every client no matter the distance, set `HALF_TICK_DISTANCE = math.huge`. The entity's `TickChanged` event fires when it switches between full rate, half rate and not ticking.
 
-Chrono can reduce rendering costs on the client by not updating the CFrames if the entities are not in the player's viewport. To enable culling for an entity you can passing in a third parameter to `Config.RegisterEntityModel` which specifies the broad phase size of the hitbox for culling. If the vector is zero then only a point check is done from the center of the primary part. Otherwise 8 corner points of a box will be checked. If the parameter is not passed then no culling will be done. Another way to is via `Entity.SetBroadPhase` which allows you to change the broad phase size dynamically as well.
+## Client-side culling
+
+Pass a culling box size to `Config.RegisterEntityModel` as its third argument, or use `Entity.SetBroadPhase` later. Chrono checks the box's 8 corners and skips interpolation while off screen. `Vector3.zero` checks only the primary part's center. No broadphase means no culling.
 
 !!! warning
-    We do not recommend adding a broad phase for a large hitbox due to the fact that we do corner checks to see if an entity should be on screen and a large hitbox would potentially be marked as off screen even if it should be on screen because all the corner points are off screen.
+    Avoid large culling boxes since corners can be off screen while the middle is still visible if the camera is close.
 
 ## Changing models
 
-You can change a entity's model by calling `Entity.SetModel` you can also use this method to change the entities replication mode by passing in a model with a different replication mode registered to it. If a replication mode is not specified for the model then it will use the current replication mode of the entity.
+`Entity.SetModel(entity, model, modelReplicationMode?, noDestroy?)` swaps an entity's model. Pass a replication mode to switch modes at the same time, or leave it out to keep the current one. On the server, the old model is destroyed unless you pass `noDestroy = true`.
 
-## REPLICATE_DEATHS & REPLICATE_CFRAME_SETTERS
+## REPLICATE_DEATHS and REPLICATE_CFRAME_SETTERS
 
-These configs are useful for maintaining default Roblox behavior.
-`PLAYER_ENTITIES` means all player owned entities will have this behavior, while `PLAYER_CHARACTERS` means only entities registered as characters will have this behavior. You can disable these by setting them to `NONE` and implementing your own custom logic for handling these cases via events and remotes.
+These settings preserve Roblox behavior for player-owned entities. See [Death and CFrame replication](../getting-started/configurations.md#death-and-cframe-replication).
 
-### REPLICATE_CFRAME_SETTERS
-When set to `PLAYER_ENTITIES` or `PLAYER_CHARACTERS` then the server will automatically call `Entity.SetCFrame` for player-registered entities when their we detect that their primary part CFrame has changed. This is useful for when you want to be able to move the character on the server and have it replicate to clients without having to call `Entity.SetCFrame` manually. 
+- `REPLICATE_CFRAME_SETTERS`: when server code moves a player-owned entity's root part, Chrono calls `Entity.SetCFrame` so the owner is moved too.
+- `REPLICATE_DEATHS`: forwards client-reported humanoid deaths to the server and other clients. The default, `PLAYER_CHARACTERS`, prevents players from killing other entities they own through this feature.
 
-### REPLICATE_DEATHS
-When set to `PLAYER_ENTITIES` or `PLAYER_CHARACTERS` then the server will automatically destroy the entity when we detect that the player's character has died. This is due to sometimes death state not properly replicating to the server even in `NATIVE` mode. 
-
-!!! warning
-    When using REPLICATE_DEATHS we recommend setting it to `PLAYER_CHARACTERS` as this makes it so users can't just kill other entities they own.
-
+Set either to `NONE` to handle these cases yourself with events and remotes.
 
 ## Pausing replication
 
-You can pause/resume replication of an entity via `Entity.PauseReplication` and `Entity.ResumeReplication`. Pausing the replication of an entity will stop the server from sending updates to clients, but the entity will still exist on the client and server. This is useful for cases where you want to temporarily stop replication of an entity without destroying it.
+`Entity.PauseReplication` and `Entity.ResumeReplication` stop and restart Chrono's updates for an entity, without destroying it. While it's paused, clients don't move it, and a `NATIVE` model falls back to Roblox's own replication.
 
-## Destroying an Entity
+## Destroying an entity
 
-When you call `Entity.Destroy`, this will destroy the entity on the server and remove the entity from the registry, which will remove it from all clients. This will also cleanup and listeners connected to the entity.
+`Entity.Destroy` destroys the entity on the server, removes it from every client, and disconnects its events.
 
 !!! warning
-    This does not apply the other way around `Instance:Destroy()` will not trigger `Entity.Destroy` and will not remove the entity from the registry. You must call `Entity.Destroy` to properly destroy an entity and remove it from the registry.
+    Destroying the model with `Instance:Destroy()` leaves the entity registered. Use `Entity.Destroy`.

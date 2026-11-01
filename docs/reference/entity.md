@@ -1,265 +1,211 @@
 # Shared.Entity
 
+```lua
+local Entity = require(ReplicatedStorage.Packages.chrono).Entity
+```
+
+!!! note
+    Call functions on the module with the entity first, like `Entity.SetCFrame(entity, cframe)`. Entity objects don't have methods.
+
 ## Properties
 
-- `broadPhase` : `Vector3?` - The broadphase size of the entity used for culling.
+Read properties directly. Use the matching function to change them, such as `Entity.SetBroadPhase`.
 
-- `autoUpdatePosition` : `boolean?` - Whether Chrono will automatically call `Entity.Push` when the entity model moves. Default is true.
-
-- `isContextOwner` : `boolean` - Whether this entity is owned by the current context (server or client).
-
-- `networkOwner` : `Player?` - The player who owns this entity on the server. Nil if unowned or on client.
-
-- `snapshot` : `Snapshot?` - Snapshot data for the entity.
-
-- `latestCFrame` : `CFrame?` - The latest CFrame of the entity.
-
-- `latestTime` : `number?` - The latest timestamp of the entity.
-
-- `id` : `number` - The unique ID of the entity. Will be -1 if not registered.
-
-- `entityConfig` : `EntityType` - The configuration table for this entity.
-
-- `modelString` : `string?` - The model string name for this entity if present.
-
-- `model` : `Model|BasePart?` - The model or base part of this entity.
-
-- `paused` : `boolean` - Whether this entity is paused.
-
-- `modelReplicationMode` : `"NATIVE" | "CUSTOM"?"` - The model replication mode for this entity.
-
-- `registered` : `boolean` - Whether this entity is registered in holder.
-
-- `mountParentId` : `number?` - The ID of the parent entity this entity is mounted to, if any.
-
-- `mountOffset` : `CFrame?` - The offset CFrame of this entity when mounted to a parent entity.
-
-- `interpolation` : `Boolean` - If this is false, Chrono will not interpolate the entity on the client. 
-
-!!! info
-    For setting properties use the appropriate methods like `Entity.SetBroadPhase`, `Entity.SetAutoUpdatePosition`, etc. Goes the same for getting properties.
+- `id: number`: unique ID, the same on the server and on clients. `-1` until the entity is registered.
+- `entityConfig: EntityConfig`: the entity type's settings.
+- `model: Model | BasePart?`: the entity's model.
+- `modelString: string?`: the registered model name, if the entity was created from one.
+- `modelReplicationMode: "NATIVE" | "CUSTOM"`: `NATIVE_WITH_LOCK` is stored as `NATIVE` plus a lock, so use `Entity.GetModelReplicationType`.
+- `networkOwner: Player?`: the owning player, or nil when the server owns it.
+- `isContextOwner: boolean`: whether this context owns the entity.
+- `registered: boolean`: whether it's registered in the Holder.
+- `destroyed: boolean`
+- `paused: boolean`: whether replication is paused.
+- `autoUpdatePosition: boolean`: whether Chrono reads the model's CFrame every tick.
+- `broadPhase: Vector3?`: the culling box size.
+- `snapshot: Snapshot?`: [snapshot history](snapshots.md). Available on clients. On the server, requires client ownership or `STORE_SNAPSHOTS`.
+- `latestCFrame: CFrame?`: the newest CFrame.
+- `latestTime: number?`: the newest snapshot's time. On the server, for client-owned entities, that's when the packet arrived.
+- `lastClientClock: number?`: on the server, for client-owned entities, the owner's clock time of the newest packet.
+- `mountParentId: number?` and `mountOffset: CFrame?`: see [Mounting](../guides/mounting.md).
+- `interpolation: boolean`: whether client interpolation is enabled. Use `Entity.SetInterpolationMode` to control it.
 
 ## Functions
 
-### `new(entityConfig: string?, model: Model | BasePart | string?, modelReplicationMode: MODEL_REPLICATION_MODE?, initCFrame: CFrame?) -> Entity`
+### `new(entityType: string?, model: Model | BasePart | string?, modelReplicationMode: MODEL_REPLICATION_MODE?, initCFrame: CFrame?) -> Entity`
 
-Creates a new Entity instance and automatically registers it.
+Creates and registers an entity. Server only.
 
-- `entityConfig` - The entity type name to use for this entity. If nil, uses "DEFAULT".
-- `model` - The model or base part to use for this entity, or the model string name if using custom replication.
-- `modelReplicationMode` - The model replication mode to use for this entity. If nil, uses the default from config or entity type.
-- `initCFrame` - The initial CFrame to set for this entity. If nil, uses the model's current CFrame.
+- `entityType`: an [entity type](../getting-started/configurations.md#entity-types) name. Falls back to `DEFAULT`.
+- `model`: a `Model` (requires a `PrimaryPart`), a `BasePart`, or a registered [entity model](../getting-started/configurations.md#entity-models) name.
+- `modelReplicationMode`: overrides the type's `MODEL_REPLICATION_MODE`.
+- `initCFrame`: starting CFrame. Defaults to the model's CFrame. Required for entities without a model.
 
-### `SetModel(self: Entity, model: Model | BasePart | string?, modelReplicationMode: MODEL_REPLICATION_MODE?, noDestroy: boolean?) -> ()`
+### `Destroy(entity) -> ()`
 
-Sets the model or base part for this entity. If using custom replication, can also provide a model string name. If model is nil, unsets the model.
+Destroys the entity and unregisters it, removes it from clients, and destroys its model on the server. Fires `Destroying`, then disconnects the entity's events. Calling it twice does nothing.
 
-- `model` - The model or base part to set for this entity, or the model string name if using custom replication.
-- `modelReplicationMode` - The model replication mode to use for this entity. If nil, uses the default from config or entity type.
-- `noDestroy` - If true, does not destroy the previous model when changing. Only applies to SERVER context.
+### Model
 
-### `GetModel(self: Entity) -> Model | BasePart?`
+#### `SetModel(entity, model: Model | BasePart | string?, modelReplicationMode: MODEL_REPLICATION_MODE?, noDestroy: boolean?) -> ()`
 
-Gets the model or base part of this entity. Returns nil if not set.
+Swaps the entity's model. `model` takes the same values as in `new`, or nil to remove the model. Leave `modelReplicationMode` out to keep the current mode. On the server, the old model is destroyed unless `noDestroy` is true. Fires `ModelChanged`.
 
-### `SetConfig(self: Entity, entityConfig: string) -> ()`
+#### `GetModel(entity) -> Model | BasePart?`
 
-Sets the entity type configuration for this entity.
+Returns the entity's model or part, or nil.
 
-- `entityConfig` - The entity type name to use for this entity.
+#### `GetPrimaryPart(entity) -> BasePart?`
 
-### `SetClockBuffer(self: Entity, buffer: number?) -> ()`
+The part Chrono moves. The model itself if it's a `BasePart`, otherwise the part set with `Config.SetModelPrimaryForChrono`, or the model's `PrimaryPart`.
 
-!!! Warning "Client Only"
-    Calling this on the server errors.
+#### `GetModelReplicationType(entity) -> "NATIVE" | "NATIVE_WITH_LOCK" | "CUSTOM"`
 
-Sets a per-entity interpolation buffer, creating a dedicated client clock for this entity. This overrides the entity config's `BUFFER` and is not affected by later `config:UpdateBuffer` changes.
+The entity's current model replication mode.
 
-- `buffer` - The buffer time in seconds. Pass `0` (or a negative value) for a dynamic buffer. Pass `nil` to clear the override and fall back to the entity config's buffer.
+#### `LockNativeServerCFrameReplication(entity) -> ()` and `UnlockNativeServerCFrameReplication(entity) -> ()`
 
-!!! note
-    Intended for client-owned entities. To change the buffer for server-owned entities, use `config:UpdateBuffer` (per type) instead.
+Server only. Switches a `NATIVE` entity to and from `NATIVE_WITH_LOCK`. Errors on the client or for other modes. Fires `LockChanged`.
 
-### `SetBroadPhase(self: Entity, broadPhase: Vector3?) -> ()`
+### Movement
 
-Sets the broadphase size for this entity used for culling. If nil, unsets broad
+#### `Push(entity, time: number, cframe: CFrame, velocity: Vector3?) -> boolean`
 
-- `broadPhase` - The broadphase size to set for this entity.
+Adds a snapshot and returns whether it's the newest one. Use `os.clock()` for server timestamps. The newest CFrame is sent next tick. If `velocity` is nil, it will be calculated.
 
-### `GetData(self: Entity) -> any`
+`AUTO_UPDATE_POSITION` automatically calls this on the server/client with the model's CFrame each tick.
 
-Gets the custom data table for this entity. Can be used to store arbitrary data.
+#### `SetCFrame(entity, cframe: CFrame) -> ()`
 
-### `SetData(self: Entity, data: any) -> ()`
+Teleports the entity without interpolating to the new CFrame.
 
-Sets the custom data table for this entity. Can be used to store arbitrary data which gets replicated to clients.
+#### `GetCFrame(entity) -> CFrame?`
 
-### `SetMount(self: Entity, parent: Entity, offset: CFrame?) -> ()`
+The newest CFrame (`latestCFrame`), or the primary part's CFrame if there isn't one.
 
-!!! warning "Server Only"
-    This can only be called on the server. Mount state is automatically replicated to clients.
+#### `GetAt(entity, time: number) -> CFrame?`
 
-Sets the mount parent of this entity to another entity with an optional offset CFrame. Can be called every frame to animate the offset. Fires `Events.EntityMountChanged`. Errors if `parent` is this entity or is not registered.
+Returns the interpolated CFrame at `time`. Times outside the history return the nearest snapshot. Without history, returns `latestCFrame`.
 
-- `parent` - The entity to mount this entity to.
-- `offset` - The CFrame offset applied relative to the parent each frame.
+#### `GetTargetRenderTime(entity) -> number`
 
-### `ClearMount(self: Entity) -> ()`
+Returns the client's render time on the server's clock for server-owned entities, or the owner's clock for client-owned ones. Returns `-1` on the server.
 
-!!! warning "Server Only"
-    This can only be called on the server.
+#### `Clear(entity) -> ()`
 
-Clears the mount parent of this entity, if any. Fires `Events.EntityMountChanged` with `nil`.
+Clears the snapshot history and the latest time. `latestCFrame` is kept.
 
-### `SetNetworkOwner(self: Entity, player: Player?) -> ()`
+#### `SetAutoUpdatePos(entity, autoUpdate: boolean) -> ()`
 
-Sets the network owner of this entity on the server. If nil, unsets ownership.
+Turns `AUTO_UPDATE_POSITION` on or off for this entity.
 
-### `SyncOwnerShip(self: Entity) -> ()`
+### Ownership
 
-Syncs the ownership status of this entity and its model. This is useful if you encounter issues with Roblox resetting the parts ownership.
+#### `SetNetworkOwner(entity, player: Player?) -> ()`
 
-### `Clear(self: Entity) -> ()`
+Server only. Hands the entity to `player`, or back to the server with nil. Fires `NetworkOwnerChanged`.
 
-Clears snapshot data and resets last cached cframe and time.
+#### `SyncOwnerShip(entity) -> ()`
 
-### `PauseReplication(self: Entity) -> ()`
+Restores ownership on the model's parts after Roblox resets it, such as when adding parts or welds.
 
-Pauses replication for this entity.
+### Configuration
 
-### `ResumeReplication(self: Entity) -> ()`
+#### `SetConfig(entity, entityType: string) -> ()`
 
-Resumes replication for this entity.
+Switches the entity to another entity type. An unknown name falls back to `DEFAULT`.
 
-### `Push(self: Entity, time: number, value: CFrame, velocity: Vector3?) -> boolean`
+#### `SetInterpolationMode(entity, mode: "CFRAME" | "ALIGN" | "NONE" | nil) -> ()`
 
-Pushes a new snapshot value for this entity at the given time. Returns true if it is the latest snapshot.
+Overrides `INTERPOLATION_MODE` for this entity. Pass nil to use the type's mode. Server calls replicate to clients.
 
-- `time` - The timestamp of the snapshot.
-- `value` - The CFrame value of the snapshot.
-- `velocity` - The velocity of the snapshot. If nil, velocity will be calculated based on the previous snapshot.
+- `CFRAME`: sets the primary part's CFrame directly.
+- `ALIGN`: uses `AlignPosition` and `AlignOrientation` for local physics. See [Ragdolls](../guides/ragdolls.md).
+- `NONE`: doesn't move the entity.
 
-### `GetAt(self: Entity, time: number) -> CFrame?`
+#### `GetClock(entity) -> ClientClock?`
 
-Gets the interpolated CFrame of this entity at the given time. Returns nil if no data
+Returns the entity's client clock, or nil on the server.
 
-- `time` - The timestamp to get the interpolated CFrame for.
+#### `SetClockBuffer(entity, buffer: number?) -> ()`
 
-### `GetTargetRenderTime(self: Entity) -> number`
+Client only. Sets a per-entity buffer in seconds. `0` or less uses an automatic buffer. nil restores the type's `BUFFER`.
 
-Gets the target render time for this entity based on buffer settings. Returns `-1` if no render cache is configured.
+#### `SetBroadPhase(entity, broadPhase: Vector3?) -> ()`
 
-### `SetAutoUpdatePosition(self: Entity, autoUpdate: boolean) -> ()`
+Sets the culling box size. nil turns culling off for the entity.
 
-Sets whether Chrono will automatically call `Entity.Push` when the entity model moves.
+### Data
 
-### `GetCFrame(self: Entity) -> CFrame?`
+#### `SetData(entity, data: any) -> ()`
 
-Gets the latest CFrame of this entity. Will first check `self.latestCFrame` then fall back to the model's PrimaryPart CFrame if available.
+Attaches data that's replicated to clients with the entity. Fires `DataChanged`, on the server and on clients when the data arrives.
 
-### `SetCFrame(self: Entity, cframe: CFrame) -> ()`
+#### `GetData(entity) -> any`
 
-This will move the entity instead of interpolating it.
+Returns the entity's custom data.
 
-### `GetPrimaryPart(self: Entity) -> BasePart?`
+### Replication
 
-Gets the PrimaryPart of the entity's model, if available.
+#### `PauseReplication(entity) -> ()` and `ResumeReplication(entity) -> ()`
 
-### `LockNativeServerCFrameReplication(self: Entity) -> ()`
+Stop and restart Chrono's updates for the entity. While it's paused, clients don't move it, and `NATIVE` falls back to Roblox's own replication.
 
-Locks the native server CFrame replication for this entity's model. Only applies to SERVER context and NATIVE model replication mode.
+### Mounting
 
-### `UnlockNativeServerCFrameReplication(self: Entity) -> ()`
+#### `SetMount(entity, parent: Entity?, offset: CFrame?) -> ()`
 
-Unlocks the native server CFrame replication for this entity's model. Only applies to SERVER context and NATIVE model replication mode.
+Server only. Makes the entity follow `parent` at `offset`. A nil parent clears the mount. Errors if the parent is itself or isn't registered. Fires `Events.EntityMountChanged`. See [Mounting](../guides/mounting.md).
 
-### `SetInterpolationMode(self: Entity, mode: "CFRAME" | "ALIGN" | "NONE") -> ()`
+#### `ClearMount(entity) -> ()`
 
-Sets how the client applies interpolated transforms to this entity, overriding the entity type's `INTERPOLATION_MODE`. Called on the server it replicates to all clients.
+Server only. Fires `Events.EntityMountChanged` with nil.
 
-- `CFRAME` - Sets the primary part's CFrame directly. Exact and cheapest.
-- `ALIGN` - Drives an AlignPosition/AlignOrientation toward the target instead. Use this when the entity is also being simulated locally, such as a ragdolled character.
-- `NONE` - Does not apply the transform at all.
+### Events
 
-### `Destroy(self: Entity) -> ()`
+#### `GetEvent(entity, name: string) -> Event`
 
-Destroys this entity and unregisters it from the holder. Cleans up model and snapshot data. Calling it again on a destroyed entity does nothing.
-
-### `GetEvent(self: Entity, eventName: string) -> Event?`
-
-Gets one of the events listed below by name. Errors on an unknown name.
+Returns one of the entity's events, listed below. Errors on an unknown name.
 
 ## Events
 
-These events can be accessed via `Entity.GetEvent(self,eventName)`.
+```lua
+Entity.GetEvent(entity, "NetworkOwnerChanged"):Connect(function(entity, newOwner, prevOwner)
+	print(entity.id, "is now owned by", newOwner)
+end)
+```
 
-### `Destroying`
+| Event | Arguments | Fires when |
+|---|---|---|
+| `Destroying` | | The entity is being destroyed. |
+| `NetworkOwnerChanged` | `newOwner: Player?`, `prevOwner: Player?` | Its owner changes. |
+| `PushedSnapShot` | `time: number`, `cframe: CFrame`, `isNewest: boolean` | A snapshot is added. |
+| `TickChanged` | `tier: string`: `"NORMAL"`, `"HALF"` or `"NONE"` | It switches between full rate, half rate, and not ticking. |
+| `DataChanged` | `data: any` | Its data changes. |
+| `Ticked` | `dt: number` | It ticks, on the side that owns it. |
+| `ModelChanged` | `newModel`, `oldModel`: each a `Model`, a `BasePart` or nil | Its model changes. |
+| `LockChanged` | `isLocked: boolean` | Its `NATIVE_WITH_LOCK` lock changes. |
 
-Fired when the entity is being destroyed.
+## Internal functions
 
-### `NetworkOwnerChanged`
+These are used inside Chrono and may change.
 
-Fired when the network owner of the entity changes. Provides the new Player or nil.
+### `_new(...) -> Entity`
 
-- newOwner : `Player?` - The new network owner player or nil.
-- prevOwner : `Player?` - The previous network owner player or nil.
+Like `new`, but doesn't register the entity. Register it later with `Holder.RegisterEntity`.
 
-### `PushedSnapShot`
+### `_GetRootPart(entity) -> BasePart?`
 
-Fired when a new snapshot is pushed to the entity.
+The part that's actually moved on the server. The hidden locker part if the entity is locked, otherwise the primary part.
 
-- time : `number` - The timestamp of the pushed snapshot.
-- value : `CFrame` - The CFrame value of the pushed snapshot.
-- isLatest : `boolean` - Whether this snapshot is the latest one.
-
-### `TickChanged`
-
-Fired when the tick rate of the entity changes.
-
-- newTickType : `string` - The new tick type name.
-  - NONE - No ticking
-  - NORMAL - Normal tick rate
-  - HALF - Half tick rate
-
-### `DataChanged`
-
-Fired when the custom data of the entity changes.
-
-- newData : `any` - The new custom data.
-
-### `Ticked`
-
-Fired when the entity is ticked.
-
-- deltaTime : `number` - The delta time since last tick.
-
-### `ModelChanged`
-
-Fired when the model of the entity changes.
-
-- newModel : `Model | BasePart?` - The new model or base part of the entity.
-- oldModel : `Model | BasePart?` - The previous model or base part of the entity.
-
-### `LockChanged`
-
-Fired when the native server CFrame replication lock state changes.
-
-- isLocked : `boolean` - Whether the native server CFrame replication is locked.
-
-
-## Internal Functions
-
-### `_GetRootPart(entity: Entity) -> BasePart?`
-
-Returns the root part, if the entity is locked then this will return the locker part, otherwise it will return the primary part or base part.
-
-### `_SetPartCFrame(entity: Entity, cframe: CFrame)`
+### `_SetPartCFrame(entity, cframe: CFrame)`
 
 Sets the root part's CFrame directly.
 
-### `_LockPartPhysicsReplication(part: BasePart): BasePart?`
+### `_LockPartPhysicsReplication(part: BasePart) -> BasePart?`
 
-Locks the physics replication of the given part. Returns the locker part if successful, otherwise returns nil.
+Locks the physics replication of a part. Returns the locker part.
 
 ### `_UnlockPartPhysicsReplication(part: BasePart)`
-Unlocks the physics replication of the given part if it is currently locked.
+
+Unlocks a part locked with `_LockPartPhysicsReplication`.
