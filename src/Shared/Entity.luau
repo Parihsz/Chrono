@@ -528,11 +528,17 @@ function Entity.SetModel(
 	noDestroy: boolean?
 )
 	const old = self.model
+	const wasLocked = self._lockedCFReplication == true
 	SetModel(self, model, modelReplicationMode, noDestroy)
 	if IS_SERVER then
 		const toReplicate = ModelHelper.ReadyModelFromRep(self, nil)
 		RegisterChange(self, "model", self.model, true, toReplicate or false)
+		const locked = self._lockedCFReplication == true
+		RegisterChange(self, "_lockedCFReplication", locked, true)
 		CheckNetworkOwner(self, self.networkOwner)
+		if locked ~= wasLocked then
+			FireEvent(self, "LockChanged", locked)
+		end
 	end
 	HumanoidState.Refresh(self, true)
 	FireEvent(self, "ModelChanged", self.model, old)

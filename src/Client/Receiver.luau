@@ -120,6 +120,7 @@ const function HandleChanges(changes: { id: number, data: { { any } } })
 	end
 	local modelData
 	local modelChanged = false
+	local lockValue: boolean? = nil
 	for _, pair in changes.data do
 		const key = pair[1]
 		const value = pair[2]
@@ -145,15 +146,7 @@ const function HandleChanges(changes: { id: number, data: { { any } } })
 				Entity.ResumeReplication(entity)
 			end
 		elseif key == "_lockedCFReplication" then
-			entity._lockedCFReplication = value
-			if not value then
-				const part = Entity._GetPart(entity)
-				if part then
-					Entity._UnlockPartPhysicsReplication(part)
-				end
-			else
-				Entity.SyncOwnerShip(entity)
-			end
+			lockValue = value 
 		else
 			Warn.high("Unhandled entity change key:", key)
 		end
@@ -163,6 +156,18 @@ const function HandleChanges(changes: { id: number, data: { { any } } })
 		const model, modelType, handle = ModelHelper.CreateModelFromData(modelData)
 		Entity.SetModel(entity, model, modelType :: any)
 		entity._modelHandle = handle
+	end
+
+	if lockValue ~= nil then
+		entity._lockedCFReplication = lockValue
+		if lockValue then
+			Entity.SyncOwnerShip(entity)
+		else
+			const part = Entity._GetPart(entity)
+			if part then
+				Entity._UnlockPartPhysicsReplication(part)
+			end
+		end
 	end
 end
 
