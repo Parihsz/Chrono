@@ -709,12 +709,12 @@ end
 
 	@param time The time to get the CFrame value for.
 
-	@return The CFrame value at the specified time, or the latest CFrame if no snapshot exists.
+	@return The CFrame value at the specified time, or the latest CFrame (can be nil) if no snapshot exists.
 ]=]
 function Entity.GetAt(self: Entity, time: number): CFrame?
 	const snapshot = self.snapshot
 	if snapshot then
-		return snapshot:GetAt(time)
+		return snapshot:GetAt(time) or self.latestCFrame
 	else
 		return self.latestCFrame
 	end
@@ -886,7 +886,16 @@ function Entity.SetConfig(self: Entity, entityConfig: string)
 end
 
 --[=[
-	Sets the client clock buffer for the entity. 
+	Gets the name of the entity's type.
+
+	@return The entity type name, such as "DEFAULT" or "PLAYER".
+]=]
+function Entity.GetEntityType(self: Entity): string
+	return self.entityConfig.NAME
+end
+
+--[=[
+	Sets the client clock buffer for the entity.
 
 	@param buffer? The buffer to set for the client clock. If nil, will use the entity config's buffer. 
 ]=]
@@ -1031,6 +1040,33 @@ function Entity.ClearMount(self: Entity)
 	RegisterChange(self, "mountParentId", nil)
 	RegisterChange(self, "mountOffset", nil)
 	Events._Signals.EntityMountChanged:Fire(self, nil)
+end
+
+--[=[
+	Gets the mount root of the entity and the offset from the root.
+
+	@return The mount root, or the entity itself if it isn't mounted, and the offset or an empty cf.
+]=]
+function Entity.GetMountRoot(self: Entity): (Entity, CFrame)
+	if not self.mountParentId then
+		return self, CFrame.identity
+	end
+	local current: Entity = self
+	local offset = CFrame.identity
+	const seen: { [Entity]: true } = {}
+	while current.mountParentId do
+		seen[current] = true
+		const parent = Holder.GetEntityFromId(current.mountParentId)
+		if not parent or parent.destroyed then
+			break
+		end
+		offset = (current.mountOffset or CFrame.identity) * offset
+		current = parent
+		if seen[current] then
+			break -- cycle
+		end
+	end
+	return current, offset
 end
 
 --// Events API
