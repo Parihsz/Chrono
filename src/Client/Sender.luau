@@ -172,10 +172,14 @@ const function CheckEntity(entity: Types.Entity)
 	if not Ticker._ShouldTick(nextSend, now, tickRate) then
 		return
 	end
+	
+	entity._nextSend = Ticker._GetNextTick(nextSend, now, tickRate)
 	const lastTime = entity.lastReplicatedTime or 0
-	const difference = now - lastTime
+	const difference = now - lastTime 
+	const tickDt = now - (entity._lastCheck or lastTime)
+	entity._lastCheck = now
 	CheckLocker(entity)
-	FireEvent(entity, "Ticked", difference)
+	FireEvent(entity, "Ticked", tickDt)
 	const primaryPart = Entity.GetPrimaryPart(entity)
 
 	if entity.autoUpdatePosition and primaryPart then
@@ -185,7 +189,6 @@ const function CheckEntity(entity: Types.Entity)
 	const currentCFrame = entity.latestCFrame
 	const lastCFrame = entity.lastCheckedCFrame
 	if currentCFrame and ServerReplicate.HasCFrameChanged(lastCFrame, currentCFrame) then
-		entity._nextSend = Ticker._GetNextTick(nextSend, now, tickRate)
 		entity.lastReplicatedTime = now
 		const fullCFrame = config.FULL_ROTATION
 		entity.lastCheckedCFrame = currentCFrame

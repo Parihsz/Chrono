@@ -156,6 +156,8 @@ const function HandleChanges(changes: { id: number, data: { { any } } })
 		const model, modelType, handle = ModelHelper.CreateModelFromData(modelData)
 		Entity.SetModel(entity, model, modelType :: any)
 		entity._modelHandle = handle
+		Entity._SetHumanoidDisabledStates(entity, entity._humanoidDisabledStates)
+		Entity._SetHumanoidState(entity, entity._humanoidState)
 	end
 
 	if lockValue ~= nil then

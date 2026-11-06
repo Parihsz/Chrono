@@ -136,8 +136,9 @@ const function SetHumanoidDisabledStates(self: Entity, mask: number?)
 		return
 	end
 
-	if self._ownDisabledStates == nil then
+	if self._ownDisabledStates == nil or self._ownStatesHumanoid ~= humanoid then
 		self._ownDisabledStates = GetDisabledStateMask(humanoid)
+		self._ownStatesHumanoid = humanoid
 	end
 	ApplyDisabledStateMask(humanoid, mask)
 end
@@ -149,12 +150,14 @@ const function OnNetworkOwnerChanged(self: Entity, wasOwner: boolean)
 
 	if self.isContextOwner then
 		const ownDisabledStates = self._ownDisabledStates
+		const savedFrom = self._ownStatesHumanoid
 		self._ownDisabledStates = nil
+		self._ownStatesHumanoid = nil
 		const humanoid = GetHumanoid(self)
 		if not humanoid then
 			return
 		end
-		if ownDisabledStates then
+		if ownDisabledStates and savedFrom == humanoid then
 			ApplyDisabledStateMask(humanoid, ownDisabledStates)
 		end
 	

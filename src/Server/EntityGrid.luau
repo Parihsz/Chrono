@@ -71,16 +71,19 @@ const function Check(entity: Entity)
 			continue
 		end
 
+		-- owners are always replicated
+		if holder == ownedHolder then
+			hasNormalTickers = true
+			table.insert(holder._TEMP_NORMAL, entity)
+			continue
+		end
+
 		const distance = vector.magnitude(position - playerPos)
 
 		-- if entity is native then we keep it half ticked else remove it
 		if distance > halfTickDistance and isNotNative then
 			const kept = distance <= keepDistance and holder.REPLICATED[entity] ~= nil
 			if not kept then
-				if holder == ownedHolder then -- always replicate to the owner
-					hasNormalTickers = true
-					table.insert(holder._TEMP_NORMAL, entity)
-				end
 				continue
 			end
 		end

@@ -254,6 +254,7 @@ export type Entity = {
 	lastCheckedCFrame: CFrame?,
 	lastReplicatedTime: number?,
 	_nextSend: number?, -- os.clock() of the owner's next scheduled send check (client)
+	_lastCheck: number?, -- os.clock() of the owner's last send check (client)
 	lastClientClock: number?,
 	_teleport: number?,
 
@@ -285,7 +286,8 @@ export type Entity = {
 	-- Humanoid state replication
 	_humanoidState: number?,
 	_humanoidDisabledStates: number?,
-	_ownDisabledStates: number?, 
+	_ownDisabledStates: number?,
+	_ownStatesHumanoid: Humanoid?, -- the humanoid _ownDisabledStates was read from
 	_humanoidStateConn: RBXScriptConnection?,
 	_humanoidStateEnabledConn: RBXScriptConnection?,
 
