@@ -137,7 +137,7 @@ const function GetEvent(self: Entity, eventName: string): Types.Event<any>
 	end
 	const events = self._events :: { [string]: Types.Signal<any, any> }
 	if not events[eventName] then
-		events[eventName] = Signal.new()
+		events[eventName] = Signal.new() :: any
 	end
 	return events[eventName].Event
 end
@@ -173,6 +173,7 @@ const function CheckNetworkOwner(self: Entity, prev: Player?)
 	if not isSameOwner then
 		if IS_SERVER then
 			self.lastClientClock = nil
+			self._halfTime = nil
 		else
 			self.latestTime = 0
 			self.lastClientClock = 0
@@ -660,7 +661,7 @@ const function PushSnapshot(self: Entity, time: number, value: CFrame, velocity:
 		end
 		const baseTickRate = self.entityConfig.TICK_RATE
 		const tickrate = if self.isHalfTicked then baseTickRate * 2 else baseTickRate
-		-- for 2.2.4+ velocity calculation is done in the snapshot rather here
+		-- for 2.3.0+ velocity calculation is done in the snapshot rather here
 		snapshot:PushWithCheck(time, value, velocity, tickrate, stopped)
 	end
 	FireEvent(self, "PushedSnapShot", time, value, newer)
@@ -716,6 +717,17 @@ function Entity.GetAt(self: Entity, time: number): CFrame?
 	if snapshot then
 		return snapshot:GetAt(time) or self.latestCFrame
 	else
+		const latestTime = self.latestTime
+		if
+			IS_SERVER and self.networkOwner == nil and not self.entityConfig.STORE_SNAPSHOTS
+			and latestTime and time > 0 and time < latestTime
+			and Config._GetConfig("WARNING_SEVERITY") == "LOW"
+		then
+			Warn.low(
+				`Chrono: Entity.GetAt cannot rewind entity {self.id} because its history is disabled. `
+					.. `Enable STORE_SNAPSHOTS for type "{self.entityConfig.NAME}". Returning latestCFrame.`
+			)
+		end
 		return self.latestCFrame
 	end
 end

@@ -2,10 +2,10 @@
 
 Chrono works alongside an ECS such as jecs or Matter. Chrono will replicate and interpolates entities.
 
-How you connect them depends on what moves your entities:
+How you connect them depends on whether your entities have models on the server:
 
-- **Roblox moves them**, through characters, Humanoids or physics. Chrono replicates models as usual, and the ECS mirrors Chrono's entities.
-- **Your own simulation moves them**, with no Roblox physics. Chrono only carries the CFrames. See [Custom simulation](#custom-simulation).
+- **They have models.** Chrono replicates the models as usual, whether Roblox or your own systems move them, and the ECS mirrors Chrono's entities.
+- **They don't have models**, such as positions kept only in the ECS. Push their CFrames to Chrono yourself. See [Custom simulation](#custom-simulation).
 
 These examples use jecs:
 
@@ -44,6 +44,9 @@ On the client, mirror Chrono's entities as they arrive and leave:
 local linked = {}
 
 local function OnAdded(entity)
+	if Entity.GetEntityType(entity) ~= "NPC" then
+		return
+	end
 	local e = world:entity()
 	world:set(e, ChronoEntity, entity)
 	linked[entity] = e
@@ -66,8 +69,8 @@ end
 !!! note
     This example uses Chrono to create client entities. If your ECS replicates its own entities instead, put the server's ECS id in the entity's data, such as `Entity.SetData(goblin, { ecsId = e })`, and link the two on the client by that id.
 
-    - Either one can arrive first. Link from `EntityAdded` and from your ECS's spawn, whichever comes second.
-    - `EntityRemoved` also fires when an entity goes out of range, while your ECS entity might stays. Unlink it there.
+    - Either one can arrive first, so make sure to handle for this edge case.
+    - `EntityRemoved` also fires when an entity goes out of range, while your ECS entity might stay. Unlink it there.
 
 ## Reading positions
 
@@ -106,20 +109,28 @@ To check or reject a client's position before Chrono applies it, use [`Receiver.
 
 ## Custom simulation
 
-If your own simulation moves entities, such as a 2D movement system, Chrono doesn't need a server model:
+If your entities have no model on the server, such as a 2D movement system without any instances, Chrono has nothing to read positions from. Push them from your simulation and Chrono still replicates and interpolates them.
 
 - Replicate the entity without a server model, set `AUTO_UPDATE_POSITION = false` and push CFrames from your simulation. See [Stateless replication](stateless.md#stateless-replication).
 - Set `INTERPOLATION_MODE = "NONE"` and write `Entity.GetAt` into your ECS on the client. See [Custom interpolation](stateless.md#custom-interpolation).
 
 ```lua
 -- Server
-local function Link(e, entity)
-	world:set(e, ChronoEntity, entity)
-	Entity.GetEvent(entity, "Ticked"):Connect(function()
-		Entity.Push(entity, os.clock(), world:get(e, Transform))
-	end)
-end
+local config = chrono.Config.GetEntityType("NPC") -- after Start
+local ticker = assert(config.ticker)
+
+local connection = ticker.Ticked:Connect(function(tick, dt)
+	for e, entity, cframe in world:query(ChronoEntity, Transform) do
+		if not entity.destroyed and entity.entityConfig == tick.config then
+			Entity.Push(entity, tick.lastTicked, cframe)
+		end
+	end
+end)
+
 ```
+
+!!! note
+	Avoid using `ticker.objects` to iterate entities. It only contains entities that are being ticked. 
 
 ```lua
 -- Client
@@ -134,7 +145,7 @@ end)
 ```
 
 !!! note
-    You can also push every frame from your simulation instead of from `Ticked`. Chrono sends the newest CFrame each tick, stamped with the tick's time.
+    You can also push every frame from your simulation instead of from the type ticker. Chrono sends the newest CFrame each tick, stamped with the tick's time.
 
     ```lua
     -- Server

@@ -78,8 +78,8 @@ The interpolation buffer delays rendering so clients can blend between snapshots
 `BUFFER = 0` adjusts the buffer automatically, as used by `PLAYER`. Chrono uses `max(send interval, largest recent packet gap) + 2 × jitter`, bounded by `MIN_BUFFER` and `MAX_BUFFER`. At 20 Hz on a steady connection, it settles near `MIN_BUFFER`.
 
 !!! info "Changing the buffer at runtime (client only)"
-    - **One entity:** `Entity.SetClockBuffer(entity, seconds)` gives that entity its own buffer. Pass `0` for an automatic buffer, or `nil` to go back to its type's `BUFFER`.
-    - **A whole entity type:** `Config.GetEntityType(name):UpdateBuffer(seconds)`, after `Start`, updates every entity of that type, except those with their own `SetClockBuffer` value. Pass `0` for an automatic buffer.
+    - **Single entity:** `Entity.SetClockBuffer(entity, seconds)` gives that entity its own buffer. Pass `0` for an automatic buffer, or `nil` to go back to its type's `BUFFER`.
+    - **Entity type:** `Config.GetEntityType(name):UpdateBuffer(seconds)`, after `Start`, updates every entity of that type, except those with their own `SetClockBuffer` value. Pass `0` for an automatic buffer.
 
 ## Distance-based replication
 
@@ -92,20 +92,25 @@ The interpolation buffer delays rendering so clients can blend between snapshots
 
 Each entity type can override these with `NORMAL_TICK_DISTANCE` and `HALF_TICK_DISTANCE`. The built-in `PLAYER` type has `HALF_TICK_DISTANCE = math.huge`, so player characters are always sent, to mimic the behavior in default Roblox.
 
-An entity moving along `HALF_TICK_DISTANCE` is removed and sent again each time it crosses, which rebuilds its model on the client. Set `HALF_TICK_MARGIN` on its type to keep it for that many studs past the edge once a player has it:
+Distances are measured from each player's character entity. See [EntityGrid](../reference/entitygrid.md) to set it manually.
+
+
+
+### Half tick margin
+
+An entity near `HALF_TICK_DISTANCE` can cross it many times, so to reduce redundant overhead, `HALF_TICK_MARGIN` adds a gap between when an entity is added and removed. 
+
+`HALF_TICK_MARGIN` adds a gap between where an entity is added and where it's removed. A player gets the entity once it's within `HALF_TICK_DISTANCE`, then keeps it until it's more than `HALF_TICK_DISTANCE + HALF_TICK_MARGIN` away.
 
 ```lua
 -- In your config module
 chrono.Config.RegisterEntityType("SHIP", {
 	TICK_RATE = 1 / 20,
 	HALF_TICK_DISTANCE = 1500,
-	HALF_TICK_MARGIN = 150, -- sent from 1500 studs, removed past 1650
+	HALF_TICK_MARGIN = 150, -- added within 1500 studs, removed past 1650
 })
 ```
 
-Kept entities are sent at half rate.
-
-Distances are measured from each player's character entity. See [EntityGrid](../reference/entitygrid.md) to set it manually.
 
 ## Player replication
 
@@ -178,7 +183,7 @@ Register your own with `Config.RegisterEntityType(name, settings)` before starti
 | `INTERPOLATION_FUNCTION` | Hermite | Function that blends two snapshots. See [Interpolation function](#interpolation-function). |
 | `NORMAL_TICK_DISTANCE` | `DEFAULT_NORMAL_TICK_DISTANCE` | Full-rate distance. |
 | `HALF_TICK_DISTANCE` | `DEFAULT_HALF_TICK_DISTANCE` | Half-rate distance. |
-| `HALF_TICK_MARGIN` | `0` | Studs past `HALF_TICK_DISTANCE` an entity stays sent to a player who already has it. See [Distance-based replication](#distance-based-replication). |
+| `HALF_TICK_MARGIN` | `0` | Studs past `HALF_TICK_DISTANCE` an entity stays sent to a player who already has it. See [Half tick margin](#half-tick-margin). |
 | `AUTO_UPDATE_POSITION` | `true` | Read the model's CFrame every tick. With `false`, send only CFrames supplied through `Entity.Push`. |
 | `STORE_SNAPSHOTS` | `false` | Keep snapshot history on the server for server-owned entities, for [lag compensation](../guides/lag-compensation.md). Client-owned entities always keep it. |
 | `CUSTOM_INTERPOLATION` | `false` | Disable Chrono's interpolation for this type. Prefer `INTERPOLATION_MODE = "NONE"` for runtime control. |
@@ -198,6 +203,11 @@ Register your own with `Config.RegisterEntityType(name, settings)` before starti
     })
     ```
 
+### Type ticker
+
+The type's shared ticker. Connect to `ticker.Ticked` to update a simulation at the type's `TICK_RATE`.
+
+The ticker is nil before startup and on clients. See [Ticker](../reference/ticker.md).
 ## Entity models
 
 Register model templates by name so each side can clone its own copy:

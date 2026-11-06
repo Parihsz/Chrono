@@ -71,6 +71,7 @@ nav = [
         { Holder = "reference/holder.md" },
         { Events = "reference/event.md" },
         { Snapshots = "reference/snapshots.md" },
+        { Ticker = "reference/ticker.md" },
         { ReplicationRules = "reference/replicationrules.md" },
         { Stats = "reference/stats.md" },
         { Receiver = "reference/receiver.md" },

@@ -65,17 +65,27 @@ local function update()
 	Entity.Push(rocket, os.clock(), GetRocketCFrame()) -- your simulation
 end
 
-RunService.Heartbeat:Connect(update)
+RunService.PostSimulation:Connect(update)
 ```
 
-Or push from `Ticked`, just before Chrono sends the update:
+Or push at the entity type's tick rate using its shared ticker on the server after `Start`. Its signal continues while subscribed, even when the entity is out of range:
 
 ```lua
-Entity.GetEvent(rocket, "Ticked"):Connect(function(entity, dt)
-	Entity.Push(entity, os.clock(), GetRocketCFrame())
+local config = Config.GetEntityType("DEFAULT")
+local ticker = assert(config.ticker)
+
+local connection = ticker.Ticked:Connect(function(tick, dt)
+	Entity.Push(rocket, tick.lastTicked, GetRocketCFrame())
 end)
+
+-- disconnect when entity is destroyed
+
 ```
 
+See [Ticker](../reference/ticker.md) for more details. 
+
+!!! note "Pushing on the client"
+	If you want to push on the client then do it in `RunService.PostSimulation` since it runs before heartbeat which is when Chrono pushes the newest CFrame to the server.
 
 ## Custom interpolation
 

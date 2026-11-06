@@ -12,6 +12,7 @@ local Entity = chrono.Entity
 | Field | Module | Context | Page |
 |---|---|---|---|
 | `Start(config?)` | | Both | [Start Chrono](../getting-started/start-chrono.md) |
+| `Started(callback)` | | Both | [Waiting for startup](../getting-started/start-chrono.md#waiting-for-startup) |
 | `Config` | `Shared.Config` | Both | [Configuration](../getting-started/configurations.md) |
 | `Entity` | `Shared.Entity` | Both | [Entity](entity.md) |
 | `Holder` | `Shared.Holder` | Both | [Holder](holder.md) |
@@ -23,6 +24,8 @@ local Entity = chrono.Entity
 | `ServerClock` | `Server.ServerClock` | Server | [ServerClock](serverclock.md) |
 | `EntityGrid` | `Server.EntityGrid` | Server | [EntityGrid](entitygrid.md) |
 | `Player` | `Server.Player` | Server | [Custom player management](../guides/stateless.md#custom-player-management) |
+
+Each initialized entity type config also exposes a server-side [`ticker`](ticker.md).
 
 Types are also exported:
 

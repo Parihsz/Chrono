@@ -71,7 +71,7 @@ Chrono calls `Entity.LockNativeServerCFrameReplication` to disable Roblox's CFra
 
 ### CUSTOM
 
-For a registered model name, each client clones its own template. Otherwise, Chrono sends a model copy and keeps it in the client's `PlayerGui` until the entity goes out of range.
+For a registered model name, each client clones its own template. Otherwise, Chrono sends a model copy and keeps it in the client's `PlayerGui` which is destroyed after 2 seconds.
 
 ## Different server and client models
 
@@ -96,7 +96,7 @@ Entities are server-owned by default. Call `Entity.SetNetworkOwner(entity, playe
 
 ## Player characters
 
-A player character is a client-owned entity registered with `Holder.SetAsCharacter`, which also sets up the client's camera. Chrono handles this by default. See [Custom player management](stateless.md#custom-player-management) to register characters yourself.
+A player character is a client-owned entity registered with `Holder.SetAsCharacter`, this helps chrono to setup any dependencies like camera to mimic roblox's behavior. Chrono handles this by default. See [Custom player management](stateless.md#custom-player-management) to register characters yourself.
 
 ## Pushing CFrames
 
@@ -130,7 +130,7 @@ chrono.Config.RegisterEntityType("NPC", {
 local myNPC = Entity.new("NPC", workspace.Goblin)
 ```
 
-To keep an entity a player already has for a few more studs past `HALF_TICK_DISTANCE`, so one moving along the edge isn't removed and re-sent each time it crosses, set `HALF_TICK_MARGIN`. See [Distance-based replication](../getting-started/configurations.md#distance-based-replication).
+To keep an entity a player already has for a few more studs past `HALF_TICK_DISTANCE`, so one moving along the edge isn't removed and re-sent each time it crosses, set `HALF_TICK_MARGIN`. See [Half tick margin](../getting-started/configurations.md#half-tick-margin).
 
 To keep an entity on every client no matter the distance, set `HALF_TICK_DISTANCE = math.huge`. The entity's `TickChanged` event fires when it switches between full rate, half rate and not ticking.
 

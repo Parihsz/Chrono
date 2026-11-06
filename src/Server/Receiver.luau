@@ -185,10 +185,18 @@ const function HandleEntity(
 		then Entity._PushStopped(entity, serverClock, cframe)
 		else Entity._Push(entity, serverClock, cframe, velocity)
 	if pushed then
-		entity.arriveFrame = Ticker.GetGlobalTick()
+		const frame = Ticker.GetGlobalTick()
+		const previous = entity.cframeBuffer
+		if entity.arriveFrame == frame and entity.lastClientClock ~= nil and previous then
+			const teleportFlag = bit32.band(buffer.readu8(previous, 2), 4) -- keep teleport flag
+			buffer.writeu8(copyB, 2, bit32.bor(buffer.readu8(copyB, 2), teleportFlag))
+		end
+		entity.arriveFrame = frame
 
 		entity.lastClientClock = clientClock
 		entity.cframeBuffer = copyB
+		entity._halfBuffer = nil
+
 		-- If we update the model on native this will cause the client to also update the model
 		if entity.modelReplicationMode == "NATIVE" and not entity._lockedCFReplication then
 			return

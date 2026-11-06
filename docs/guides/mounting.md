@@ -56,3 +56,4 @@ end)
 * Parents must be registered entities before mounting.
 * Mounting continuously zeros the child's linear and angular velocity to keep it locked to the parent.
 * Mounting does not affect collision - a child can phase through geometry if the parent moves into a wall.
+* `Entity.GetMountRoot(child)` returns the top of the chain and the child's offset from it.

@@ -25,7 +25,7 @@ local rewindTo = os.clock() - latency
 
 This leaves out the interpolation buffer and the snapshot's trip to the shooter, so the rewind lands behind what the shooter saw.
 
-### ServerClock (recommended)
+### ServerClock (v2.3.0+)
 
 The client sends `Entity.GetTargetRenderTime(target)`. The server converts it with `ServerClock.ToServerTime`.
 
@@ -65,44 +65,42 @@ local rewindTo = os.clock() - 2 * latency - buffer
 
 | | Shot time | ServerClock | Interpolation buffer |
 |---|---|---|---|
-| Client sends | `GetServerTimeNow()` | Target's render time | `GetServerTimeNow()` and buffer |
-| Accuracy | Behind by the buffer and network delay | Matches the shooter's view | Close when latency is even |
-| Uneven latency | Behind | Unaffected | Off by the difference |
+| Accuracy | Behind by the buffer and network delay | Matches the shooter's view | Close when latency is similar |
 | Median error, tested at 16 studs/s | 2–4 studs | 0.001–0.3 studs | 0.3–2 studs |
 
-## Example: hitscan
+## Example: simple hitscan
 
-The client raycasts and sends the target's ID and render time:
+The client raycasts and sends the hit position, the target's ID and its render time:
 
 ```lua
 -- Client
-local Shoot = ReplicatedStorage.Shoot 
+local Shoot = ReplicatedStorage.Shoot
 
 local function FireShot(origin: Vector3, direction: Vector3)
 	local result = workspace:Raycast(origin, direction)
 	local model = result and (result.Instance:FindFirstAncestorOfClass("Model") or result.Instance)
 	local target = model and Holder.GetEntityFromModel(model)
 	if target then
-		Shoot:FireServer(origin, target.id, Entity.GetTargetRenderTime(target))
+		Shoot:FireServer(result.Position, target.id, Entity.GetTargetRenderTime(target))
 	end
 end
 ```
 
-The server reads the target's past position and checks the distance:
+The server reads the target's past position and checks it against the hit position:
 
 ```lua
 -- Server
 local Shoot = ReplicatedStorage.Shoot
 local HIT_RADIUS = 3 -- studs
 
-Shoot.OnServerEvent:Connect(function(shooter: Player, origin: Vector3, targetId: number, renderTime: number)
+Shoot.OnServerEvent:Connect(function(shooter: Player, hitPos: Vector3, targetId: number, renderTime: number)
 	local target = Holder.GetEntityFromId(targetId)
 	local rewindTo = ServerClock.ToServerTime(target, renderTime)
 	if not rewindTo then
 		return
 	end
 	local wasAt = Entity.GetAt(target, rewindTo)
-	if wasAt and (wasAt.Position - origin).Magnitude <= HIT_RADIUS then
+	if wasAt and (wasAt.Position - hitPos).Magnitude <= HIT_RADIUS then
 		print(shooter.Name, "hit", targetId)
 	end
 end)
@@ -110,11 +108,23 @@ end)
 
 Replace the distance check with your game's hitbox test. For melee and projectiles, send the target and its render time the same way.
 
-!!! note
-    Clients control the time they send. Also check the shot's origin and line of sight on the server.
+!!! info "Mounted targets"
+    If you use the mounting feature and want lagcomp support then rewind the root with `Entity.GetMountRoot` and apply the offset:
+
+    ```lua
+    -- Client
+    local root = Entity.GetMountRoot(target)
+    Shoot:FireServer(result.Position, target.id, Entity.GetTargetRenderTime(root))
+
+    -- Server
+    local root, offset = Entity.GetMountRoot(target)
+    local rewindTo = ServerClock.ToServerTime(root, renderTime)
+    local rootAt = rewindTo and Entity.GetAt(root, rewindTo)
+    local wasAt = rootAt and rootAt * offset
+    ```
+
 
 ## Things to note
 
 - Set `STORE_SNAPSHOTS = true` for server-owned entities. Without it, `Entity.GetAt` returns the current CFrame. Client-owned entities always keep history.
 - Keep the rewind limit within your snapshot history. The default [`MAX_SNAPSHOT_COUNT`](../getting-started/configurations.md#max-snapshot-count) of 30 covers about 1.5 seconds at 20 Hz. Times outside the history return the nearest snapshot.
-- In v2.2.3 and earlier, `ServerClock.ToServerTime` isn't available. For client-owned targets, use `renderTime + (target.latestTime - target.lastClientClock)` and clamp it yourself.

@@ -12,7 +12,6 @@ Inserts a snapshot in time order. Drops the oldest when the buffer is full.
 
 - `stopped` pushes the snapshot with zero velocity.
 - Resuming movement adds a zero-velocity snapshot just before the new one.
-- Large movements are treated as teleports.
 - If `velocity` is nil, it's estimated.
 
 ### `GetLatest() -> { t: number, value: CFrame, velocity: Vector3 }?`

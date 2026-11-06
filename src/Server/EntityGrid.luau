@@ -94,7 +94,7 @@ const function Check(entity: Entity)
 		end
 	end
 
-	const configTicker = entityConfig.TICKER
+	const configTicker = entityConfig.ticker
 	if not configTicker then
 		return
 	end

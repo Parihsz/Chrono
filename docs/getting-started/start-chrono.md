@@ -22,6 +22,23 @@ require(ReplicatedStorage.Packages.chrono).Start()
 - Apply settings before `Start`. `Config.SetConfig` and `Config.RegisterEntityType` error afterwards. See [Configuration](configurations.md).
 - Create entities after `Start`. `Entity.new` errors before it.
 - `Start` only runs once, and running multiple time will warn you.
+
+## Waiting for startup
+
+Use `Chrono.Started(callback)` if you have a separate script that needs to wait for Chrono to start before creating entities or accessing configs:
+
+```lua
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local chrono = require(ReplicatedStorage.Packages.chrono)
+
+chrono.Started(function()
+	local entity = chrono.Entity.new("DEFAULT", workspace.Goblin)
+	-- Configs and their server tickers are initialized by now.
+end)
+```
+
+Callbacks run once configs are initialized. Registrations made after start is run immediately. 
+
 ## Next steps
 
 - [Configuration](configurations.md): tick rates, buffers and replication modes.

@@ -28,7 +28,7 @@ Read properties directly. Use the matching function to change them, such as `Ent
 - `latestTime: number?`: the newest snapshot's time. On the server, for client-owned entities, that's when the packet arrived.
 - `lastClientClock: number?`: on the server, for client-owned entities, the owner's clock time of the newest packet.
 - `mountParentId: number?` and `mountOffset: CFrame?`: see [Mounting](../guides/mounting.md).
-- `interpolation: boolean`: whether client interpolation is enabled. Use `Entity.SetInterpolationMode` to control it.
+- `interpolation: boolean`: whether client interpolation is enabled. 
 
 ## Functions
 
@@ -115,6 +115,10 @@ Restores ownership on the model's parts after Roblox resets it, such as when add
 
 Switches the entity to another entity type. An unknown name falls back to `DEFAULT`.
 
+#### `GetEntityType(entity) -> string`
+
+The name of the entity's type, such as `"PLAYER"`, which you can pass back to `SetConfig`. An entity created with an unknown name returns `"DEFAULT"`. For the type's settings, use `entity.entityConfig`, or pass the name to `Config.GetEntityType`, which returns the settings table rather than a name.
+
 #### `SetInterpolationMode(entity, mode: "CFRAME" | "ALIGN" | "NONE" | nil) -> ()`
 
 Overrides `INTERPOLATION_MODE` for this entity. Pass nil to use the type's mode. Server calls replicate to clients.
@@ -160,6 +164,10 @@ Server only. Makes the entity follow `parent` at `offset`. A nil parent clears t
 #### `ClearMount(entity) -> ()`
 
 Server only. Fires `Events.EntityMountChanged` with nil.
+
+#### `GetMountRoot(entity) -> (Entity, CFrame)`
+
+Returns the top of the entity's mount chain and the entity's offset from it, so the entity's world CFrame is the root's CFrame times the offset. An unmounted entity returns itself and `CFrame.identity`. 
 
 ### Events
 
