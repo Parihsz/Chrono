@@ -6,6 +6,7 @@ const Holder = require(Shared.Holder)
 const Types = require(Shared.Types)
 const Entity = require(Shared.Entity)
 const ClockUnwrap = require(Shared.ClockUnwrap)
+const Ticker = require(Shared.Ticker)
 const ServerReplicate = require(script.Parent.Parent.Server.Replicate)
 const UnreliableEvent = Shared.Remotes.Replicate
 const SafeReplicateEvent = Shared.Remotes.SafeReplicate
@@ -167,12 +168,12 @@ const function CheckEntity(entity: Types.Entity)
 	end
 
 	const now = clock
-	const lastTime = entity.lastReplicatedTime or 0
-	const difference = now - lastTime
-
-	if difference < tickRate then
+	const nextSend = entity._nextSend or 0
+	if not Ticker._ShouldTick(nextSend, now, tickRate) then
 		return
 	end
+	const lastTime = entity.lastReplicatedTime or 0
+	const difference = now - lastTime
 	CheckLocker(entity)
 	FireEvent(entity, "Ticked", difference)
 	const primaryPart = Entity.GetPrimaryPart(entity)
@@ -184,6 +185,7 @@ const function CheckEntity(entity: Types.Entity)
 	const currentCFrame = entity.latestCFrame
 	const lastCFrame = entity.lastCheckedCFrame
 	if currentCFrame and ServerReplicate.HasCFrameChanged(lastCFrame, currentCFrame) then
+		entity._nextSend = Ticker._GetNextTick(nextSend, now, tickRate)
 		entity.lastReplicatedTime = now
 		const fullCFrame = config.FULL_ROTATION
 		entity.lastCheckedCFrame = currentCFrame
@@ -195,7 +197,7 @@ const function CheckEntity(entity: Types.Entity)
 		const paused = (entity._idleTicks or 0) > 0
 		Entity._RecordMove(entity, step, if paused then math.max(math.round(difference / tickRate), 2) else 1)
 	elseif currentCFrame then
-		const idleTicks = difference // tickRate
+		const idleTicks = Ticker._GetElapsedTicks(difference, tickRate)
 		const stopAfter = entity._stopAfter or 1
 		if idleTicks >= stopAfter and (entity._idleTicks or 0) < stopAfter then
 			hasStop = true

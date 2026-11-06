@@ -11,9 +11,9 @@ const _ServerOwnedClocks: { [Types.ClientClock]: boolean } = {}
 const function GetBuffer(clientClock: Types.ClientClock): number
 	if clientClock.buffer then
 		return BufferTracker.GetBuffer(clientClock.buffer, clientClock.tickRate)
-	else
-		return clientClock.bufferConst or 0
 	end
+	-- buffer for half ticked clients
+	return (clientClock.bufferConst or 0) + math.max(clientClock.tickRate - clientClock._baseTickRate, 0)
 end
 
 const function Clear(clientClock: Types.ClientClock)
@@ -144,7 +144,13 @@ const function UpdateBuffer(clientClock: Types.ClientClock, buffer: number?)
 	clientClock.renderAt = nil
 end
 
-const function new(tickRate: number, name: string, bufferNumber: number?, networkOwner: Player?): Types.ClientClock
+const function new(
+	tickRate: number,
+	name: string,
+	bufferNumber: number?,
+	networkOwner: Player?,
+	baseTickRate: number? -- the type's normal tick rate, if `tickRate` is the half rate
+): Types.ClientClock
 	bufferNumber = if bufferNumber and bufferNumber <= 0 then nil else bufferNumber
 	const self: Types.ClientClock = {
 		name = name,
@@ -152,7 +158,7 @@ const function new(tickRate: number, name: string, bufferNumber: number?, networ
 		lastClockDuration = 0,
 		renderAt = nil,
 		tickRate = tickRate,
-		_baseTickRate = tickRate,
+		_baseTickRate = baseTickRate or tickRate,
 		_owner = networkOwner,
 		buffer = nil,
 		bufferConst = bufferNumber,
@@ -197,7 +203,7 @@ Config._WaitForLock(function()
 		end
 		clientClocks.NORMAL = new(config.TICK_RATE, name .. "_NORMAL", config.BUFFER)
 		if (config.HALF_TICK_DISTANCE or math.huge) < math.huge then
-			clientClocks.HALF = new(config.TICK_RATE * 2, name .. "_HALF", config.BUFFER)
+			clientClocks.HALF = new(config.TICK_RATE * 2, name .. "_HALF", config.BUFFER, nil, config.TICK_RATE)
 		end
 	end
 end)

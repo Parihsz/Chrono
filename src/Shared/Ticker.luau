@@ -26,14 +26,34 @@ function Ticker.GetGlobalTick()
 	return GlobalTick
 end
 
+const TICK_MARGIN = 0.1
+
+function Ticker._ShouldTick(nextTick: number, now: number, tickRate: number): boolean
+	return now >= nextTick - tickRate * TICK_MARGIN
+end
+
+function Ticker._GetNextTick(nextTick: number, now: number, tickRate: number): number
+	const following = nextTick + tickRate
+	if now >= following - tickRate * TICK_MARGIN then
+		return now + tickRate
+	end
+	return following
+end
+
+function Ticker._GetElapsedTicks(elapsed: number, tickRate: number): number
+	return (elapsed + tickRate * TICK_MARGIN) // tickRate
+end
+
 function Ticker.new(config: Types.EntityConfig): Ticker
-	-- Tickers holds full and half tick rate so entities don't constantly swap 
+	-- Tickers holds full and half tick rate so entities don't constantly swap
 	const ticked: Types.Signal<(ticker: Ticker, dt: number) -> (), Ticker, number> = Signal.new()
+	const now = os.clock()
 	const ticker = {
 		isHalf = false,
 		tickHalfRate = config.TICK_RATE * 2,
 		tickRate = config.TICK_RATE,
-		lastTicked = os.clock(),
+		lastTicked = now,
+		_nextTick = now + config.TICK_RATE,
 		tickedFrame = 0,
 		objects = {},
 		Ticked = ticked.Event,
@@ -76,14 +96,17 @@ function Ticker.CheckUpdate(ticker: Ticker): boolean
 	const now = os.clock()
 	if not next(ticker.objects) and not ticker._tickedSignal:HasListeners() then
 		ticker.lastTicked = now
+		ticker._nextTick = now + ticker.tickRate
 		ticker.dt = 0
 		ticker.halfdt = 0
 		return false
 	end
-	const difference = now - ticker.lastTicked
+	const nextTick = ticker._nextTick
 
-	if difference >= ticker.tickRate then
-		ticker.lastTicked = now
+	if Ticker._ShouldTick(nextTick, now, ticker.tickRate) then
+		ticker._nextTick = Ticker._GetNextTick(nextTick, now, ticker.tickRate)
+		const difference = now - ticker.lastTicked
+		ticker.lastTicked = now 
 		ticker.tickedFrame = GlobalTick
 		ticker.isHalf = not ticker.isHalf
 

@@ -154,6 +154,7 @@ export type Ticker = {
 	tickRate: number,
 	tickHalfRate: number,
 	lastTicked: number,
+	_nextTick: number, -- os.clock() of the next scheduled tick
 	tickedFrame: number,
 	objects: { Entity },
 	Ticked: Event<(ticker: Ticker, dt: number) -> (), Ticker, number>,
@@ -252,6 +253,7 @@ export type Entity = {
 	latestTime: number?,
 	lastCheckedCFrame: CFrame?,
 	lastReplicatedTime: number?,
+	_nextSend: number?, -- os.clock() of the owner's next scheduled send check (client)
 	lastClientClock: number?,
 	_teleport: number?,
 
