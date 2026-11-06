@@ -7,33 +7,35 @@ hide:
 
 # Chrono
 
+Drop-in custom physics replication and lag compensation for Roblox.
 
-### Drop-in custom physics replication solution for Roblox!
-Chrono provides full control over replication and physics while remaining compatible with Roblox’s networking model. It is designed to be drop-in for existing games, with a wide range of configurations allowing for custom characters and more.
 
----
 
-## Quickstart 
-Copy this into your client and server starter scripts to enable Chrono immediately.
+## Quickstart
+Put this in a Script in `ServerScriptService` and in a LocalScript in `StarterPlayerScripts`:
 
 ```lua
--- Shared (both client & server)
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local chrono = require(ReplicatedStorage.Packages.chrono)
 chrono.Start()
 ```
 
-For configurations, see [Getting Started: Configurations](getting-started/configurations.md).
+See [Installation](getting-started/installation.md) and [Configuration](getting-started/configurations.md) to get started.
 
----
+
 
 ## Why Chrono?
 
-- **Fixes Roblox replication limitations:** dynamic tick rates and distance-based replication.
-- **Smaller interpolation delay:** configurable buffer control for smoother client rendering.
-- **Snapshot history & lag compensation:** snapshots API and built in lagcomp api.
-- **Flexible model replication modes:** `NATIVE`, `NATIVE_WITH_LOCK`, and `CUSTOM` for  [bandwidth/perf tradeoffs](guides/npcs#model-replication-mode).
+- Configure tick rates and replication distances per entity type.
+- Control interpolation delay with automatic or fixed buffers.
+- Stores past positions for [lag compensation](guides/lag-compensation.md).
+- Has different [model replication modes](guides/npcs.md#model-replication-mode) to suit your setup and bandwidth needs.
+- Handles the edge cases you'd encounter when writing your own replication:
+    - Snaps on teleports instead of sliding.
+    - Adapts the buffer to packet loss and jitter.
+    - Smooths ownership changes.
+    - Handles conflicts with Roblox's own replication.
 
----
 
 ## Showcase
 
@@ -62,7 +64,6 @@ For configurations, see [Getting Started: Configurations](getting-started/config
 
 </div>
 
----
 
 ## What's new in v2
 

@@ -1,29 +1,38 @@
 # Server.EntityGrid
-Tracks which entities are replicated to each player and manages per-player entity holders.
+
+Server only. Tracks which entities are sent to each player.
+
+```lua
+local EntityGrid = require(ReplicatedStorage.Packages.chrono).EntityGrid
+```
 
 ## Types
 
 ### `PlayerEntityHolder`
-Per-player table tracking which entities are currently replicated to that player.
 
-- `PLAYER` : `Player` - The player this holder belongs to.
-- `HALF` : `{ Entity }` - Entities replicating at half tick rate for this player.
-- `NORMAL` : `{ Entity }` - Entities replicating at normal tick rate for this player.
-- `REPLICATED` : `{ [Entity]: true }` - Set of all entities currently replicated to this player.
-- `EntityAdded` : `Signal<(entity: Entity) -> ()>` - Fired when an entity starts being replicated to this player.
-- `EntityRemoving` : `Signal<(entity: Entity) -> ()>` - Fired when an entity stops being replicated to this player.
+Entities sent to one player:
+
+- `PLAYER: Player`: the player this holder belongs to.
+- `NORMAL: { Entity }`: entities sent to them at full rate.
+- `HALF: { Entity }`: entities sent to them at half rate.
+- `REPLICATED: { [Entity]: true }`: every entity currently sent to them.
+- `EntityAdded: Signal<(entity: Entity) -> ()>`: fires when an entity starts being sent to them.
+- `EntityRemoving: Signal<(entity: Entity) -> ()>`: fires when an entity stops being sent to them.
+
+
+!!! info
+    Connect through `.Event`, for example: `holder.EntityAdded.Event:Connect(fn)`.
 
 ## Functions
 
 ### `GetEntityHolder(player: Player) -> PlayerEntityHolder?`
 
-Returns the `PlayerEntityHolder` for the given player, or `nil` if the player has not loaded yet.
+The player's holder, or nil until their client has loaded Chrono.
 
-- `player` - The player to get the holder for.
+### `IsReplicated(player: Player, entity: Entity) -> boolean`
 
-### `UpdatePlayerPosition(player: Player, position: vector) -> ()`
+Whether the entity is currently sent to the player. 
 
-Updates the position used for proximity-based replication culling for the given player.
+### `UpdatePlayerPosition(player: Player, position: Vector3) -> ()`
 
-- `player` - The player to update.
-- `position` - The new position in world space.
+Sets the player's position for distance checks. Chrono updates this automatically for registered characters. Without a position, it uses <0,0,0>.

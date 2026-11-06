@@ -40,10 +40,10 @@ Config._WaitForLock(function()
 		return
 	end
 	for _, entityConfig in Config._EntityConfigs do
-		if entityConfig.TICKER then
-			table.insert(tickers, entityConfig.TICKER)
+		if entityConfig.ticker then
+			table.insert(tickers, entityConfig.ticker)
 		else
-			Warn.high(entityConfig, "TICKERS not found on server config load")
+			Warn.high(entityConfig, "ticker not found on server config load")
 		end
 	end
 end)
@@ -217,13 +217,10 @@ const function UpdateTickers()
 	debug.profilebegin("UpdateTickers")
 	const starts = os.clock()
 	for _, ticker in tickers do
-		if not next(ticker.objects) then
-			continue
-		end
 		debug.profilebegin(`{ticker.config.NAME}`)
 		if Ticker.CheckUpdate(ticker) then
 			const useFull = ticker.config.FULL_ROTATION == true
-			const isHalfTick = ticker.tickedHalf
+			const isHalfTick = ticker.isHalf
 			for _, object in ticker.objects do
 				CheckEntity(object, ticker, useFull, isHalfTick)
 			end

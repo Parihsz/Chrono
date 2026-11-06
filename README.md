@@ -16,7 +16,7 @@ interpolation delay.
 
 ### Replication modes
 - **Native**: Chrono runs custom replication on top of Roblox's replication. This will improve interpolation, responsiveness and allow for easy lag compensation. It uses more bandwidth, but can be drag and dropped into games without changes
-- **Native with lock**: Chrono turns off Roblox's replication for the entity. Uses less bandwidth, but a few server-side behaviors change; for example, `Touched` no longer fires on the server. *Most* other Roblox features should work as usual. If something doesn't, please open an issue.
+- **Native with lock**: Chrono turns off Roblox's replication for the entity. Uses less bandwidth, but some server behavior changes. For example, `Touched` no longer fires on the server. Most other Roblox features should work as usual. If something doesn't, please open an issue.
 - **Custom**: the server and client use separate models.
 
 ### Interpolation modes
@@ -31,7 +31,10 @@ Full documentation: https://parihsz.github.io/Chrono/
 
 ## Quickstart
 
+Run this on both server and client
+
 ```lua
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local chrono = require(ReplicatedStorage.Packages.chrono)
 chrono.Start()
 ```

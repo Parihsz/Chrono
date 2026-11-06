@@ -8,6 +8,7 @@ export type SnapshotData<Value = CFrame, Velocity = Vector3> = {
 export type Signal<fx, T...> = {
 	Fire: (self: any, T...) -> (),
 	DisconnectAll: (self: any) -> (),
+	HasListeners: (self: any) -> boolean,
 	Event: Event<fx, T...>,
 	_binCleanup: (self: any) -> (),
 }
@@ -108,7 +109,7 @@ export type AlignDriver = {
 
 export type EntityConfig = {
 	NAME: string,
-	TICKER: Ticker?,
+	ticker: Ticker?, -- server only, available after Start
 	CLIENT_CLOCK: {
 		NORMAL: ClientClock?,
 		HALF: ClientClock?,
@@ -149,13 +150,14 @@ export type EntityConfigInput = {
 }
 
 export type Ticker = {
-	tickedHalf: boolean,
+	isHalf: boolean,
 	tickRate: number,
 	tickHalfRate: number,
 	lastTicked: number,
 	tickedFrame: number,
 	objects: { Entity },
-	callbacks: { (ticker: Ticker, dt: number) -> () },
+	Ticked: Event<(ticker: Ticker, dt: number) -> (), Ticker, number>,
+	_tickedSignal: Signal<(ticker: Ticker, dt: number) -> (), Ticker, number>,
 	config: EntityConfig,
 	dt: number,
 	halfdt: number,
@@ -264,8 +266,9 @@ export type Entity = {
 	_stopAfter: number?, -- unchanged ticks before a pause counts as a stop (1 if nil)
 	_lastStep: Vector3?,
 	_pausedSteps: number?, -- changes in a row that came after a pause and repeated the step before
-	_halfBuffer: buffer?, -- serialized resting cframe for half rate
+	_halfBuffer: buffer?, -- serialized cframe for half rate
 	arriveFrame: number?, -- tick a client owned update arrived on
+	_halfTime: number?, -- owner timestamp of the last update relayed at half rate
 
 	-- Interpolation (Client)
 	interpolation: boolean,

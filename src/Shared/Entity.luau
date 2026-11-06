@@ -137,7 +137,7 @@ const function GetEvent(self: Entity, eventName: string): Types.Event<any>
 	end
 	const events = self._events :: { [string]: Types.Signal<any, any> }
 	if not events[eventName] then
-		events[eventName] = Signal.new()
+		events[eventName] = Signal.new() :: any
 	end
 	return events[eventName].Event
 end
@@ -173,6 +173,7 @@ const function CheckNetworkOwner(self: Entity, prev: Player?)
 	if not isSameOwner then
 		if IS_SERVER then
 			self.lastClientClock = nil
+			self._halfTime = nil
 		else
 			self.latestTime = 0
 			self.lastClientClock = 0
@@ -528,11 +529,17 @@ function Entity.SetModel(
 	noDestroy: boolean?
 )
 	const old = self.model
+	const wasLocked = self._lockedCFReplication == true
 	SetModel(self, model, modelReplicationMode, noDestroy)
 	if IS_SERVER then
 		const toReplicate = ModelHelper.ReadyModelFromRep(self, nil)
 		RegisterChange(self, "model", self.model, true, toReplicate or false)
+		const locked = self._lockedCFReplication == true
+		RegisterChange(self, "_lockedCFReplication", locked, true)
 		CheckNetworkOwner(self, self.networkOwner)
+		if locked ~= wasLocked then
+			FireEvent(self, "LockChanged", locked)
+		end
 	end
 	HumanoidState.Refresh(self, true)
 	FireEvent(self, "ModelChanged", self.model, old)
@@ -654,7 +661,7 @@ const function PushSnapshot(self: Entity, time: number, value: CFrame, velocity:
 		end
 		const baseTickRate = self.entityConfig.TICK_RATE
 		const tickrate = if self.isHalfTicked then baseTickRate * 2 else baseTickRate
-		-- for 2.2.4+ velocity calculation is done in the snapshot rather here
+		-- for 2.3.0+ velocity calculation is done in the snapshot rather here
 		snapshot:PushWithCheck(time, value, velocity, tickrate, stopped)
 	end
 	FireEvent(self, "PushedSnapShot", time, value, newer)
@@ -703,13 +710,24 @@ end
 
 	@param time The time to get the CFrame value for.
 
-	@return The CFrame value at the specified time, or the latest CFrame if no snapshot exists.
+	@return The CFrame value at the specified time, or the latest CFrame (can be nil) if no snapshot exists.
 ]=]
 function Entity.GetAt(self: Entity, time: number): CFrame?
 	const snapshot = self.snapshot
 	if snapshot then
-		return snapshot:GetAt(time)
+		return snapshot:GetAt(time) or self.latestCFrame
 	else
+		const latestTime = self.latestTime
+		if
+			IS_SERVER and self.networkOwner == nil and not self.entityConfig.STORE_SNAPSHOTS
+			and latestTime and time > 0 and time < latestTime
+			and Config._GetConfig("WARNING_SEVERITY") == "LOW"
+		then
+			Warn.low(
+				`Chrono: Entity.GetAt cannot rewind entity {self.id} because its history is disabled. `
+					.. `Enable STORE_SNAPSHOTS for type "{self.entityConfig.NAME}". Returning latestCFrame.`
+			)
+		end
 		return self.latestCFrame
 	end
 end
@@ -880,7 +898,16 @@ function Entity.SetConfig(self: Entity, entityConfig: string)
 end
 
 --[=[
-	Sets the client clock buffer for the entity. 
+	Gets the name of the entity's type.
+
+	@return The entity type name, such as "DEFAULT" or "PLAYER".
+]=]
+function Entity.GetEntityType(self: Entity): string
+	return self.entityConfig.NAME
+end
+
+--[=[
+	Sets the client clock buffer for the entity.
 
 	@param buffer? The buffer to set for the client clock. If nil, will use the entity config's buffer. 
 ]=]
@@ -1025,6 +1052,33 @@ function Entity.ClearMount(self: Entity)
 	RegisterChange(self, "mountParentId", nil)
 	RegisterChange(self, "mountOffset", nil)
 	Events._Signals.EntityMountChanged:Fire(self, nil)
+end
+
+--[=[
+	Gets the mount root of the entity and the offset from the root.
+
+	@return The mount root, or the entity itself if it isn't mounted, and the offset or an empty cf.
+]=]
+function Entity.GetMountRoot(self: Entity): (Entity, CFrame)
+	if not self.mountParentId then
+		return self, CFrame.identity
+	end
+	local current: Entity = self
+	local offset = CFrame.identity
+	const seen: { [Entity]: true } = {}
+	while current.mountParentId do
+		seen[current] = true
+		const parent = Holder.GetEntityFromId(current.mountParentId)
+		if not parent or parent.destroyed then
+			break
+		end
+		offset = (current.mountOffset or CFrame.identity) * offset
+		current = parent
+		if seen[current] then
+			break -- cycle
+		end
+	end
+	return current, offset
 end
 
 --// Events API

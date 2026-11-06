@@ -1,12 +1,12 @@
-# Using the debugger
+# Using the Debugger
 
-Chrono includes a client-side debugger script for realtime snapshots, latency data, and live settings.
+Chrono includes a client-side debugger that shows live snapshots, timing data and settings.
 
 ## Setup
 
-1. Get the latest version of the debugger from the [releases](https://github.com/Parihsz/Chrono/releases/latest) or copy `test/Debugger/init.client.luau` into a client-side script in your game. The source file is available here: [test/Debugger/init.client.luau](https://github.com/Parihsz/Chrono/blob/master/test/Debugger/init.client.luau)
-2. Install Iris, either through your package manager or by downloading the latest RBXM from [SirMallard/Iris](https://github.com/SirMallard/Iris/releases/latest).
-3. Update the debugger script paths as needed:
+1. Put `debugger.luau` from the [latest release](https://github.com/Parihsz/Chrono/releases/latest) in a LocalScript. You can also use [test/Debugger/init.client.luau](https://github.com/Parihsz/Chrono/blob/master/test/Debugger/init.client.luau).
+2. Install Iris through your package manager or from [SirMallard/Iris](https://github.com/SirMallard/Iris/releases/latest).
+3. Update the paths at the top of the script to match your game:
 
 ```lua
 local PAUSE_KEY = Enum.KeyCode.E
@@ -17,120 +17,113 @@ local IRIS = ReplicatedStorage.DevPackages.iris -- Replace with your Iris path
 
 ## Permissions
 
-After setup, you need to give yourself or other developers permission to view the debugger. 
+The debugger only opens for players with permission. Grant it on the server:
 
-You can either add specific UserIds into `Stats.REPLICATE_PERMISSIONS`
 ```lua
-Stats.REPLICATE_PERMISSIONS = {
-   [123456789] = true, -- Replace with your UserId
-}
-```
-
-Or you can add user at run time via `Stats.ReplicateStatsForPlayer(player: Player|number)`
-```lua
---// This script gives permission to all players.
+-- Script in ServerScriptService
 local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+local Stats = require(ReplicatedStorage.Packages.chrono).Stats
+
+local DEVELOPERS = {
+	[123456789] = true, -- your UserId
+}
+
 Players.PlayerAdded:Connect(function(player)
-   Stats.ReplicateStatsForPlayer(player) -- Or Stats.ReplicateStatsForPlayer(player.UserId)
+	if DEVELOPERS[player.UserId] or RunService:IsStudio() then
+		Stats.ReplicateStatsForPlayer(player) -- or Stats.ReplicateStatsForPlayer(player.UserId)
+	end
 end)
 ```
-!!! info
-    Make sure this is done on the server side not the client side.
 
-## Using the Debugger
+Revoke permission with `Stats.StopReplicatingStatsForPlayer(player)`.
 
 !!! warning
-    When using the debugger it will cause a significant increase in network usage for the client that has the debugger opened, this is due to server stats being sent every frame. This usage will return to normal when the debugger is closed.
-To open the debugger, press F3 (or your chosen `OPEN_CLOSE_KEY`) in game. 
-You can pause the debugger with the `PAUSE_KEY` (default E) to inspect the current state.
+    Use `ReplicateStatsForPlayer` to grant permission. Adding UserIds to `Stats.REPLICATE_PERMISSIONS` from your scripts doesn't grant debugger access.
+
+## Using the debugger
+
+Press F3 to open or close it, and E to pause it. Change these with `OPEN_CLOSE_KEY` and `PAUSE_KEY`.
+
+!!! warning
+    The debugger receives server stats every frame while open. Close it when measuring normal bandwidth.
 
 ![Start](../assets/debugger/start.png)
 
-The first three section displays:
+The top section shows:
 
-- The version number Chrono is currently on.
-- Pause/Unpause the debugger
-- Cycle through different warning levels, Updates globally
+- Chrono's version
+- Pause and resume controls
+- The game's [warning severity](../getting-started/configurations.md#warning-severity) control
 
-## Client Network Stats
+## Client network stats
 
 ![Client Network Stats](../assets/debugger/clientnetwork.png)
-This section shows client network replication metrics:
 
-- Average uncompressed kilobytes received per second for entity replication.
-- New entities registered per second.
-- Entity changes processed per second.
-- Entity removals processed per second.
+This section shows what the client is receiving:
 
-### Client Entities
+- Uncompressed kilobytes received per second for entity replication
+- New entities, changes and removals per second
+
+### Client entities
 
 ![Client Entities](../assets/debugger/cliententities.png)
 
-This section lists all entities currently registered on the client. Expanding an entity reveals its details:
+This lists every entity registered on the client. Expand one to see:
 
-- Entity ID
-- Network owner
-- Whether the entity is a player character
-- Last time the entity was replicated to the client
-- Last time the client replicated the entity to the server (client-owned entities only)
-- Current position
-- Average latency
-- Target time
-- Deviation
-- Buffered time
-- Snapshot history:
-    - Timestamp
-    - Position
-    - Rotation
-    - Velocity
+- Entity ID, owner and player character status
+- Latest snapshot time and current position
+- Last send time for client-owned entities
+- Snapshot history, including position, rotation and velocity
 
-## Client Render Stats
+It also shows the entity's interpolation timing:
+
+- **Target time**: the render time, on the server's clock for server-owned entities or the owner's clock for client-owned ones.
+- **Buffered time**: interpolation delay in seconds.
+- **Average latency**: smoothed packet lateness relative to the clock's estimate. Usually near 0 on a steady connection. This isn't ping.
+- **Deviation**: packet timing jitter. Automatic buffers account for twice this value.
+
+Entities with a fixed `BUFFER` show 0 for average latency and deviation, because only automatic buffers track them.
+
+!!! tip
+    For choppy movement with high deviation, try raising `MIN_BUFFER` or the type's `BUFFER`. If the entity stalls, check whether new snapshots are arriving.
+
+## Client render stats
+
 ![Client Render Stats](../assets/debugger/clientrender.png)
 
-This section shows render and interpolation statistics for the client:
+This section shows interpolation stats for the client:
 
-- Average time spent interpolating entities
-- Number of entities culled this frame
-- Number of entities whose part CFrames were updated this frame
-- Total entities checked for interpolation this frame
-- Total entities registered on the client
+- Average interpolation time
+- Entities culled, moved and checked this frame
+- Total client entities
 
-## Server Stats
+## Server stats
+
 ![Server Stats](../assets/debugger/server.png)
 
-This section shows server-side replication metrics:
+This section shows server-side replication:
 
-- Average time taken for the server ticker to process entities
-- Total time to update the entity grid
-- Average time per grid section update [(more info)](../getting-started/configurations.md#grid-update-configurations)
-- Number of grid sections updated during the last cycle
-- Total entities registered on the server
-- Number of entities not being ticked
-- Number of entities being fully ticked
-- Number of entities being partially ticked
-- Uncompressed kilobytes per second received from clients for entity replication
-- Uncompressed kilobytes per second sent to clients for entity replication
-- Average packets sent per second for entity replication
-- Average entity replication time for players
+- Average ticker time
+- Total grid update time, average section time and sections updated ([grid settings](../getting-started/configurations.md#grid-updates))
+- Total entities and counts at each tick rate
+- Uncompressed kilobytes received and sent per second for entity replication
+- Packets sent per second and average replication time per player
 
-### Server Entities
+### Server entities
 
-![Server Entity Details](../assets/debugger/serverentity.png) 
+![Server Entity Details](../assets/debugger/serverentity.png)
 
-This section lists all entities currently registered on the server. Expanding an entity reveals its details:
+This lists every entity registered on the server. Expand one to see:
 
-- Entity ID
-- Network owner
-- Whether the entity is a player character
-- Entity Tick rate
-- Last time the entity was ticked
-- Current position
-- If the entity is paused, click the button to pause/unpause the entity. Pausing will pause the entity on the server and stop replicating updates to clients, defaulting to native roblox behavior.
-- The current model type of the entity, either `CUSTOM`, `NATIVE` or `NATIVE_WITH_LOCK`. If the entity is using either `NATIVE` or `NATIVE_WITH_LOCK`, a button will allow you to switch between the two. 
-- What entity config is the entity is using, a list of configs will be accessible below that allows you to switch to any config that the client has access to. 
+- Entity ID, owner and player character status
+- Tick rate, last tick time and position
+- Pause and resume controls. Paused `NATIVE` models fall back to Roblox replication.
+- Model replication mode, with a toggle between `NATIVE` and `NATIVE_WITH_LOCK`
+- Entity type, with a control to switch types
 
 ## Flags
 
-![Flags](../assets/debugger/flags.png) 
-
+![Flags](../assets/debugger/flags.png)
 Flags are just values that enable features or behaviors. These are mainly used for debugging and testing purposes and can be ignored. Setting a flag will update the value on the server and replicate it to all clients.

@@ -210,7 +210,7 @@ const function ReplicatePlayer(player: Player)
 	const halfStops: BufferHolder = {}
 	const frameTimeNow = Ticker.GetGlobalTick()
 
-	const function HandleClientEntities(entity: Types.Entity)
+	const function HandleClientEntities(entity: Types.Entity, isNormal: boolean)
 		if entity.arriveFrame ~= frameTimeNow then -- (time will be the same during the same frame)
 			return
 		end
@@ -218,8 +218,35 @@ const function ReplicatePlayer(player: Player)
 			return
 		end
 		const clientTime = entity.lastClientClock or 0
-		const cframeBuffer = entity.cframeBuffer :: buffer
-		const reliable = bit32.band(buffer.readu8(cframeBuffer, 2), 12) ~= 0 -- teleport or stop
+		const source = entity.cframeBuffer
+		if not source then
+			return
+		end
+		local cframeBuffer: buffer = source
+		const flags = buffer.readu8(cframeBuffer, 2)
+		if not isNormal then
+			const cached = entity._halfBuffer
+			if cached then
+				cframeBuffer = cached
+			else
+				const lastHalf = entity._halfTime
+				if
+					bit32.band(flags, 14) == 0 and lastHalf and clientTime >= lastHalf
+					and clientTime - lastHalf < entity.entityConfig.TICK_RATE * 1.5
+				then
+					return
+				end
+				if bit32.band(flags, 2) == 0 then
+					const halfBuffer = buffer.create(buffer.len(source))
+					buffer.copy(halfBuffer, 0, source)
+					buffer.writeu8(halfBuffer, 2, bit32.bor(flags, 2))
+					cframeBuffer = halfBuffer
+				end
+				entity._halfBuffer = cframeBuffer
+				entity._halfTime = clientTime
+			end
+		end
+		const reliable = bit32.band(flags, 12) ~= 0 -- teleport or stop
 		const target = if reliable then clientReliable else clientOwned
 		if not target[clientTime] then
 			target[clientTime] = {}
@@ -248,7 +275,7 @@ const function ReplicatePlayer(player: Player)
 
 		const isServerOwned = entity.isContextOwner
 		if not isServerOwned then
-			HandleClientEntities(entity)
+			HandleClientEntities(entity, isNormal)
 			return
 		end
 
@@ -265,7 +292,7 @@ const function ReplicatePlayer(player: Player)
 			return
 		end
 
-		if isHalf and not ticker.tickedHalf then
+		if isHalf and not ticker.isHalf then
 			return
 		end
 

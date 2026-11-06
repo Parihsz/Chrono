@@ -1,59 +1,75 @@
 # Ragdolls
-Ragdolls has been a pain point for many of us, especially when implementing custom character replication.
+
+Ragdolls have been a pain point for many of us, especially with custom character replication.
 
 ![Broken ragdoll demonstration](./ripragdoll.gif)
 
+## Ragdolls with ALIGN mode (v2.2.0+)
 
-## Custom Ragdoll Systems for Chrono v2.2.0+
+Setting the primary part's `CFrame` every frame can make ragdolls jitter. `ALIGN` mode uses `AlignPosition` and `AlignOrientation` to move with physics, allowing many existing ragdoll systems to work with Chrono.
 
-Chrono v2.2.0 adds a setting for how the client applies replicated transforms, so more ragdoll systems work without modification and custom ones are easier to write.
-
-By default Chrono assigns the primary part's `CFrame` every frame. That teleports the assembly, throwing away the physics solver's state each step, so a ragdoll ends up fighting the replication and jittery. The `ALIGN` mode drives an `AlignPosition` and `AlignOrientation` toward the target instead, letting Roblox move the character with physics rather than teleporting it.
-
-Switch the entity over when it ragdolls, and back when it gets up:
+Switch the entity to `ALIGN` when it ragdolls, and back to `CFRAME` when it gets up:
 
 ```lua
---server
+-- Server
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local chrono = require(ReplicatedStorage.Packages.chrono)
 
-local entity = Holder.GetEntity(character) --before ragdoll:
-Chrono.Entity.SetInterpolationMode(entity, "ALIGN")
-RAGDOLL(character)
-
---after ragdoll:
-UN_RAGDOLL(character)
-Chrono.Entity.SetInterpolationMode(entity, "CFRAME")
+local function SetRagdolled(character: Model, ragdolled: boolean)
+	local player = Players:GetPlayerFromCharacter(character)
+	local entity = player and chrono.Holder.GetEntityFromPlayer(player)
+	if not entity then
+		return
+	end
+	if ragdolled then
+		chrono.Entity.SetInterpolationMode(entity, "ALIGN")
+		RAGDOLL(character) -- your ragdoll code
+	else
+		UN_RAGDOLL(character) -- your ragdoll code
+		chrono.Entity.SetInterpolationMode(entity, "CFRAME")
+	end
+end
 ```
 
-### Rotations
+For an NPC, find its entity with `chrono.Holder.GetEntityFromModel(model)` instead.
 
-If your ragdoll isn't following the rotation, it is likely because you are using the default `PLAYER` config, which has `FULL_ROTATION` set to `false`. Either set `FULL_ROTATION` to `true` on that config, or register a separate profile and switch to it while ragdolled:
+Server calls to `SetInterpolationMode` replicate to every client. In `ALIGN` mode, Chrono also replicates Humanoid states and disabled states. `Ragdoll` is applied as `Physics`.
+
+!!! warning
+    `ALIGN` is experimental. Use it only while ragdolled. Report bugs on [GitHub](https://github.com/Parihsz/Chrono/issues), the [Developer Forum](https://devforum.roblox.com/t/chrono-drop-in-custom-physics-replication-library/3873294), or [Discord](https://discord.gg/wEEqrVwV5a).
+
+### Rotation
+
+`PLAYER` sends only yaw by default. Register a full-rotation type so clients can see the ragdoll tilt:
 
 ```lua
+-- In your config module
 Config.RegisterEntityType("PLAYER_RAGDOLL", {
 	TICK_RATE = 1 / 20,
+	BUFFER = 0, -- automatic, like PLAYER
 	FULL_ROTATION = true,
-	MODEL_REPLICATION_MODE = "NATIVE", -- Replace with your option
+	MODEL_REPLICATION_MODE = "NATIVE", -- match the mode your players use
+	HALF_TICK_DISTANCE = math.huge, -- always sent, like PLAYER
 })
-
---before ragdoll:
-Chrono.Entity.SetConfig(entity, "PLAYER_RAGDOLL")
-
---after ragdoll:
-Chrono.Entity.SetConfig(entity, "PLAYER")
 ```
 
-!!! note
-	This is currently an experimental feature. If you find any bugs you can report them on the [Chrono GitHub](https://github.com/Parihsz/Chrono/issues), the [Developer Forum thread](https://devforum.roblox.com/t/chrono-drop-in-custom-physics-replication-library/3873294), or the [Discord](https://discord.gg/wEEqrVwV5a).
+```lua
+-- Server: when ragdolling, and when getting up
+chrono.Entity.SetConfig(entity, "PLAYER_RAGDOLL")
+chrono.Entity.SetConfig(entity, "PLAYER")
+```
 
-	We also don't recommend keeping interpolation mode to `ALIGN` as we don't know what hidden interactions it has with other constraints. It is best to switch to `ALIGN` only when ragdolling and back to `CFRAME` when not.
+You can instead re-register `PLAYER` itself with `FULL_ROTATION = true`.
 
-
-
-## How we implement ragdolls
+## How we implement ragdolls (CLIENT SIDED RAGDOLLS)
 To implement ragdolls we have a dual skeleton approach where:
 
 * Calculation skeleton does the physics simulation
 * Visual skeleton mirrors the physics skeleton's cframes for rendering
+
+!!! note
+	For this demo we recommend NOT using ALIGN mode as it has been found to cause issues.
 
 ## Ragdoll System
 Grab the ragdoll script and rigtypes module [here](https://gist.github.com/Parihsz/4eaf5f5d91cd084a3c06e6b1bb088c08). Note that this was made for R6 but the same concept applies for R15.
@@ -87,11 +103,11 @@ end)
 ```
 
 ### Configure Chrono for ragdolls
-If you're using R6 rigs, you need to handle the PrimaryPart issue. There are only really 2 ways to handle this. If you don't depend on primarypart being the Head, I STRONGLY recommend just setting it to the humanoidrootpart. This avoids a whole host of bugs and enables further optimizations. Note that this needs to be done immediately on characteradded or it would not be processed properly by chrono. 
+For R6 rigs, we recommend setting `PrimaryPart` to `HumanoidRootPart` as soon as `CharacterAdded` fires:
 ```lua
 character.PrimaryPart = character:WaitForChild("HumanoidRootPart")
 ```
-Some people might want to send full rotation when the player is ragdolled although that isn't necessary a lot of the times. You can do this via a seperate configuration profile. 
+For full rotation, use a separate entity type as shown above:
 ```lua
 local Config = require(chrono.Shared.Config)
 
@@ -109,12 +125,12 @@ local entity = Holder.GetEntity(character) --before ragdoll:
 Chrono.Entity.SetConfig(entity, "PLAYER_RAGDOLL")
 Ragdoll.SetRagdollEnabled(character)
 
---after ragdoll: 
+--after ragdoll:
 Ragdoll.SetRagdollDisabled(character)
 Chrono.Entity.SetConfig(entity, "PLAYER")
 ```
 
-If you depend on the primary part being the Head that is still fine, but you will need to slightly modify the Ragdoll script to create a 2nd set of skeleton. This is hacky but if you are depending on head being a primarypart thats arguably even more hacky. 
+If you need to keep the Head as `PrimaryPart`, modify the ragdoll script to use a second skeleton:
 ```lua
 
 local function ToggleLocalTransparency(model: Model, transparency)
@@ -133,7 +149,7 @@ local function EnableRagdoll(model: Model)
 	local original = model
 	if not isSelfRagdoll then
 		ToggleLocalTransparency(model, 1)
-		
+
 		model.Archivable = true
 		model = model:Clone()
 		model:RemoveTag(SHOULD_RAGDOLL_TAG)
@@ -163,8 +179,8 @@ local function EnableRagdoll(model: Model)
 		end)
 	end
 
-	... rest of the ragdoll script 
+	... rest of the ragdoll script
 end
 ```
 
-A open sourced demo of this can be found at https://www.roblox.com/games/78492181198483/rep-test
+Try the [open-source demo](https://www.roblox.com/games/78492181198483/rep-test).

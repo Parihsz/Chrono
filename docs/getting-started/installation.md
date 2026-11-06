@@ -1,16 +1,26 @@
 # Installation
-For Rojo users: In your `wally.toml`, add the following line to your dependencies.
 
-Use
+## Wally (Rojo)
+
+Add Chrono to the `[dependencies]` section of your `wally.toml`:
+
 ```toml
-chrono = "parihsz/chrono@2.2.3"
+[dependencies]
+chrono = "parihsz/chrono@2.3.0"
 ```
 
-For Studio users: Download the latest rbxl file from [Github Releases](https://github.com/Parihsz/Chrono/releases/latest)
+Then run `wally install`
 
-If you want to use v1, please download
+## Studio
+
+Download `build.rbxm` from the [latest release](https://github.com/Parihsz/Chrono/releases/latest).
+
+## v1
+
+v1 is still available. With Wally, use:
+
 ```toml
 chrono = "parihsz/chrono@1.4.0"
 ```
 
-For Studio users: Download the latest rbxl file from [Github Releases](https://github.com/Parihsz/Chrono/releases/tag/v1.4.0)
+In Studio, download `build.rbxm` from the [v1.4.0 release](https://github.com/Parihsz/Chrono/releases/tag/v1.4.0). Moving to v2? See [Migration](../guides/migration.md).
