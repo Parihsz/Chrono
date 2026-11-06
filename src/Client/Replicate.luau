@@ -18,7 +18,7 @@ const UpdateEntityStats = require(script.Parent.EntityStats)
 const Stats = require(Shared.Stats).CLIENT
 
 const CLIENT_CLOCK_SYNC_RATE = 15 -- should be fine having lower then server
-const MAX_OWNER_SMOOTH_DELAY = 2 -- seconds after an ownership change 
+const MAX_OWNER_SMOOTH_DELAY = 2 -- seconds after an ownership change
 require(script.Parent.Player)
 require(script.Parent.Receiver)
 
@@ -143,7 +143,6 @@ Config._WaitForLock(function()
 				continue
 			end
 			if entity.mountParentId then
-
 				AlignDriver.Clear(entity)
 				continue
 			end

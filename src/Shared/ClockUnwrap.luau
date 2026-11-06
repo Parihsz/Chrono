@@ -54,7 +54,6 @@ function ClockUnwrap.seatFull(state: State, seconds: number): number?
 	const scaled = math.floor(seconds * CLOCK_SCALE)
 
 	if scaled == math.huge or scaled ~= scaled or seconds < 0 then
-		
 		return nil
 	end
 	const raw = scaled % TWO32

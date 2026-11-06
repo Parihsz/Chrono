@@ -82,7 +82,10 @@ return {
 	end,
 
 	Started = function(callback: () -> ())
-		assert(type(callback) == "function", "Chrono.Started expects a function. Do you mean to call Chrono.Start() instead?")
+		assert(
+			type(callback) == "function",
+			"Chrono.Started expects a function. Do you mean to call Chrono.Start() instead?"
+		)
 		Config._WaitForLock(function()
 			task.spawn(callback)
 		end)

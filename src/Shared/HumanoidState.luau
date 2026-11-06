@@ -160,7 +160,7 @@ const function OnNetworkOwnerChanged(self: Entity, wasOwner: boolean)
 		if ownDisabledStates and savedFrom == humanoid then
 			ApplyDisabledStateMask(humanoid, ownDisabledStates)
 		end
-	
+
 		const replicated = self._humanoidState
 		if
 			humanoid:GetState() == Enum.HumanoidStateType.Physics

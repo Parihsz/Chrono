@@ -1,7 +1,6 @@
 const Players = game:GetService("Players")
 const Types = require(script.Parent.Parent.Shared.Types)
 
-
 const ServerClockData = {} :: { [Player]: {
 	arrivalOffset: number,
 } }
@@ -33,7 +32,7 @@ const function ConvertTo(player: Player, clock: number, environment: "Server" | 
 end
 
 --[=[
-	Converts a client's render time for an entity 
+	Converts a client's render time for an entity
 	into the server's timeline, ready for Entity.GetAt. Clamped to the last maxRewind seconds.
 
 	@param maxRewind How far back to allow, in seconds. Defaults to 1.

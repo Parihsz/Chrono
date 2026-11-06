@@ -146,7 +146,7 @@ const function HandleChanges(changes: { id: number, data: { { any } } })
 				Entity.ResumeReplication(entity)
 			end
 		elseif key == "_lockedCFReplication" then
-			lockValue = value 
+			lockValue = value
 		else
 			Warn.high("Unhandled entity change key:", key)
 		end
@@ -223,7 +223,7 @@ const function PushCFrameFor(
 		Warn.high("Received update for non existent entity with id", id)
 		return false
 	end
-	
+
 	if entity.isContextOwner or clientOwned ~= (entity.networkOwner ~= nil) then
 		return false
 	end

@@ -106,7 +106,7 @@ function Ticker.CheckUpdate(ticker: Ticker): boolean
 	if Ticker._ShouldTick(nextTick, now, ticker.tickRate) then
 		ticker._nextTick = Ticker._GetNextTick(nextTick, now, ticker.tickRate)
 		const difference = now - ticker.lastTicked
-		ticker.lastTicked = now 
+		ticker.lastTicked = now
 		ticker.tickedFrame = GlobalTick
 		ticker.isHalf = not ticker.isHalf
 

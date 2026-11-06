@@ -48,8 +48,6 @@ const Stats = {
 		SERVER_ENTITIES = {} :: { [number]: Types.ServerEntitiesStats },
 		GRID_STATS = {} :: { [string]: { HALF: { number }, NORMAL: { number } } },
 	},
-	
-	
 }
 
 const function processID(id: number, replicate)

@@ -94,7 +94,14 @@ export type MODEL_REPLICATION_MODE = "NATIVE" | "NATIVE_WITH_LOCK" | "CUSTOM"
 
 export type INTERPOLATION_MODE = "CFRAME" | "ALIGN" | "NONE"
 
-export type InterpolationFunction = (from: CFrame, to: CFrame, v0: Vector3, v1: Vector3, t: number, dt: number) -> CFrame
+export type InterpolationFunction = (
+	from: CFrame,
+	to: CFrame,
+	v0: Vector3,
+	v1: Vector3,
+	t: number,
+	dt: number
+) -> CFrame
 
 export type AlignDriver = {
 	part: BasePart,
@@ -280,7 +287,7 @@ export type Entity = {
 	_clockBuffer: number?, -- per entity buffer override from SetClockBuffer
 	_clientClock: ClientClock?, -- own clock for player owned or custom buffered entities
 	_ownerChangedAt: number?, -- time when owner changed
-	_ownerSmoothing: { offset: Vector3, rotation: CFrame, start: number }?, 
+	_ownerSmoothing: { offset: Vector3, rotation: CFrame, start: number }?,
 	_outofBroadPhaseTick: number?,
 
 	-- Humanoid state replication

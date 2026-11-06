@@ -719,8 +719,12 @@ function Entity.GetAt(self: Entity, time: number): CFrame?
 	else
 		const latestTime = self.latestTime
 		if
-			IS_SERVER and self.networkOwner == nil and not self.entityConfig.STORE_SNAPSHOTS
-			and latestTime and time > 0 and time < latestTime
+			IS_SERVER
+			and self.networkOwner == nil
+			and not self.entityConfig.STORE_SNAPSHOTS
+			and latestTime
+			and time > 0
+			and time < latestTime
 			and Config._GetConfig("WARNING_SEVERITY") == "LOW"
 		then
 			Warn.low(
@@ -909,7 +913,7 @@ end
 --[=[
 	Sets the client clock buffer for the entity.
 
-	@param buffer? The buffer to set for the client clock. If nil, will use the entity config's buffer. 
+	@param buffer? The buffer to set for the client clock. If nil, will use the entity config's buffer.
 ]=]
 function Entity.SetClockBuffer(self: Entity, buffer: number?)
 	if IS_SERVER then

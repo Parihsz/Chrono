@@ -231,7 +231,9 @@ const function ReplicatePlayer(player: Player)
 			else
 				const lastHalf = entity._halfTime
 				if
-					bit32.band(flags, 14) == 0 and lastHalf and clientTime >= lastHalf
+					bit32.band(flags, 14) == 0
+					and lastHalf
+					and clientTime >= lastHalf
 					and clientTime - lastHalf < entity.entityConfig.TICK_RATE * 1.5
 				then
 					return

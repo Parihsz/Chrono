@@ -228,9 +228,7 @@ const function Clear<Value, Velocity>(self: Snapshot<Value, Velocity>)
 	self.stoppedAt = nil
 end
 
-const function New<Value, Velocity>(
-	lerpFunction: (Value, Value, Velocity, Velocity, number, number) -> Value
-): Snapshot<Value, Velocity>
+const function New<Value, Velocity>(lerpFunction: (Value, Value, Velocity, Velocity, number, number) -> Value): Snapshot<Value, Velocity>
 	const cache: { SnapshotData<Value, Velocity> } = table.create(MAX_LENGTH) :: any
 	for i = 1, MAX_LENGTH do
 		cache[i] = { t = 0, value = (nil :: any) :: Value, velocity = (nil :: any) :: Velocity }

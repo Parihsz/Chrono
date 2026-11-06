@@ -172,10 +172,10 @@ const function CheckEntity(entity: Types.Entity)
 	if not Ticker._ShouldTick(nextSend, now, tickRate) then
 		return
 	end
-	
+
 	entity._nextSend = Ticker._GetNextTick(nextSend, now, tickRate)
 	const lastTime = entity.lastReplicatedTime or 0
-	const difference = now - lastTime 
+	const difference = now - lastTime
 	const tickDt = now - (entity._lastCheck or lastTime)
 	entity._lastCheck = now
 	CheckLocker(entity)
@@ -217,7 +217,7 @@ const function Update()
 			PlayerEntities[entity] = nil
 			continue
 		end
-		
+
 		CheckEntity(entity)
 	end
 
