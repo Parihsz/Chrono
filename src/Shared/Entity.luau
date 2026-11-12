@@ -478,12 +478,11 @@ function Entity.new(
 end
 
 const function DefaultDeload(self: Entity, model: (Model | BasePart)?)
-	if self.modelReplicationMode == "CUSTOM" then
-		SafeDestroy(model)
+	if not model then
 		return
 	end
-	-- A NATIVE model destroyed on the server can be gone before the removal arrives
-	if not model or not model.Parent then
+	if self.modelReplicationMode == "CUSTOM" then
+		SafeDestroy(model)
 		return
 	end
 
@@ -503,10 +502,46 @@ const function DefaultDeload(self: Entity, model: (Model | BasePart)?)
 	end
 end
 
+const function RunDeload(self: Entity, reason: Types.DeloadReason)
+	const model = self.model
+	if not model or not model.Parent then
+		if self.modelReplicationMode == "CUSTOM" then
+			SafeDestroy(model)
+		end
+		return
+	end
+	const deload = self.entityConfig and self.entityConfig.DELOAD_FUNCTION
+	if deload then
+		const ok, handled = pcall(deload, self, model, reason)
+		if not ok then
+			Warn.high("DELOAD_FUNCTION errored for", self, handled)
+		elseif handled == true then
+			return
+		end
+	end
+	DefaultDeload(self, model)
+end
+
+function Entity._Load(self: Entity)
+	const model = self.model
+	if IS_SERVER or self._loaded or self.destroyed or not model or type(model) == "string" then
+		return
+	end
+	self._loaded = true
+	const load = self.entityConfig and self.entityConfig.LOAD_FUNCTION
+	if load then
+		task.spawn(load, self, model)
+	end
+end
+
 --[=[
 	Destroys the entity, unregistering it and cleaning up resources. Does nothing if already destroyed.
 ]=]
 function Entity.Destroy(self: Entity)
+	Entity._Deload(self, "DESTROYED")
+end
+
+function Entity._Deload(self: Entity, reason: Types.DeloadReason)
 	if self.destroyed then
 		return
 	end
@@ -537,7 +572,7 @@ function Entity.Destroy(self: Entity)
 				CFrameLock.Unlock(primaryPart)
 			end
 		end
-		DefaultDeload(self, self.model)
+		task.spawn(RunDeload, self, reason)
 	else
 		SafeDestroy(self.model)
 	end

@@ -110,6 +110,8 @@ const ENTITY_TYPES: { [string]: Types.EntityConfig } = {
 	DEFAULT = {
 		NAME = "DEFAULT",
 		TICK_RATE = 1 / 20,
+		DEFAULT_NORMAL_TICK_DISTANCE = 5, --REMOVE BEFORE COMMIT
+		HALF_TICK_DISTANCE = 10,
 		BUFFER = 0.1, --if buffer is 0 or nil for server side entities then it will use an dynamic buffer
 	},
 	WITH_ROT = {
@@ -190,6 +192,14 @@ const function CheckEntityType(name: string, config: Types.EntityConfigInput)
 	assert(
 		config.INTERPOLATION_FUNCTION == nil or type(config.INTERPOLATION_FUNCTION) == "function",
 		`Chrono: entity type "{name}" INTERPOLATION_FUNCTION must be a function`
+	)
+	assert(
+		config.DELOAD_FUNCTION == nil or type(config.DELOAD_FUNCTION) == "function",
+		`Chrono: entity type "{name}" DELOAD_FUNCTION must be a function`
+	)
+	assert(
+		config.LOAD_FUNCTION == nil or type(config.LOAD_FUNCTION) == "function",
+		`Chrono: entity type "{name}" LOAD_FUNCTION must be a function`
 	)
 end
 
@@ -343,6 +353,7 @@ return {
 	RegisterEntityType = RegisterEntityType,
 	RegisterEntityModel = RegisterEntityModel,
 	FLAGS = {
+		["MODEL_STREAMING_BEHAVIOR"] = true, -- Sets NATIVE_WITH_LOCK models with Default ModelStreamingMode to Persistent on the server, warns for other non-Persistent modes
 		["CHARACTER_WAIT_DELAY"] = true, -- Waits for CharacterAppearanceLoaded before loading
 		["SERVER_VELOCITY_FIX"] = true, -- Fixes velocity calculation on the server when two packets are received next to each other
 		["VELOCITY_CALC_FIX"] = true, -- Fixes velocity calculation when dt is less then tickrate

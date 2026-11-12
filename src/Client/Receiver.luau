@@ -81,9 +81,13 @@ const function DeserializeYaw(b: buffer, index: number): CFrame
 end
 
 const function HandleRemoved(id: number)
+	const outOfRange = id < 0
+	if outOfRange then
+		id = -id
+	end
 	const entity = Holder.GetEntityFromId(id)
 	if entity then
-		Entity.Destroy(entity)
+		Entity._Deload(entity, if outOfRange then "OUT_OF_RANGE" else "DESTROYED")
 		return
 	end
 	Warn.high("Tried to remove non existent entity with id", id)
@@ -156,6 +160,7 @@ const function HandleChanges(changes: { id: number, data: { { any } } })
 		const model, modelType, handle = ModelHelper.CreateModelFromData(modelData)
 		Entity.SetModel(entity, model, modelType :: any)
 		entity._modelHandle = handle
+		Entity._Load(entity)
 		Entity._SetHumanoidDisabledStates(entity, entity._humanoidDisabledStates)
 		Entity._SetHumanoidState(entity, entity._humanoidState)
 	end
@@ -207,6 +212,7 @@ const function HandleNewEntity(data: Types.EntityReceivePacket)
 	Entity._SetHumanoidState(entity, data._humanoidState)
 	SetTickMode(entity, data.isHalfTicked)
 	Holder.RegisterEntity(entity)
+	Entity._Load(entity)
 end
 
 const function PushCFrameFor(

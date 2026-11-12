@@ -314,7 +314,9 @@ const function ReplicatePlayer(player: Player)
 	for entity, _ in replicatedOLD do
 		replicated[entity] = nil
 		holderEntityRemoving:Fire(entity)
-		table.insert(toRemove, entity._lastId or entity.id)
+		const id = entity._lastId or entity.id
+		--negative id is used to determin remove type
+		table.insert(toRemove, if entity.destroyed then id else -id)
 	end
 
 	FlushClientOwned(player, clientOwned)

@@ -13,6 +13,7 @@ return function(entity: Types.Entity)
 	const instance: (Model | BasePart)? = handle:Get() :: any
 	if instance and instance.Parent and (instance :: Instance) ~= (model :: Instance?) then
 		Entity.SetModel(entity, instance)
+		Entity._Load(entity)
 		Warn.low(`Model {instance:GetFullName()} was resolved for entity {entity.id}.`)
 	end
 end

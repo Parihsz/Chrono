@@ -1,4 +1,7 @@
 const RunService = game:GetService("RunService")
+const Players = game:GetService("Players")
+const Config = require(script.Parent.Config)
+const Warn = require(script.Parent.Warn)
 
 const IS_SERVER = RunService:IsServer()
 const LOCKER_NAME = "__CHRONO_LOCKER"
@@ -17,10 +20,28 @@ const function GetLockedRoot(part: BasePart): BasePart?
 	return locker:FindFirstChildWhichIsA("BasePart") or part
 end
 
+const function CheckStreamingMode(model: Model?)
+	if not IS_SERVER or not Config.FLAGS.MODEL_STREAMING_BEHAVIOR then
+		return
+	end
+	if not model or Players:GetPlayerFromCharacter(model) then
+		return
+	end
+	const mode = model.ModelStreamingMode
+	if mode == Enum.ModelStreamingMode.Default then
+		model.ModelStreamingMode = Enum.ModelStreamingMode.Persistent
+	elseif mode ~= Enum.ModelStreamingMode.Persistent and workspace.StreamingEnabled then
+		Warn.medium(
+			`Locked model {model:GetFullName()} has ModelStreamingMode {mode.Name}. It should be Persistent, as Chrono does not handle NATIVE_WITH_LOCK models streaming in and out.`
+		)
+	end
+end
+
 const function LockCFReplication(part: BasePart?): BasePart?
 	if not part then
 		return nil
 	end
+	CheckStreamingMode(part:FindFirstAncestorWhichIsA("Model"))
 	const initCF = part.CFrame
 	const previousLocker = part:FindFirstChild(LOCKER_NAME)
 	if previousLocker then

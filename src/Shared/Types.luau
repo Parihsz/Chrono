@@ -94,6 +94,10 @@ export type MODEL_REPLICATION_MODE = "NATIVE" | "NATIVE_WITH_LOCK" | "CUSTOM"
 
 export type INTERPOLATION_MODE = "CFRAME" | "ALIGN" | "NONE"
 
+export type DeloadReason = "DESTROYED" | "OUT_OF_RANGE"
+export type DeloadFunction = (entity: Entity, model: Model | BasePart?, reason: DeloadReason) -> boolean?
+export type LoadFunction = (entity: Entity, model: Model | BasePart) -> ()
+
 export type InterpolationFunction = (
 	from: CFrame,
 	to: CFrame,
@@ -135,6 +139,8 @@ export type EntityConfig = {
 	ASSEMBLY_ROOT_PART_CHECK: boolean?,
 	INTERPOLATION_MODE: INTERPOLATION_MODE?, -- defaults to DEFAULT_INTERPOLATION_MODE
 	INTERPOLATION_FUNCTION: InterpolationFunction?, -- nil uses Hermite position + CFrame:Lerp rotation
+	DELOAD_FUNCTION: DeloadFunction?, -- nil uses the default deload behavior
+	LOAD_FUNCTION: LoadFunction?,
 	UpdateBuffer: (self: EntityConfig, buffer: number) -> ()?,
 }
 
@@ -153,6 +159,8 @@ export type EntityConfigInput = {
 	CUSTOM_INTERPOLATION: boolean?,
 	INTERPOLATION_MODE: INTERPOLATION_MODE?, -- "CFRAME" sets CFrame directly, "ALIGN" drives AlignPosition/AlignOrientation
 	INTERPOLATION_FUNCTION: InterpolationFunction?, -- Interpolates between two snapshots.
+	DELOAD_FUNCTION: DeloadFunction?, -- Client only. Return true to skip the default deload behavior.
+	LOAD_FUNCTION: LoadFunction?, -- Client only. Runs once when the entity first has a model.
 	-- Might consider giving a config level replication rules instead of just entity
 }
 
@@ -250,6 +258,7 @@ export type Entity = {
 	modelReplicationMode: "NATIVE" | "CUSTOM"?,
 	_chronoPrimary: string?,
 	_modelHandle: InstanceHandle?, -- (Client) resolves NATIVE models that stream in late
+	_loaded: boolean?, -- (Client) LOAD_FUNCTION has run
 	_lockedCFReplication: boolean?,
 	_cfLockFailed: boolean?, -- (Client) retry the lock once the part exists
 	broadPhase: vector?,

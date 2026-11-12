@@ -181,6 +181,8 @@ Register your own with `Config.RegisterEntityType(name, settings)` before starti
 | `MODEL_REPLICATION_MODE` | `DEFAULT_MODEL_REPLICATION_MODE` | `NATIVE`, `NATIVE_WITH_LOCK` or `CUSTOM`. |
 | `INTERPOLATION_MODE` | `DEFAULT_INTERPOLATION_MODE` | `CFRAME`, `ALIGN` or `NONE`. |
 | `INTERPOLATION_FUNCTION` | Hermite | Function that blends two snapshots. See [Interpolation function](#interpolation-function). |
+| `DELOAD_FUNCTION` | `nil` | Client-only function run when an entity is removed. See [Deload function](#deload-function). |
+| `LOAD_FUNCTION` | `nil` | Client-only function run once when an entity first has a model. See [Load function](#load-function). |
 | `NORMAL_TICK_DISTANCE` | `DEFAULT_NORMAL_TICK_DISTANCE` | Full-rate distance. |
 | `HALF_TICK_DISTANCE` | `DEFAULT_HALF_TICK_DISTANCE` | Half-rate distance. |
 | `HALF_TICK_MARGIN` | `0` | Studs past `HALF_TICK_DISTANCE` an entity stays sent to a player who already has it. See [Half tick margin](#half-tick-margin). |
@@ -304,6 +306,67 @@ chrono.Config.RegisterEntityType("Boat", {
 	TICK_RATE = 1 / 20,
 	INTERPOLATION_FUNCTION = function(from: CFrame, to: CFrame, v0: Vector3, v1: Vector3, t: number, dt: number): CFrame
 		return from:Lerp(to, t) -- linear
+	end,
+})
+```
+
+### Deload function
+
+`DELOAD_FUNCTION` runs on the client when an entity is removed. It receives the entity, its model, and a reason:
+
+- `"DESTROYED"`: the entity was destroyed. For `NATIVE` models the server usually destroys the model first, so the function is skipped.
+- `"OUT_OF_RANGE"`: the entity moved past `HALF_TICK_DISTANCE`, or a replication rule filtered it out.
+
+Return `true` if you handled the model yourself. Otherwise Chrono destroys `CUSTOM` models and hides `NATIVE` models.
+
+### Load function
+
+`LOAD_FUNCTION` runs on the client when an entity's model loads, including when the entity comes back into range. It receives the entity and its model.
+
+### Fading in and out
+
+![gif](../assets/configurations/deload-fade.gif)
+
+This fades entities in when they load and out when they deload. It uses `LocalTransparencyModifier`. The deload returns `false` once the fade finishes, so the default still hides or destroys the model.
+
+```lua
+local TweenService = game:GetService("TweenService")
+local FADE = TweenInfo.new(0.5)
+
+local function getFadeParts(model: Instance): { any }
+	local parts = {}
+	for _, instance in model:GetDescendants() do
+		if instance:IsA("BasePart") or instance:IsA("Decal") then
+			table.insert(parts, instance)
+		end
+	end
+	if model:IsA("BasePart") then
+		table.insert(parts, model)
+	end
+	return parts
+end
+
+chrono.Config.RegisterEntityType("NPC", {
+	TICK_RATE = 1 / 20,
+	LOAD_FUNCTION = function(entity, model)
+		for _, part in getFadeParts(model) do
+			part.LocalTransparencyModifier = 1
+			TweenService:Create(part, FADE, { LocalTransparencyModifier = 0 }):Play()
+		end
+	end,
+	DELOAD_FUNCTION = function(entity, model, reason)
+		if not model then
+			return false
+		end
+		local lastTween
+		for _, part in getFadeParts(model) do
+			lastTween = TweenService:Create(part, FADE, { LocalTransparencyModifier = 1 })
+			lastTween:Play()
+		end
+		if lastTween then
+			lastTween.Completed:Wait()
+		end
+		return false
 	end,
 })
 ```
