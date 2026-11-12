@@ -21,6 +21,7 @@ const IS_SERVER = RunService:IsServer()
 const LOCAL_PLAYER = if IS_SERVER then nil else Players.LocalPlayer
 
 const CHRONO_PRIMARY = "__CHRONO_PRIMARY"
+const DELOAD_PARENT = "__CHRONO_DELOAD_PARENT"
 const OWNER_SMOOTH_TIME = 0.3
 const INTERPOLATION_MODES = { CFRAME = true, ALIGN = true, NONE = true }
 
@@ -362,6 +363,18 @@ const function SetModel(
 
 	self.modelReplicationMode = replicationMode
 
+	--check for restroing a deloaded model
+	if not IS_SERVER and _model and replicationMode == "NATIVE" then
+		const handle: any = _model:GetAttribute(DELOAD_PARENT)
+		if handle ~= nil then
+			_model:SetAttribute(DELOAD_PARENT, nil)
+			const parent = if typeof(handle) == "InstanceHandle" then handle:Get() else handle
+			if _model.Parent == nil and typeof(parent) == "Instance" then
+				_model.Parent = parent
+			end
+		end
+	end
+
 	const primaryPart = GetPart(self)
 	if _model and not primaryPart then
 		const warn = IS_SERVER and Warn.high or Warn.low
@@ -464,6 +477,32 @@ function Entity.new(
 	return self
 end
 
+const function DefaultDeload(self: Entity, model: (Model | BasePart)?)
+	if self.modelReplicationMode == "CUSTOM" then
+		SafeDestroy(model)
+		return
+	end
+	-- A NATIVE model destroyed on the server can be gone before the removal arrives
+	if not model or not model.Parent then
+		return
+	end
+
+	if LOCAL_PLAYER and model == LOCAL_PLAYER.Character then
+		return
+	end
+
+	const primaryPart = if model:IsA("BasePart") then model else model.PrimaryPart
+	if primaryPart then
+		primaryPart.CFrame = CFrame.new(0, 10000000, 0)
+	end
+
+	const parent = model.Parent
+	if parent then
+		model:SetAttribute(DELOAD_PARENT, parent);
+		(model :: Instance).Parent = nil
+	end
+end
+
 --[=[
 	Destroys the entity, unregistering it and cleaning up resources. Does nothing if already destroyed.
 ]=]
@@ -492,18 +531,13 @@ function Entity.Destroy(self: Entity)
 	AlignDriver.Clear(self)
 
 	if not IS_SERVER then
-		const modeType = self.modelReplicationMode
-		const primaryPart = GetPart(self)
-		if modeType == "CUSTOM" then
-			-- destroys the model on the client
-			SafeDestroy(self.model)
-		elseif primaryPart then
-			if self._lockedCFReplication then
+		if self.modelReplicationMode ~= "CUSTOM" and self._lockedCFReplication then
+			const primaryPart = GetPart(self)
+			if primaryPart then
 				CFrameLock.Unlock(primaryPart)
 			end
-			-- hides the model on the client
-			primaryPart.CFrame = CFrame.new(0, 1000000, 0)
 		end
+		DefaultDeload(self, self.model)
 	else
 		SafeDestroy(self.model)
 	end
