@@ -343,7 +343,7 @@ return {
 	RegisterEntityType = RegisterEntityType,
 	RegisterEntityModel = RegisterEntityModel,
 	FLAGS = {
-		["CHARACTER_WAIT_DELAY"] = true, -- Waits for CharacterAppearanceLoaded before loading
+		["CHARACTER_WAIT_DELAY"] = true, -- Waits for character to be in workspace before loading
 		["SERVER_VELOCITY_FIX"] = true, -- Fixes velocity calculation on the server when two packets are received next to each other
 		["VELOCITY_CALC_FIX"] = true, -- Fixes velocity calculation when dt is less then tickrate
 		["SNAPSHOT_INTERPOLATION_FIX"] = true, -- Fixes interpolation of snapshots when replication is stopped briefly and resumed rapidly which can cause slight jitter due to velocity.

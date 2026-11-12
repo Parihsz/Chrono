@@ -11,8 +11,26 @@ const Types = require(script.Parent.Parent.Shared.Types)
 
 const playerEntities = Holder._playerChars
 
-const APPEARANCE_TIMEOUT = 3
-const loadedAppearance: { [Player]: Model } = {}
+const PLACEMENT_TIMEOUT = 3
+
+const function SyncEntityToSpawn(character: Model, entity: Types.Entity)
+	task.spawn(function()
+		const start = os.clock()
+		while not character:IsDescendantOf(workspace) do
+			if entity.destroyed or entity.model ~= character or os.clock() - start > PLACEMENT_TIMEOUT then
+				return
+			end
+			task.wait()
+		end
+		if entity.destroyed or entity.model ~= character or entity.lastClientClock ~= nil then
+			return
+		end
+		const primaryPart = Entity.GetPrimaryPart(entity)
+		if primaryPart and primaryPart.CFrame ~= entity.latestCFrame then
+			Entity.SetCFrame(entity, primaryPart.CFrame)
+		end
+	end)
+end
 
 const function RegisterPlayer(
 	player: Player,
@@ -52,6 +70,10 @@ const function RegisterPlayer(
 	Holder.SetAsCharacter(player, newEntity)
 	Entity.SetNetworkOwner(newEntity, player)
 
+	if not character:IsDescendantOf(workspace) then
+		SyncEntityToSpawn(character, newEntity)
+	end
+
 	return newEntity
 end
 
@@ -66,9 +88,9 @@ const function OnCharacterAdded(character: Model, player: Player)
 	if Config.FLAGS.CHARACTER_WAIT_DELAY then
 		const start = os.clock()
 		while
-			loadedAppearance[player] ~= character
+			not character:IsDescendantOf(workspace)
 			and player.Character == character
-			and os.clock() - start < APPEARANCE_TIMEOUT
+			and os.clock() - start < PLACEMENT_TIMEOUT
 		do
 			task.wait()
 		end
@@ -86,23 +108,15 @@ const function OnCharacterAdded(character: Model, player: Player)
 end
 
 const function OnPlayerAdded(player: Player)
-	const appearanceConnection = player.CharacterAppearanceLoaded:Connect(function(character: Model)
-		loadedAppearance[player] = character
-	end)
 	const connection = player.CharacterAdded:Connect(function(character: Model)
 		OnCharacterAdded(character, player)
 	end)
 	if player.Character then
-		if player:HasAppearanceLoaded() then
-			loadedAppearance[player] = player.Character
-		end
 		task.spawn(OnCharacterAdded, player.Character, player)
 	end
 	local connection2: RBXScriptConnection? = nil
 	connection2 = player.AncestryChanged:Connect(function()
 		if not player:IsDescendantOf(game) then
-			loadedAppearance[player] = nil
-			appearanceConnection:Disconnect()
 			connection:Disconnect()
 			if connection2 then
 				connection2:Disconnect()
