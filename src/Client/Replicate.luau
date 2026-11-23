@@ -124,7 +124,9 @@ const function Interpolate(entity: Types.Entity, mode: Types.INTERPOLATION_MODE)
 	if not targetCFrame then
 		return
 	end
-	targetCFrame = SmoothOwnerChange(entity, primaryPart, targetCFrame)
+	if entity._ownerChangedAt or entity._ownerSmoothing then
+		targetCFrame = SmoothOwnerChange(entity, primaryPart, targetCFrame)
+	end
 	if entity.broadPhase and Frustum.IsCulled(entity, targetCFrame) then
 		return
 	end
