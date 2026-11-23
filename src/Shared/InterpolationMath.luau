@@ -33,8 +33,28 @@ const function Hermite(p0: Vector3, p1: Vector3, v0: Vector3, v1: Vector3, t: nu
 	return p0 * h00 + v0 * dt * h10 + p1 * h01 + v1 * dt * h11
 end
 
+const function YawCFrame(x0: Vector3, x1: Vector3, position: Vector3, t: number): CFrame
+	const cos0, sin0 = x0.X, -x0.Z
+	const cos1, sin1 = x1.X, -x1.Z
+	const angle = math.atan2(cos0 * sin1 - sin0 * cos1, cos0 * cos1 + sin0 * sin1) * t
+	const cosA, sinA = math.cos(angle), math.sin(angle)
+	const cos, sin = cos0 * cosA - sin0 * sinA, sin0 * cosA + cos0 * sinA
+	return CFrame.new(position.X, position.Y, position.Z, cos, 0, sin, 0, 1, 0, -sin, 0, cos)
+end
+
 const function HermiteCFrame(c0: CFrame, c1: CFrame, v0: Vector3, v1: Vector3, t: number, dt: number): CFrame
-	return CFrame.new(Hermite(c0.Position, c1.Position, v0, v1, t, dt)) * c0:Lerp(c1, t).Rotation
+	const position = Hermite(c0.Position, c1.Position, v0, v1, t, dt)
+	const x0, x1 = c0.XVector, c1.XVector
+	const y0, y1 = c0.YVector, c1.YVector
+	if x0 == x1 and y0 == y1 then
+		-- a slight micro op using vector ops insted of cf
+		return c0 + (position - c0.Position)
+	end
+	if y0 == Vector3.yAxis and y1 == Vector3.yAxis then
+		return YawCFrame(x0, x1, position, t) -- For when only the yaw changes
+	end
+	const rotated = c0:Lerp(c1, t)
+	return rotated + (position - rotated.Position)
 end
 
 const function CalculateVelocity(lP: Vector3, lT: number, cP: Vector3, cT: number, tickrate: number?): Vector3
