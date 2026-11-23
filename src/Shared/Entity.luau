@@ -345,6 +345,7 @@ const function SetModel(
 	const replicationMode: "NATIVE" | "CUSTOM" = CheckModelReplicationMode(self, modelReplicationMode)
 	self.modelString = modelString
 	self.model = _model
+	self._renderedVersion = nil
 
 	if IS_SERVER or not self.broadPhase then
 		self.broadPhase = broadPhase

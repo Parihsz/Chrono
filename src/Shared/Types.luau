@@ -62,6 +62,7 @@ export type Snapshot<Value, Velocity> = {
 	lockedTime: number,
 	peakSpeed: number,
 	stoppedAt: number?, -- time of the newest snapshot if it is where the entity stopped
+	version: number, -- bumped on every change to the stored snapshots
 	Lerp: (from: Value, to: Value, v0: Velocity, v1: Velocity, t: number, dt: number) -> Value,
 
 	Push: (self: Snapshot<Value, Velocity>, t: number, value: Value, velocity: Velocity) -> (),
@@ -288,6 +289,7 @@ export type Entity = {
 	_clientClock: ClientClock?, -- own clock for player owned or custom buffered entities
 	_ownerChangedAt: number?, -- time when owner changed
 	_ownerSmoothing: { offset: Vector3, rotation: CFrame, start: number }?,
+	_renderedVersion: number?, -- (Client) snapshot version whose final CFrame has been drawn
 	_outofBroadPhaseTick: number?,
 
 	-- Humanoid state replication

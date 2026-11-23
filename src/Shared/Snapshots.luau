@@ -69,6 +69,7 @@ end
 
 const function Push<Value, Velocity>(self: Snapshot<Value, Velocity>, timeStamp: number, value: Value, velocity: Velocity)
 	const newData = { t = timeStamp, value = value, velocity = velocity }
+	self.version += 1
 
 	if self.count == 0 then
 		self.cache[self.head] = newData
@@ -226,6 +227,7 @@ const function Clear<Value, Velocity>(self: Snapshot<Value, Velocity>)
 	self.lockedTime = 0
 	self.peakSpeed = 0
 	self.stoppedAt = nil
+	self.version += 1
 end
 
 const function New<Value, Velocity>(lerpFunction: (Value, Value, Velocity, Velocity, number, number) -> Value): Snapshot<Value, Velocity>
@@ -240,6 +242,7 @@ const function New<Value, Velocity>(lerpFunction: (Value, Value, Velocity, Veloc
 		count = 0,
 		lockedTime = 0,
 		peakSpeed = 0,
+		version = 0,
 		Lerp = lerpFunction,
 
 		Push = Push,

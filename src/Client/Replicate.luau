@@ -69,6 +69,28 @@ const function CanInterpolate(entity: Types.Entity, primaryPart: BasePart): bool
 	return true
 end
 
+const function NeedsInterpolation(entity: Types.Entity): boolean
+	const renderedVersion = entity._renderedVersion
+	if renderedVersion == nil then
+		return true
+	end
+	const snapshot = entity.snapshot
+	if snapshot and snapshot.version == renderedVersion and not entity._ownerChangedAt then
+		return false
+	end
+	entity._renderedVersion = nil
+	return true
+end
+
+const function MarkRendered(entity: Types.Entity, snapshot: Types.Snapshot<CFrame, Vector3>, targetTime: number)
+	const latest = snapshot:GetLatest()
+	if latest and targetTime >= latest.t and not entity._ownerSmoothing then
+		entity._renderedVersion = snapshot.version
+	else
+		entity._renderedVersion = nil
+	end
+end
+
 const function SmoothOwnerChange(entity: Types.Entity, primaryPart: BasePart, targetCFrame: CFrame): CFrame
 	const changedAt = entity._ownerChangedAt
 	if changedAt then
@@ -115,6 +137,7 @@ const function Interpolate(entity: Types.Entity, mode: Types.INTERPOLATION_MODE)
 			-- Using cframe here instead of bulkmoveto as there were some issues relating to moving the character via bmt.
 			-- SEE in ROSS https://discord.com/channels/385151591524597761/1406041519747764374/1408085390618919104
 			primaryPart.CFrame = targetCFrame
+			MarkRendered(entity, snapshot, targetTime)
 		end
 	end
 	MovedThisFrame += 1
@@ -157,7 +180,9 @@ Config._WaitForLock(function()
 				end
 				table.insert(steppedEntities, entity)
 			elseif mode then
-				Interpolate(entity, mode)
+				if NeedsInterpolation(entity) then
+					Interpolate(entity, mode)
+				end
 			elseif entity._alignDriver then
 				AlignDriver.Clear(entity)
 			end
