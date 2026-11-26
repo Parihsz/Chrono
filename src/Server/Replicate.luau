@@ -207,6 +207,7 @@ const function CheckEntityChanges()
 		Holder._entityChangedFields[entity] = nil
 		entity._changes = newChanges
 		table.insert(Changes, entity)
+		Sender.MarkActive(entity)
 	end
 end
 
@@ -223,6 +224,9 @@ const function UpdateTickers()
 			const isHalfTick = ticker.isHalf
 			for _, object in ticker.objects do
 				CheckEntity(object, ticker, useFull, isHalfTick)
+				if object.isContextOwner and (object.cframeBuffer or object._halfBuffer) then
+					Sender.MarkActive(object)
+				end
 			end
 		end
 		debug.profileend()
@@ -289,6 +293,7 @@ const function Update()
 	for _, player in Players:GetPlayers() do
 		Sender.ReplicatePlayer(player)
 	end
+	Sender.EndFrame()
 	for _, entity in Changes do
 		entity._changes = nil
 	end

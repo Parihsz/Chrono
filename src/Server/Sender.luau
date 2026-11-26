@@ -181,6 +181,21 @@ const function GetEntityFullData(player: Player, entity: Types.Entity): Types.En
 	}
 end
 
+local active: { [Types.Entity]: true } = {}
+
+const function MarkActive(entity: Types.Entity)
+	active[entity] = true
+end
+
+local activeCountFrames = 0
+const function EndFrame()
+	table.clear(active)
+	activeCountFrames += 1
+	if activeCountFrames % 1000 == 0 then
+		active = {}
+	end
+end
+
 local playerReplicateTotal = 0
 local playerReplicateCount = 0
 const function ReplicatePlayer(player: Player)
@@ -188,10 +203,17 @@ const function ReplicatePlayer(player: Player)
 	if not holder then
 		return
 	end
+	const listVersion = EntityGrid.GetListVersion()
+	const fullPass = holder._syncedVersion ~= listVersion
+	if not fullPass and next(active) == nil then
+		playerReplicateCount += 1
+		return
+	end
 	debug.profilebegin("ReplicatePlayer")
 	const replicatedOLD = holder.REPLICATED -- Leftovers will be removed
-	const replicated = table.clone(replicatedOLD)
+	const replicated = if fullPass then table.clone(replicatedOLD) else replicatedOLD
 	holder.REPLICATED = replicated
+	const lists: { [Types.Entity]: boolean } = if fullPass then {} else holder._lists :: any
 
 	const holderEntityAdded = holder.EntityAdded
 	const holderEntityRemoving = holder.EntityRemoving
@@ -261,16 +283,19 @@ const function ReplicatePlayer(player: Player)
 		if entity.destroyed then
 			return
 		end
-		replicated[entity] = true
-		if not replicatedOLD[entity] then
-			holderEntityAdded:Fire(entity)
-			table.insert(toSendFull, GetEntityFullData(player, entity))
-			return
+		if fullPass then
+			lists[entity] = isNormal
+			replicated[entity] = true
+			if not replicatedOLD[entity] then
+				holderEntityAdded:Fire(entity)
+				table.insert(toSendFull, GetEntityFullData(player, entity))
+				return
+			end
+			replicatedOLD[entity] = nil
 		end
 		if entity._changes then
 			table.insert(entityChanges, entity._changes)
 		end
-		replicatedOLD[entity] = nil
 		if entity.paused then
 			return
 		end
@@ -304,17 +329,28 @@ const function ReplicatePlayer(player: Player)
 		end
 	end
 	const startTime = os.clock()
-	for _, entity in normal do
-		Handle(entity, true)
-	end
-	for _, entity in half do
-		Handle(entity, false)
-	end
+	if fullPass then
+		for _, entity in normal do
+			Handle(entity, true)
+		end
+		for _, entity in half do
+			Handle(entity, false)
+		end
 
-	for entity, _ in replicatedOLD do
-		replicated[entity] = nil
-		holderEntityRemoving:Fire(entity)
-		table.insert(toRemove, entity._lastId or entity.id)
+		for entity, _ in replicatedOLD do
+			replicated[entity] = nil
+			holderEntityRemoving:Fire(entity)
+			table.insert(toRemove, entity._lastId or entity.id)
+		end
+		holder._lists = lists
+		holder._syncedVersion = listVersion
+	else
+		for entity in active do
+			const isNormal = lists[entity]
+			if isNormal ~= nil then
+				Handle(entity, isNormal)
+			end
+		end
 	end
 
 	FlushClientOwned(player, clientOwned)
@@ -353,4 +389,6 @@ end
 
 return {
 	ReplicatePlayer = ReplicatePlayer,
+	MarkActive = MarkActive,
+	EndFrame = EndFrame,
 }

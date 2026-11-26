@@ -89,6 +89,8 @@ export type PlayerEntityHolder = {
 	REPLICATED: { [Entity]: true },
 	EntityAdded: Signal<(Entity) -> (), Entity>,
 	EntityRemoving: Signal<(Entity) -> (), Entity>,
+	_syncedVersion: number?,
+	_lists: { [Entity]: boolean }?,
 }
 
 export type MODEL_REPLICATION_MODE = "NATIVE" | "NATIVE_WITH_LOCK" | "CUSTOM"

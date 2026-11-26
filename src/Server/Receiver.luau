@@ -16,6 +16,7 @@ const Ticker = require(Shared.Ticker)
 const InterpolationMath = require(Shared.InterpolationMath)
 const Warn = require(Shared.Warn)
 const ServerClock = require(script.Parent.ServerClock)
+const Sender = require(script.Parent.Sender)
 const Holder = require(Shared.Holder)
 const Entity = require(Shared.Entity)
 const Config = require(Shared.Config)
@@ -192,6 +193,7 @@ const function HandleEntity(
 			buffer.writeu8(copyB, 2, bit32.bor(buffer.readu8(copyB, 2), teleportFlag))
 		end
 		entity.arriveFrame = frame
+		Sender.MarkActive(entity)
 
 		entity.lastClientClock = clientClock
 		entity.cframeBuffer = copyB

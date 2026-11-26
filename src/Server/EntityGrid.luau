@@ -25,6 +25,7 @@ local UPDATE_INTERVAL = 0.1
 local MAX_TIME_PER_UPDATE = 0.0005
 
 local lastUpdate = 0
+local listVersion = 0 -- bumped whenever a player's NORMAL/HALF lists change or an entity is removed
 
 Config._WaitForLock(function()
 	UPDATE_INTERVAL = Config._GetConfig("GRID_UPDATE_INTERVAL") or UPDATE_INTERVAL
@@ -120,6 +121,18 @@ const function Check(entity: Entity)
 	end
 end
 
+const function SameList(a: { Entity }, b: { Entity }): boolean
+	if #a ~= #b then
+		return false
+	end
+	for i, entity in a do
+		if b[i] ~= entity then
+			return false
+		end
+	end
+	return true
+end
+
 local yielded: thread? = nil
 local totalTime = 0
 const function DoLoop()
@@ -162,6 +175,9 @@ const function DoLoop()
 	Stats.SERVER.NON_TICKED = UN_TICKED
 
 	for _, holder in playerToHolder do
+		if SameList(holder.NORMAL, holder._TEMP_NORMAL) and SameList(holder.HALF, holder._TEMP_HALF) then
+			continue
+		end
 		table.clear(holder.HALF)
 		table.clear(holder.NORMAL)
 		for _, entity in holder._TEMP_NORMAL do
@@ -170,6 +186,7 @@ const function DoLoop()
 		for _, entity in holder._TEMP_HALF do
 			table.insert(holder.HALF, entity)
 		end
+		listVersion += 1
 	end
 
 	if Stats.SERVER._SHOULD_REPLICATE then
@@ -209,6 +226,10 @@ const function UpdatePlayerPosition(player: Player, position: vector)
 	playerTablePositionPair[holder] = position
 end
 
+const function GetListVersion(): number
+	return listVersion
+end
+
 const function GetEntityHolder(Player: Player): PlayerEntityHolder?
 	return playerToHolder[Player]
 end
@@ -240,6 +261,10 @@ end
 if RunService:IsServer() then
 	Shared.Remotes.ClientLoaded.OnServerEvent:Connect(PlayerAdded)
 
+	Events.EntityRemoved:Connect(function()
+		listVersion += 1
+	end)
+
 	Players.PlayerRemoving:Connect(function(player: Player)
 		const holder = playerToHolder[player]
 		if not holder then
@@ -256,5 +281,6 @@ return {
 	Update = Update,
 	UpdatePlayerPosition = UpdatePlayerPosition,
 	GetEntityHolder = GetEntityHolder,
+	GetListVersion = GetListVersion,
 	IsReplicated = IsReplicated,
 }
