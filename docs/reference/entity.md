@@ -119,9 +119,9 @@ Switches the entity to another entity type. An unknown name falls back to `DEFAU
 
 The name of the entity's type, such as `"PLAYER"`, which you can pass back to `SetConfig`. An entity created with an unknown name returns `"DEFAULT"`. For the type's settings, use `entity.entityConfig`, or pass the name to `Config.GetEntityType`, which returns the settings table rather than a name.
 
-#### `SetInterpolationMode(entity, mode: "CFRAME" | "ALIGN" | "NONE" | nil) -> ()`
+#### `SetInterpolationMode(entity, mode: "CFRAME" | "BULK" | "ALIGN" | "NONE" | nil) -> ()`
 
-Overrides `INTERPOLATION_MODE` for this entity. Pass nil to use the type's mode. Server calls replicate to clients.
+Overrides `INTERPOLATION_MODE` for this entity. Pass nil to use the type's mode. Server calls replicate to clients. A [function mode](../getting-started/configurations.md#interpolation-mode-function) can only be set in the entity type.
 
 - `CFRAME`: sets the primary part's CFrame directly.
 - `ALIGN`: uses `AlignPosition` and `AlignOrientation` for local physics. See [Ragdolls](../guides/ragdolls.md).

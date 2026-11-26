@@ -95,7 +95,9 @@ export type PlayerEntityHolder = {
 
 export type MODEL_REPLICATION_MODE = "NATIVE" | "NATIVE_WITH_LOCK" | "CUSTOM"
 
-export type INTERPOLATION_MODE = "CFRAME" | "ALIGN" | "NONE"
+export type INTERPOLATION_MODE = "CFRAME" | "ALIGN" | "BULK" | "NONE"
+
+export type InterpolationModeFunction = (entity: Entity, part: BasePart, cframe: CFrame, renderTime: number) -> boolean?
 
 export type InterpolationFunction = (
 	from: CFrame,
@@ -136,7 +138,7 @@ export type EntityConfig = {
 	HALF_TICK_MARGIN: number?, -- defaults to 0
 	CUSTOM_INTERPOLATION: boolean?,
 	ASSEMBLY_ROOT_PART_CHECK: boolean?,
-	INTERPOLATION_MODE: INTERPOLATION_MODE?, -- defaults to DEFAULT_INTERPOLATION_MODE
+	INTERPOLATION_MODE: (INTERPOLATION_MODE | InterpolationModeFunction)?, -- defaults to DEFAULT_INTERPOLATION_MODE
 	INTERPOLATION_FUNCTION: InterpolationFunction?, -- nil uses Hermite position + CFrame:Lerp rotation
 	UpdateBuffer: (self: EntityConfig, buffer: number) -> ()?,
 }
@@ -154,7 +156,7 @@ export type EntityConfigInput = {
 	HALF_TICK_DISTANCE: number?,
 	HALF_TICK_MARGIN: number?, -- Studs past HALF_TICK_DISTANCE an entity a player already has stays replicated
 	CUSTOM_INTERPOLATION: boolean?,
-	INTERPOLATION_MODE: INTERPOLATION_MODE?, -- "CFRAME" sets CFrame directly, "ALIGN" drives AlignPosition/AlignOrientation
+	INTERPOLATION_MODE: (INTERPOLATION_MODE | InterpolationModeFunction)?, -- "CFRAME" sets CFrame directly, "BULK" batches it with BulkMoveTo, "ALIGN" drives AlignPosition/AlignOrientation, or a function
 	INTERPOLATION_FUNCTION: InterpolationFunction?, -- Interpolates between two snapshots.
 	-- Might consider giving a config level replication rules instead of just entity
 }

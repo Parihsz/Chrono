@@ -32,9 +32,14 @@ local MovedThisFrame = 0
 
 local LastClockUpdate = os.clock()
 
-const function GetMode(entity: Types.Entity): Types.INTERPOLATION_MODE?
+type Mode = Types.INTERPOLATION_MODE | Types.InterpolationModeFunction
+
+local bulkParts: { BasePart } = {}
+local bulkCFrames: { CFrame } = {}
+
+const function GetMode(entity: Types.Entity): Mode?
 	const config = entity.entityConfig
-	const mode: Types.INTERPOLATION_MODE? = entity._interpolationMode or config.INTERPOLATION_MODE
+	const mode: Mode? = entity._interpolationMode or config.INTERPOLATION_MODE
 
 	if not mode or not entity.interpolation or config.CUSTOM_INTERPOLATION or mode == "NONE" then
 		return nil
@@ -107,7 +112,7 @@ const function SmoothOwnerChange(entity: Types.Entity, primaryPart: BasePart, ta
 	return Entity._ApplyOwnerSmoothing(entity, targetCFrame)
 end
 
-const function Interpolate(entity: Types.Entity, mode: Types.INTERPOLATION_MODE)
+const function Interpolate(entity: Types.Entity, mode: Mode)
 	const primaryPart = Entity.GetPrimaryPart(entity)
 	if not primaryPart or not CanInterpolate(entity, primaryPart) then
 		return
@@ -139,11 +144,22 @@ const function Interpolate(entity: Types.Entity, mode: Types.INTERPOLATION_MODE)
 				AlignDriver.Clear(entity)
 			end
 
-			-- Using cframe here instead of bulkmoveto as there were some issues relating to moving the character via bmt.
-			-- SEE in ROSS https://discord.com/channels/385151591524597761/1406041519747764374/1408085390618919104
-			primaryPart.CFrame = targetCFrame
-			MarkRendered(entity, snapshot, targetTime)
-			--TODO WE COULD MAYBE ADD CUSTOM
+			if type(mode) == "function" then
+				if mode(entity, primaryPart, targetCFrame, targetTime) then
+					MarkRendered(entity, snapshot, targetTime)
+				else
+					entity._renderedVersion = nil
+				end
+			elseif mode == "BULK" then
+				table.insert(bulkParts, primaryPart)
+				table.insert(bulkCFrames, targetCFrame)
+				MarkRendered(entity, snapshot, targetTime)
+			else
+				-- Characters always use CFrame: there were issues moving the character via BulkMoveTo.
+				-- SEE in ROSS https://discord.com/channels/385151591524597761/1406041519747764374/1408085390618919104
+				primaryPart.CFrame = targetCFrame
+				MarkRendered(entity, snapshot, targetTime)
+			end
 		end
 	end
 	MovedThisFrame += 1
@@ -155,6 +171,8 @@ Config._WaitForLock(function()
 	RunService.Heartbeat:Connect(function(deltaTime: number)
 		if AmtInterpolations > 59 then
 			steppedEntities = {}
+			bulkParts = {}
+			bulkCFrames = {}
 		end
 		table.clear(steppedEntities)
 		Frustum.Update()
@@ -179,7 +197,7 @@ Config._WaitForLock(function()
 				continue
 			end
 			total += 1
-			const mode: Types.INTERPOLATION_MODE? = GetMode(entity)
+			const mode = GetMode(entity)
 			if mode == "ALIGN" then
 				if not entity._alignDriver then
 					Interpolate(entity, mode)
@@ -192,6 +210,11 @@ Config._WaitForLock(function()
 			elseif entity._alignDriver then
 				AlignDriver.Clear(entity)
 			end
+		end
+		if #bulkParts > 0 then
+			workspace:BulkMoveTo(bulkParts, bulkCFrames, Enum.BulkMoveMode.FireCFrameChanged)
+			table.clear(bulkParts)
+			table.clear(bulkCFrames)
 		end
 		debug.profileend()
 		const endTime = os.clock()

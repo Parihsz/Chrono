@@ -179,7 +179,7 @@ Register your own with `Config.RegisterEntityType(name, settings)` before starti
 | `BUFFER` | automatic | Interpolation delay in seconds. `0` or omitted uses an automatic buffer. See [Buffering](#buffering). |
 | `FULL_ROTATION` | `false` | Send full 3D rotation instead of only yaw. |
 | `MODEL_REPLICATION_MODE` | `DEFAULT_MODEL_REPLICATION_MODE` | `NATIVE`, `NATIVE_WITH_LOCK` or `CUSTOM`. |
-| `INTERPOLATION_MODE` | `DEFAULT_INTERPOLATION_MODE` | `CFRAME`, `ALIGN` or `NONE`. |
+| `INTERPOLATION_MODE` | `DEFAULT_INTERPOLATION_MODE` | `CFRAME`, `BULK`, `ALIGN`, `NONE` or a function. See [Interpolation mode](#interpolation-mode). |
 | `INTERPOLATION_FUNCTION` | Hermite | Function that blends two snapshots. See [Interpolation function](#interpolation-function). |
 | `NORMAL_TICK_DISTANCE` | `DEFAULT_NORMAL_TICK_DISTANCE` | Full-rate distance. |
 | `HALF_TICK_DISTANCE` | `DEFAULT_HALF_TICK_DISTANCE` | Half-rate distance. |
@@ -281,9 +281,11 @@ The per-frame upload cap is `MAX_TOTAL_BYTES_PER_FRAME_PER_PLAYER + owned entiti
 
 `DEFAULT_INTERPOLATION_MODE` controls how clients move entities they don't own. The default is `"CFRAME"`.
 
-- `CFRAME`: sets the primary part's CFrame directly. 
+- `CFRAME`: sets the primary part's CFrame directly.
+- `BULK`: moves every `BULK` entity with one `workspace:BulkMoveTo` call per frame. Faster than `CFRAME` with many moving entities. Player characters still use `CFRAME`.
 - `ALIGN`: uses `AlignPosition` and `AlignOrientation` to move with physics. Useful for ragdolls.
 - `NONE`: leaves movement to your code. Snapshots still arrive for `Entity.GetAt`.
+- A function: applies the CFrame your own way. See [Interpolation mode function](#interpolation-mode-function).
 
 !!! warning
     `ALIGN` is experimental. Use it while ragdolling, then switch back to `CFRAME`. See [Ragdolls](../guides/ragdolls.md). `ALIGN` also uses resources as the client will be simulating the physics for that model (even if they don't have ownership).
@@ -293,6 +295,30 @@ The per-frame upload cap is `MAX_TOTAL_BYTES_PER_FRAME_PER_PLAYER + owned entiti
 Use `Entity.SetInterpolationMode(entity, "NONE")` to disable interpolation at runtime. Calling it on the server replicates the change to every client.
 
 `CUSTOM_INTERPOLATION = true` turns interpolation off for every entity of a type, and can't be changed at runtime.
+
+### Interpolation mode function
+
+An entity type's `INTERPOLATION_MODE` can be a function. Chrono still works out where the entity should be (snapshots, culling, ownership smoothing) and calls the function every frame with that CFrame, on clients that don't own the entity. The function decides how to apply it.
+
+```lua
+chrono.Config.RegisterEntityType("Boat", {
+	TICK_RATE = 1 / 20,
+	INTERPOLATION_MODE = function(entity, part: BasePart, cframe: CFrame, renderTime: number): boolean?
+		part.CFrame = cframe
+		return true
+	end,
+})
+```
+
+Return `true` once the part is at `cframe`. When the entity stops moving, Chrono then stops calling the function until a new snapshot arrives. Return nothing (or `false`) to keep being called every frame, for example while easing towards the target:
+
+```lua
+INTERPOLATION_MODE = function(entity, part, cframe)
+	part.CFrame = part.CFrame:Lerp(cframe, 0.3)
+	return (part.Position - cframe.Position).Magnitude < 0.01
+end,
+```
+
 
 ### Interpolation function
 

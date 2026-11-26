@@ -34,9 +34,10 @@ const function UpdateEntityStats()
 			tickRate = 0
 		end
 		const lastTicked = entity.latestTime
-		const interpolationMode: Types.INTERPOLATION_MODE = entity._interpolationMode
-			or entity.entityConfig.INTERPOLATION_MODE
-			or "CFRAME"
+		local interpolationMode: any = entity._interpolationMode or entity.entityConfig.INTERPOLATION_MODE or "CFRAME"
+		if type(interpolationMode) == "function" then
+			interpolationMode = "FUNCTION" 
+		end
 		const data: Types.ServerEntitiesStats = {
 			isPaused = entity.paused,
 			id = entity.id,

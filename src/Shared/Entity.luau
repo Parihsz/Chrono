@@ -23,7 +23,7 @@ const LOCAL_PLAYER = if IS_SERVER then nil else Players.LocalPlayer
 const CHRONO_PRIMARY = "__CHRONO_PRIMARY"
 const DELOAD_PARENT = "__CHRONO_DELOAD_PARENT"
 const OWNER_SMOOTH_TIME = 0.3
-const INTERPOLATION_MODES = { CFRAME = true, ALIGN = true, NONE = true }
+const INTERPOLATION_MODES = { CFRAME = true, ALIGN = true, BULK = true, NONE = true }
 
 const function GetInterpolationFunction(config: Types.EntityConfig): Types.InterpolationFunction
 	return config.INTERPOLATION_FUNCTION or InterpolationMath.HermiteCFrame
@@ -976,11 +976,14 @@ end
 --[=[
 	Switches how the client applies interpolated transforms to this entity.
 
-	@param mode "CFRAME", "ALIGN" or "NONE".
+	@param mode "CFRAME", "ALIGN", "BULK" or "NONE". Function modes can only be set in the entity type.
 ]=]
 function Entity.SetInterpolationMode(self: Entity, mode: Types.INTERPOLATION_MODE)
 	if mode and not INTERPOLATION_MODES[mode] then
-		error(`Chrono: Entity.SetInterpolationMode expected "CFRAME", "ALIGN" or "NONE", got {mode}`, 2)
+		error(
+			`Chrono: Entity.SetInterpolationMode expected "CFRAME", "ALIGN", "BULK" or "NONE", got {tostring(mode)}`,
+			2
+		)
 	end
 	RegisterChange(self, "_interpolationMode", mode)
 

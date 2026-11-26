@@ -134,7 +134,7 @@ const ENTITY_MODELS = {}
 const MODEL_BROAD_PHASES = {}
 
 const MODEL_MODES = { "NATIVE", "NATIVE_WITH_LOCK", "CUSTOM" }
-const INTERPOLATION_MODES = { "CFRAME", "ALIGN", "NONE" }
+const INTERPOLATION_MODES = { "CFRAME", "ALIGN", "BULK", "NONE" }
 const PLAYER_FILTERS = { "NONE", "PLAYER_ENTITIES", "PLAYER_CHARACTERS" }
 const CONFIG_OPTIONS = {
 	DEFAULT_MODEL_REPLICATION_MODE = MODEL_MODES,
@@ -184,7 +184,7 @@ const function CheckEntityType(name: string, config: Types.EntityConfigInput)
 	if config.MODEL_REPLICATION_MODE ~= nil then
 		CheckOption(`entity type "{name}" MODEL_REPLICATION_MODE`, config.MODEL_REPLICATION_MODE, MODEL_MODES)
 	end
-	if config.INTERPOLATION_MODE ~= nil then
+	if config.INTERPOLATION_MODE ~= nil and type(config.INTERPOLATION_MODE) ~= "function" then
 		CheckOption(`entity type "{name}" INTERPOLATION_MODE`, config.INTERPOLATION_MODE, INTERPOLATION_MODES)
 	end
 	assert(
