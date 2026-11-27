@@ -322,7 +322,7 @@ end,
 If the function errors, Chrono warns and keeps calling it every frame, while other entities keep moving.
 
 !!! warning
-    Don't yield in the function. If you want to delay, create a new coroutine using `task.spawn` or `coroutine.wrap`The function runs every frame, so yielding will stall other entities.
+    Don't yield in the function. If you want to delay, create a new coroutine using `task.spawn` or `coroutine.wrap` The function runs every frame, so yielding will stall other entities.
 
 
 ### Interpolation function

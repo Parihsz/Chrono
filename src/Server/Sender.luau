@@ -206,7 +206,6 @@ const function ReplicatePlayer(player: Player)
 	const listVersion = EntityGrid.GetListVersion()
 	const fullPass = holder._syncedVersion ~= listVersion
 	if not fullPass and next(active) == nil then
-		playerReplicateCount += 1
 		return
 	end
 	debug.profilebegin("ReplicatePlayer")
