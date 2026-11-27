@@ -987,7 +987,7 @@ function Entity.SetInterpolationMode(self: Entity, mode: Types.INTERPOLATION_MOD
 		)
 	end
 	RegisterChange(self, "_interpolationMode", mode)
-	self._renderedVersion = nil 
+	self._renderedVersion = nil
 
 	if mode == "ALIGN" then
 		HumanoidState.Refresh(self, true)
