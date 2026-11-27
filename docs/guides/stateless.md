@@ -89,7 +89,35 @@ See [Ticker](../reference/ticker.md) for more details.
 
 ## Custom interpolation
 
-To apply CFrames yourself, such as in an ECS, disable Chrono's interpolation:
+To apply CFrames yourself, such as in an ECS, you have two options:
+
+- **A function mode:** Chrono still works out the CFrame and hands it to your function. Needs a model on the client.
+- **`NONE`:** Chrono stops moving the entity and you read the CFrame yourself. Works without a model.
+
+### Function mode
+
+Set the entity type's `INTERPOLATION_MODE` to a function. Chrono calls it every frame on clients that don't own the entity, with the CFrame it would have applied. Culling and ownership smoothing applies. See [Interpolation mode function](../getting-started/configurations.md#interpolation-mode-function).
+
+This example moves the part and writes the CFrame into jecs. `linked` maps Chrono entities to jecs entities, as in [Linking entities](ecs.md#linking-entities):
+
+```lua
+Config.RegisterEntityType("ROCKET", { -- Entity.new("ROCKET", "Rocket", "CUSTOM", startCFrame)
+	INTERPOLATION_MODE = function(entity, part: BasePart, cframe: CFrame): boolean?
+		part.CFrame = cframe
+		local e = linked[entity]
+		if e then
+			world:set(e, TRANSFORM_COMPONENT, cframe)
+		end
+		return true -- the part is at cframe, so Chrono can skip the entity until it moves again
+	end,
+})
+```
+
+Return `true` once the part is at `cframe`, so Chrono stops calling the function while the entity is idle. 
+
+### `NONE`
+
+Disable Chrono's interpolation:
 
 - **Entity, at runtime:** `Entity.SetInterpolationMode(entity, "NONE")`. Called on the server, it replicates to clients.
 - **A whole entity type:** `INTERPOLATION_MODE = "NONE"`, or `CUSTOM_INTERPOLATION = true`, which can't be changed at runtime.

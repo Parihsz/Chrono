@@ -90,6 +90,8 @@ end)
 
 To get the interpolated CFrame without a model, use `Entity.GetAt(entity, Entity.GetTargetRenderTime(entity))`.
 
+To write the CFrame into your ECS as Chrono moves the model, set the entity type's `INTERPOLATION_MODE` to a function. Culling and ownership smoothing still apply. See [Function mode](stateless.md#function-mode).
+
 You can also do it the other way around: set `INTERPOLATION_MODE = "NONE"`, write `Entity.GetAt` into your ECS, and let your own systems move the models. See [Custom interpolation](stateless.md#custom-interpolation).
 
 ## Writing positions

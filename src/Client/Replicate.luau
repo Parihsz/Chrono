@@ -155,7 +155,7 @@ const function Interpolate(entity: Types.Entity, mode: Mode)
 				table.insert(bulkCFrames, targetCFrame)
 				MarkRendered(entity, snapshot, targetTime)
 			else
-				-- Characters always use CFrame: there were issues moving the character via BulkMoveTo.
+				-- Noted here that we encountered weird behavior with bulkmoveto on R6 rigs that had head as primary part
 				-- SEE in ROSS https://discord.com/channels/385151591524597761/1406041519747764374/1408085390618919104
 				primaryPart.CFrame = targetCFrame
 				MarkRendered(entity, snapshot, targetTime)
