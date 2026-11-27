@@ -304,7 +304,7 @@ An entity type's `INTERPOLATION_MODE` can be a function. Chrono still works out 
 chrono.Config.RegisterEntityType("Boat", {
 	TICK_RATE = 1 / 20,
 	INTERPOLATION_MODE = function(entity, part: BasePart, cframe: CFrame, renderTime: number): boolean?
-		part.CFrame = cframe
+		part.CFrame = cframe -- this is chrono's default behavior
 		return true
 	end,
 })
@@ -318,6 +318,11 @@ INTERPOLATION_MODE = function(entity, part, cframe)
 	return (part.Position - cframe.Position).Magnitude < 0.01
 end,
 ```
+
+If the function errors, Chrono warns and keeps calling it every frame, while other entities keep moving.
+
+!!! warning
+    Don't yield in the function. If you want to delay, create a new coroutine using `task.spawn` or `coroutine.wrap`The function runs every frame, so yielding will stall other entities.
 
 
 ### Interpolation function

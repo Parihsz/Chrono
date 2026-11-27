@@ -145,7 +145,11 @@ const function Interpolate(entity: Types.Entity, mode: Mode)
 			end
 
 			if type(mode) == "function" then
-				if mode(entity, primaryPart, targetCFrame, targetTime) then
+				const ok, rendered = pcall(mode, entity, primaryPart, targetCFrame, targetTime)
+				if not ok then
+					warn(`Chrono: INTERPOLATION_MODE function errored for entity {entity.id}: {rendered}`)
+				end
+				if ok and rendered then
 					MarkRendered(entity, snapshot, targetTime)
 				else
 					entity._renderedVersion = nil

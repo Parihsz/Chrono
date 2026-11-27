@@ -910,6 +910,7 @@ function Entity.SetConfig(self: Entity, entityConfig: string)
 		config = Config._GetEntityType("DEFAULT")
 	end
 	RegisterChange(self, "entityConfig", config, false, config.NAME)
+	self._renderedVersion = nil
 	HumanoidState.Refresh(self)
 	if self.snapshot then
 		self.snapshot.Lerp = GetInterpolationFunction(config)
@@ -986,6 +987,7 @@ function Entity.SetInterpolationMode(self: Entity, mode: Types.INTERPOLATION_MOD
 		)
 	end
 	RegisterChange(self, "_interpolationMode", mode)
+	self._renderedVersion = nil 
 
 	if mode == "ALIGN" then
 		HumanoidState.Refresh(self, true)
