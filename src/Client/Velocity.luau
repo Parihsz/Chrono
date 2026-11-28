@@ -1,7 +1,7 @@
 const Types = require(script.Parent.Parent.Shared.Types)
 
 const MAX_GAP = 0.5 -- seconds between frames before the estimate restarts
-const MAX_SPEED = 1000 
+const MAX_SPEED = 1000
 
 const ZERO = Vector3.zero
 

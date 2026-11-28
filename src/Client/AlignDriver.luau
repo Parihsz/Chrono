@@ -118,7 +118,6 @@ const function Destroy(driver: AlignDriver)
 	driver.part.AssemblyAngularVelocity = Vector3.zero
 end
 
-
 const function UpdateVelocity(
 	entity: Types.Entity,
 	driver: AlignDriver,

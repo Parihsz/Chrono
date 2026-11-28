@@ -175,7 +175,7 @@ export type EntityConfigInput = {
 	CUSTOM_INTERPOLATION: boolean?,
 	INTERPOLATION_MODE: (INTERPOLATION_MODE | InterpolationModeFunction)?, -- "CFRAME" sets CFrame directly, "BULK" batches it with BulkMoveTo, "ALIGN" drives AlignPosition/AlignOrientation, or a function
 	INTERPOLATION_FUNCTION: InterpolationFunction?, -- Interpolates between two snapshots.
-	ESTIMATE_VELOCITY: ESTIMATE_VELOCITY?, 
+	ESTIMATE_VELOCITY: ESTIMATE_VELOCITY?,
 	-- Might consider giving a config level replication rules instead of just entity
 }
 
