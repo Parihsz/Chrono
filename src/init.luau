@@ -14,6 +14,7 @@ const ReplicationRules = require(script.Shared.ReplicationRules)
 const Snapshots = require(script.Shared.Snapshots)
 const Types = require(script.Shared.Types)
 const EntityGrid = require(script.Server.EntityGrid)
+const ClientSender = if IS_SERVER then nil else require(script.Client.Sender)
 
 export type SnapshotData<Value, Velocity> = Types.SnapshotData<Value, Velocity>
 export type Signal<fx, T...> = Types.Signal<fx, T...>
@@ -89,6 +90,13 @@ return {
 		Config._WaitForLock(function()
 			task.spawn(callback)
 		end)
+	end,
+
+	GetClientClock = function(): number
+		if not ClientSender then
+			error("Chrono.GetClientClock can only be called on the client", 2)
+		end
+		return ClientSender.GetClock()
 	end,
 
 	Holder = Holder,

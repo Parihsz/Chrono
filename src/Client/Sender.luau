@@ -226,6 +226,11 @@ const function Update()
 	hasStop = false
 end
 
+const function GetClock(): number
+	return math.floor(clock * ClockUnwrap.SCALE) / ClockUnwrap.SCALE
+end
+
 return {
 	Update = Update,
+	GetClock = GetClock,
 }

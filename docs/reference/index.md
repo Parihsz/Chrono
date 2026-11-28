@@ -13,6 +13,7 @@ local Entity = chrono.Entity
 |---|---|---|---|
 | `Start(config?)` | | Both | [Start Chrono](../getting-started/start-chrono.md) |
 | `Started(callback)` | | Both | [Waiting for startup](../getting-started/start-chrono.md#waiting-for-startup) |
+| `GetClientClock()` | | Client | [Client clock](../guides/lag-compensation.md#client-clock) |
 | `Config` | `Shared.Config` | Both | [Configuration](../getting-started/configurations.md) |
 | `Entity` | `Shared.Entity` | Both | [Entity](entity.md) |
 | `Holder` | `Shared.Holder` | Both | [Holder](holder.md) |

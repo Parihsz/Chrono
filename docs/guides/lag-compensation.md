@@ -124,6 +124,25 @@ Replace the distance check with your game's hitbox test. For melee and projectil
     ```
 
 
+## Client clock
+
+To line up your own remotes with Chrono's packets, send `chrono.GetClientClock()` with them. It returns the time stamped on the packet Chrono sent this frame. 
+
+```lua
+-- Client
+Action:FireServer(myTick, chrono.GetClientClock())
+```
+
+```lua
+-- Server
+Action.OnServerEvent:Connect(function(player: Player, myTick: number, clientClock: number)
+	local character = Holder.GetEntityFromPlayer(player)
+	local serverTime = ServerClock.ConvertTo(player, clientClock, "Server")
+	local wasAt = character and Entity.GetAt(character, serverTime) 
+end)
+```
+
+
 ## Things to note
 
 - Set `STORE_SNAPSHOTS = true` for server-owned entities. Without it, `Entity.GetAt` returns the current CFrame. Client-owned entities always keep history.
