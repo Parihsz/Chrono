@@ -282,7 +282,7 @@ The per-frame upload cap is `MAX_TOTAL_BYTES_PER_FRAME_PER_PLAYER + owned entiti
 `DEFAULT_INTERPOLATION_MODE` controls how clients move entities they don't own. The default is `"CFRAME"`.
 
 - `CFRAME`: sets the primary part's CFrame directly.
-- `BULK`: moves every `BULK` entity with one `workspace:BulkMoveTo` call per frame. Faster than `CFRAME` with many moving entities. Player characters still use `CFRAME`.
+- `BULK`: moves every `BULK` entity with one `workspace:BulkMoveTo` call per frame. Faster than `CFRAME` with many moving entities.
 - `ALIGN`: uses `AlignPosition` and `AlignOrientation` to move with physics. Useful for ragdolls.
 - `NONE`: leaves movement to your code. Snapshots still arrive for `Entity.GetAt`.
 - A function: applies the CFrame your own way. See [Interpolation mode function](#interpolation-mode-function).

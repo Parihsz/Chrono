@@ -6,7 +6,7 @@ Add Chrono to the `[dependencies]` section of your `wally.toml`:
 
 ```toml
 [dependencies]
-chrono = "parihsz/chrono@2.3.0"
+chrono = "parihsz/chrono@2.4.0"
 ```
 
 Then run `wally install`
