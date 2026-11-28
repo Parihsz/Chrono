@@ -6,6 +6,7 @@ const Ticker = require(Shared.Ticker)
 const Warn = require(Shared.Warn)
 const ApplyMounts = require(script.Parent.Parent.Shared.ApplyMounts)
 const AlignDriver = require(script.Parent.AlignDriver)
+const Velocity = require(script.Parent.Velocity)
 const RenderCache = require(script.Parent.ClientClock)
 const ModelResolver = require(script.Parent.ModelResolver)
 const Entity = require(Shared.Entity)
@@ -87,12 +88,29 @@ const function NeedsInterpolation(entity: Types.Entity): boolean
 	return true
 end
 
-const function MarkRendered(entity: Types.Entity, snapshot: Types.Snapshot<CFrame, Vector3>, targetTime: number)
+const function IsSettled(entity: Types.Entity, snapshot: Types.Snapshot<CFrame, Vector3>, targetTime: number): boolean
 	const latest = snapshot:GetLatest()
-	if latest and targetTime >= latest.t and not entity._ownerSmoothing then
-		entity._renderedVersion = snapshot.version
-	else
-		entity._renderedVersion = nil
+	return latest ~= nil and targetTime >= latest.t and not entity._ownerSmoothing
+end
+
+const function MarkRendered(
+	entity: Types.Entity,
+	snapshot: Types.Snapshot<CFrame, Vector3>,
+	targetTime: number
+): boolean
+	const settled = IsSettled(entity, snapshot, targetTime)
+	entity._renderedVersion = if settled then snapshot.version else nil
+	return settled
+end
+
+const function GetVelocityMode(entity: Types.Entity): Types.ESTIMATE_VELOCITY?
+	const mode = entity.entityConfig.ESTIMATE_VELOCITY
+	return if mode == "NONE" then nil else mode
+end
+
+const function ClearVelocity(entity: Types.Entity)
+	if entity._velocity then
+		Velocity.Clear(entity, Entity.GetPrimaryPart(entity))
 	end
 end
 
@@ -112,13 +130,12 @@ const function SmoothOwnerChange(entity: Types.Entity, primaryPart: BasePart, ta
 	return Entity._ApplyOwnerSmoothing(entity, targetCFrame)
 end
 
-const function Interpolate(entity: Types.Entity, mode: Mode)
-	const primaryPart = Entity.GetPrimaryPart(entity)
-	if not primaryPart or not CanInterpolate(entity, primaryPart) then
-		return
-	end
-	const snapshot = entity.snapshot :: Types.Snapshot<CFrame, Vector3>
-	CheckedThisFrame += 1
+const function GetRenderCFrame(
+	entity: Types.Entity,
+	primaryPart: BasePart,
+	snapshot: Types.Snapshot<CFrame, Vector3>,
+	mode: Mode
+): (CFrame?, number)
 	debug.profilebegin("Get Render CFrame")
 	local targetTime = Entity.GetTargetRenderTime(entity)
 	if mode == "ALIGN" then
@@ -126,43 +143,90 @@ const function Interpolate(entity: Types.Entity, mode: Mode)
 	end
 	local targetCFrame = snapshot:GetAt(targetTime)
 	debug.profileend()
+	if targetCFrame and (entity._ownerChangedAt or entity._ownerSmoothing) then
+		targetCFrame = SmoothOwnerChange(entity, primaryPart, targetCFrame)
+	end
+	return targetCFrame, targetTime
+end
+
+const function ApplyFunctionMode(
+	entity: Types.Entity,
+	mode: Types.InterpolationModeFunction,
+	primaryPart: BasePart,
+	snapshot: Types.Snapshot<CFrame, Vector3>,
+	targetCFrame: CFrame,
+	targetTime: number,
+	velocityMode: Types.ESTIMATE_VELOCITY?
+)
+	local linear: Vector3?, angular: Vector3? = nil, nil
+	if velocityMode then
+		linear, angular = Velocity.Estimate(entity, targetCFrame, targetTime, true)
+		if IsSettled(entity, snapshot, targetTime) then
+			linear, angular = Vector3.zero, Vector3.zero
+		end
+	end
+	const ok, rendered = pcall(mode, entity, primaryPart, targetCFrame, targetTime, linear, angular)
+	if not ok then
+		warn(`Chrono: INTERPOLATION_MODE function errored for entity {entity.id}: {rendered}`)
+	end
+	if ok and rendered then
+		MarkRendered(entity, snapshot, targetTime)
+	else
+		entity._renderedVersion = nil
+	end
+end
+
+const function ApplyCFrameMode(
+	entity: Types.Entity,
+	mode: Mode,
+	primaryPart: BasePart,
+	snapshot: Types.Snapshot<CFrame, Vector3>,
+	targetCFrame: CFrame,
+	targetTime: number,
+	velocityMode: Types.ESTIMATE_VELOCITY?
+)
+	if mode == "BULK" then
+		table.insert(bulkParts, primaryPart)
+		table.insert(bulkCFrames, targetCFrame)
+	else
+		-- Noted here that we encountered weird behavior with bulkmoveto on R6 rigs that had head as primary part
+		-- SEE in ROSS https://discord.com/channels/385151591524597761/1406041519747764374/1408085390618919104
+		primaryPart.CFrame = targetCFrame
+	end
+	const settled = MarkRendered(entity, snapshot, targetTime)
+	if velocityMode then
+		Velocity.Step(entity, primaryPart, targetCFrame, targetTime, settled, velocityMode)
+	end
+end
+
+const function Interpolate(entity: Types.Entity, mode: Mode)
+	const primaryPart = Entity.GetPrimaryPart(entity)
+	if not primaryPart or not CanInterpolate(entity, primaryPart) then
+		return
+	end
+	const snapshot = entity.snapshot :: Types.Snapshot<CFrame, Vector3>
+	CheckedThisFrame += 1
+	const targetCFrame, targetTime = GetRenderCFrame(entity, primaryPart, snapshot, mode)
 	if not targetCFrame then
 		return
 	end
-	if entity._ownerChangedAt or entity._ownerSmoothing then
-		targetCFrame = SmoothOwnerChange(entity, primaryPart, targetCFrame)
-	end
 	if entity.broadPhase and Frustum.IsCulled(entity, targetCFrame) then
+		Velocity.Clear(entity, primaryPart)
 		return
 	end
 	debug.profilebegin("Set CFrame")
-	if targetCFrame == targetCFrame then
+	if targetCFrame == targetCFrame then -- skip NaN
+		const velocityMode = GetVelocityMode(entity)
 		if mode == "ALIGN" then
-			AlignDriver.Step(entity, primaryPart, targetCFrame, targetTime)
+			AlignDriver.Step(entity, primaryPart, targetCFrame, targetTime, velocityMode)
 		else
 			if entity._alignDriver then
 				AlignDriver.Clear(entity)
 			end
-
 			if type(mode) == "function" then
-				const ok, rendered = pcall(mode, entity, primaryPart, targetCFrame, targetTime)
-				if not ok then
-					warn(`Chrono: INTERPOLATION_MODE function errored for entity {entity.id}: {rendered}`)
-				end
-				if ok and rendered then
-					MarkRendered(entity, snapshot, targetTime)
-				else
-					entity._renderedVersion = nil
-				end
-			elseif mode == "BULK" then
-				table.insert(bulkParts, primaryPart)
-				table.insert(bulkCFrames, targetCFrame)
-				MarkRendered(entity, snapshot, targetTime)
+				ApplyFunctionMode(entity, mode, primaryPart, snapshot, targetCFrame, targetTime, velocityMode)
 			else
-				-- Noted here that we encountered weird behavior with bulkmoveto on R6 rigs that had head as primary part
-				-- SEE in ROSS https://discord.com/channels/385151591524597761/1406041519747764374/1408085390618919104
-				primaryPart.CFrame = targetCFrame
-				MarkRendered(entity, snapshot, targetTime)
+				ApplyCFrameMode(entity, mode, primaryPart, snapshot, targetCFrame, targetTime, velocityMode)
 			end
 		end
 	end
@@ -195,9 +259,11 @@ Config._WaitForLock(function()
 			end
 			if entity.mountParentId then
 				AlignDriver.Clear(entity)
+				ClearVelocity(entity)
 				continue
 			end
 			if entity.paused then
+				ClearVelocity(entity)
 				continue
 			end
 			total += 1
@@ -211,21 +277,26 @@ Config._WaitForLock(function()
 				if NeedsInterpolation(entity) then
 					Interpolate(entity, mode)
 				end
-			elseif entity._alignDriver then
-				AlignDriver.Clear(entity)
+			else
+				if entity._alignDriver then
+					AlignDriver.Clear(entity)
+				end
+				ClearVelocity(entity)
 			end
 		end
 		if #bulkParts > 0 then
+			debug.profilebegin("BulkMoveTo")
 			workspace:BulkMoveTo(bulkParts, bulkCFrames, Enum.BulkMoveMode.FireCFrameChanged)
 			table.clear(bulkParts)
 			table.clear(bulkCFrames)
+			debug.profileend()
 		end
 		debug.profileend()
 		const endTime = os.clock()
 		debug.profilebegin("Update Entity Stats")
 		UpdateEntityStats()
 		debug.profileend()
-		debug.profilebegin("Apply Velocities")
+		debug.profilebegin("[AlignDriver] Apply Velocities")
 		AlignDriver.ApplyVelocities()
 		debug.profileend()
 		TotalInterpolationTime += (endTime - startTime)

@@ -97,7 +97,23 @@ export type MODEL_REPLICATION_MODE = "NATIVE" | "NATIVE_WITH_LOCK" | "CUSTOM"
 
 export type INTERPOLATION_MODE = "CFRAME" | "ALIGN" | "BULK" | "NONE"
 
-export type InterpolationModeFunction = (entity: Entity, part: BasePart, cframe: CFrame, renderTime: number) -> boolean?
+export type ESTIMATE_VELOCITY = "NONE" | "LINEAR" | "ANGULAR" | "BOTH"
+
+export type VelocityState = {
+	cframe: CFrame,
+	time: number,
+	linear: Vector3,
+	angular: Vector3,
+}
+
+export type InterpolationModeFunction = (
+	entity: Entity,
+	part: BasePart,
+	cframe: CFrame,
+	renderTime: number,
+	linearVelocity: Vector3?, -- set when ESTIMATE_VELOCITY isn't NONE
+	angularVelocity: Vector3? -- set when ESTIMATE_VELOCITY isn't NONE
+) -> boolean?
 
 export type InterpolationFunction = (
 	from: CFrame,
@@ -115,8 +131,8 @@ export type AlignDriver = {
 	alignPosition: AlignPosition,
 	alignOrientation: AlignOrientation,
 	velocity: Vector3?,
-	lastPosition: Vector3?,
-	lastTime: number?,
+	angularVelocity: Vector3?,
+	velocityMode: ESTIMATE_VELOCITY?, -- ESTIMATE_VELOCITY, nil when off
 }
 
 export type EntityConfig = {
@@ -140,6 +156,7 @@ export type EntityConfig = {
 	ASSEMBLY_ROOT_PART_CHECK: boolean?,
 	INTERPOLATION_MODE: (INTERPOLATION_MODE | InterpolationModeFunction)?, -- defaults to DEFAULT_INTERPOLATION_MODE
 	INTERPOLATION_FUNCTION: InterpolationFunction?, -- nil uses Hermite position + CFrame:Lerp rotation
+	ESTIMATE_VELOCITY: ESTIMATE_VELOCITY?, -- defaults to "NONE"
 	UpdateBuffer: (self: EntityConfig, buffer: number) -> ()?,
 }
 
@@ -158,6 +175,7 @@ export type EntityConfigInput = {
 	CUSTOM_INTERPOLATION: boolean?,
 	INTERPOLATION_MODE: (INTERPOLATION_MODE | InterpolationModeFunction)?, -- "CFRAME" sets CFrame directly, "BULK" batches it with BulkMoveTo, "ALIGN" drives AlignPosition/AlignOrientation, or a function
 	INTERPOLATION_FUNCTION: InterpolationFunction?, -- Interpolates between two snapshots.
+	ESTIMATE_VELOCITY: ESTIMATE_VELOCITY?, 
 	-- Might consider giving a config level replication rules instead of just entity
 }
 
@@ -289,6 +307,7 @@ export type Entity = {
 	interpolation: boolean,
 	_interpolationMode: INTERPOLATION_MODE?,
 	_alignDriver: AlignDriver?,
+	_velocity: VelocityState?, -- velocity estimate (ESTIMATE_VELOCITY and ALIGN)
 	_clockBuffer: number?, -- per entity buffer override from SetClockBuffer
 	_clientClock: ClientClock?, -- own clock for player owned or custom buffered entities
 	_ownerChangedAt: number?, -- time when owner changed

@@ -188,6 +188,7 @@ Register your own with `Config.RegisterEntityType(name, settings)` before starti
 | `STORE_SNAPSHOTS` | `false` | Keep snapshot history on the server for server-owned entities, for [lag compensation](../guides/lag-compensation.md). Client-owned entities always keep it. |
 | `CUSTOM_INTERPOLATION` | `false` | Disable Chrono's interpolation for this type. Prefer `INTERPOLATION_MODE = "NONE"` for runtime control. |
 | `ASSEMBLY_ROOT_PART_CHECK` | `false` | Skip client interpolation while the primary part isn't the assembly root, such as when welded to another entity. |
+| `ESTIMATE_VELOCITY` | `NONE` | `NONE`, `LINEAR`, `ANGULAR` or `BOTH`. Give interpolated entities a velocity that follows their motion. See [Estimated velocity](#estimated-velocity). |
 
 !!! warning "Registering a type replaces it"
     `RegisterEntityType` replaces the whole type. Include every field you want to keep, including `TICK_RATE` and any distance overrides. To add full rotation to `PLAYER`:
@@ -321,9 +322,35 @@ end,
 
 If the function errors, Chrono warns and keeps calling it every frame, while other entities keep moving.
 
+With [`ESTIMATE_VELOCITY`](#estimated-velocity) set to anything but `NONE`, the function also gets both estimated velocities as `linearVelocity` and `angularVelocity` (nil when it's off). Chrono doesn't write them to the part in this mode, so apply them yourself if you want them:
+
+```lua
+INTERPOLATION_MODE = function(entity, part, cframe, renderTime, linearVelocity, angularVelocity)
+	part.CFrame = cframe
+	part.AssemblyLinearVelocity = linearVelocity or Vector3.zero
+	return true
+end,
+```
+
 !!! warning
     Don't yield in the function. If you want to delay, create a new coroutine using `task.spawn` or `coroutine.wrap` The function runs every frame, so yielding will stall other entities.
 
+
+### Estimated velocity
+
+On clients that don't own an entity, `AssemblyLinearVelocity` and `AssemblyAngularVelocity` read zero while Chrono interpolates it. 
+`ESTIMATE_VELOCITY` makes the client write a estimated velocity onto the primary part each frame.
+
+```lua
+chrono.Config.RegisterEntityType("PLAYER", {
+	TICK_RATE = 1 / 20,
+	BUFFER = 0,
+	MODEL_REPLICATION_MODE = "NATIVE_WITH_LOCK",
+	HALF_TICK_DISTANCE = math.huge,
+	ASSEMBLY_ROOT_PART_CHECK = true,
+	ESTIMATE_VELOCITY = "BOTH", -- or "LINEAR" / "ANGULAR" / "NONE"
+})
+```
 
 ### Interpolation function
 

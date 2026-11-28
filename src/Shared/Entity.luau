@@ -12,6 +12,7 @@ const Signal = require(script.Parent.Signal)
 const Events = require(script.Parent.Events)
 const ModelHelper = require(script.Parent.ModelHelper)
 const AlignDriver = require(script.Parent.Parent.Client.AlignDriver)
+const Velocity = require(script.Parent.Parent.Client.Velocity)
 const Warn = require(script.Parent.Warn)
 const HumanoidState = require(script.Parent.HumanoidState)
 const CFrameLock = require(script.Parent.CFrameLock)
@@ -214,6 +215,7 @@ const function CheckNetworkOwner(self: Entity, prev: Player?)
 		end
 	else
 		if self.isContextOwner then
+			Velocity.Clear(self, GetPart(self))
 			AlignDriver.Clear(self)
 		end
 		const locked = self._lockedCFReplication
@@ -529,6 +531,7 @@ function Entity.Destroy(self: Entity)
 
 	HumanoidState.Stop(self)
 
+	Velocity.Clear(self, GetPart(self))
 	AlignDriver.Clear(self)
 
 	if not IS_SERVER then
@@ -925,6 +928,7 @@ function Entity.SetConfig(self: Entity, entityConfig: string)
 		end
 		return
 	end
+	Velocity.Clear(self, GetPart(self))
 	UpdateClientAnchor(self)
 	const clientClock = self._clientClock
 	if clientClock then
@@ -989,6 +993,7 @@ function Entity.SetInterpolationMode(self: Entity, mode: Types.INTERPOLATION_MOD
 	RegisterChange(self, "_interpolationMode", mode)
 	self._renderedVersion = nil
 
+	Velocity.Clear(self, GetPart(self))
 	if mode == "ALIGN" then
 		HumanoidState.Refresh(self, true)
 	else

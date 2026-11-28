@@ -5,11 +5,12 @@ export type AlignDriver = {
 	alignPosition: AlignPosition,
 	alignOrientation: AlignOrientation,
 	velocity: Vector3?,
-	lastPosition: Vector3?,
-	lastTime: number?,
+	angularVelocity: Vector3?,
+	velocityMode: Types.ESTIMATE_VELOCITY?, -- ESTIMATE_VELOCITY, nil when off
 }
 
 const Types = require(script.Parent.Parent.Shared.Types)
+const Velocity = require(script.Parent.Velocity)
 
 const CONTAINER_NAME = "__CHRONO_ALIGN"
 const DRIVER_PART_NAME = "__CHRONO_ALIGN_PART"
@@ -17,8 +18,6 @@ const DRIVER_PART_NAME = "__CHRONO_ALIGN_PART"
 const ROOT_PRIORITY = 127
 
 const MAX_RESPONSIVENESS = 200
-
-const MAX_SPEED = 1000
 
 local velocityUpdates: { AlignDriver } = {}
 const AlignDriver = {}
@@ -116,28 +115,41 @@ const function Destroy(driver: AlignDriver)
 	end
 
 	driver.part.AssemblyLinearVelocity = Vector3.zero
+	driver.part.AssemblyAngularVelocity = Vector3.zero
 end
 
--- Mimics roblox's replication for velocity
-const function UpdateVelocity(driver: AlignDriver, position: Vector3, renderTime: number)
-	const lastTime = driver.lastTime
-	const lastPosition = driver.lastPosition
-	if lastTime and lastPosition and renderTime > lastTime and renderTime - lastTime < 0.5 then
-		const velocity = (position - lastPosition) / (renderTime - lastTime)
-		if vector.magnitude(velocity :: any) < MAX_SPEED then
-			driver.velocity = velocity
-			table.insert(velocityUpdates, driver)
-		end
+
+const function UpdateVelocity(
+	entity: Types.Entity,
+	driver: AlignDriver,
+	cframe: CFrame,
+	renderTime: number,
+	mode: Types.ESTIMATE_VELOCITY?
+)
+	driver.velocityMode = mode
+	if not mode then
+		return
 	end
-	driver.lastPosition = position
-	driver.lastTime = renderTime
+	const linear, angular, valid = Velocity.Estimate(entity, cframe, renderTime, mode ~= "LINEAR")
+	if valid then
+		driver.velocity = linear
+		driver.angularVelocity = angular
+		table.insert(velocityUpdates, driver)
+	end
 end
 
-const function Step(entity: Types.Entity, part: BasePart, cframe: CFrame, renderTime: number)
+const function Step(
+	entity: Types.Entity,
+	part: BasePart,
+	cframe: CFrame,
+	renderTime: number,
+	velocityMode: Types.ESTIMATE_VELOCITY?
+)
 	local existing = entity._alignDriver
 	if existing and existing.part ~= part then
 		Destroy(existing)
 		existing = nil
+		entity._velocity = nil
 	end
 	if not existing then
 		part.CFrame = cframe
@@ -145,7 +157,7 @@ const function Step(entity: Types.Entity, part: BasePart, cframe: CFrame, render
 	const driver = existing or Create(part)
 	entity._alignDriver = driver
 	Update(driver, cframe)
-	UpdateVelocity(driver, cframe.Position, renderTime)
+	UpdateVelocity(entity, driver, cframe, renderTime, velocityMode)
 end
 
 const function Clear(entity: Types.Entity)
@@ -153,13 +165,20 @@ const function Clear(entity: Types.Entity)
 	if driver then
 		Destroy(driver)
 		entity._alignDriver = nil
+		entity._velocity = nil
 	end
 end
 
 const function ApplyVelocities()
 	for _, driver in velocityUpdates do
-		if driver.velocity and driver.container.Parent then
-			driver.part.AssemblyLinearVelocity = driver.velocity
+		const mode = driver.velocityMode
+		if mode and driver.container.Parent then
+			if mode ~= "ANGULAR" and driver.velocity then
+				driver.part.AssemblyLinearVelocity = driver.velocity
+			end
+			if mode ~= "LINEAR" and driver.angularVelocity then
+				driver.part.AssemblyAngularVelocity = driver.angularVelocity
+			end
 		end
 	end
 	velocityUpdates = {}
